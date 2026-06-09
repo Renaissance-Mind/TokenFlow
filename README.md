@@ -19,10 +19,11 @@ From this repository before npm publication:
 
 ```bash
 npm install
-npm run build
 npm install -g .
 tokenusage init --server-url https://usage.example.com
 ```
+
+`npm install -g .` runs the package `prepare` script, so the CLI is compiled before npm links `dist/cli.js`.
 
 If you want the auto-sync job to run this local checkout before publishing to npm, pin the scheduler command explicitly:
 
