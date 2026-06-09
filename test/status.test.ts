@@ -120,4 +120,35 @@ describe("status output", () => {
 
     expect(output).toContain("Unpriced buckets: 2");
   });
+
+  it("lists unpriced models by bucket count and token total", () => {
+    const output = formatStatus({
+      configPath: "/home/user/.tokenusage/config.json",
+      serverUrl: "https://usage.example.com",
+      hasDeviceToken: false,
+      localEvents: 7,
+      localBuckets: 4,
+      unpricedBuckets: 2,
+      unpricedModels: [
+        {
+          agent: "codex",
+          model: "gpt-5.3-codex-spark",
+          buckets: 9,
+          totalTokens: 259_983_759,
+        },
+        {
+          agent: "codex",
+          model: "unknown",
+          buckets: 2,
+          totalTokens: 96_211_765,
+        },
+      ],
+      sources: [],
+      home: "/home/user/.tokenusage",
+    });
+
+    expect(output).toContain("Unpriced models:");
+    expect(output).toContain("  codex/gpt-5.3-codex-spark: 9 buckets, 259983759 tokens");
+    expect(output).toContain("  codex/unknown: 2 buckets, 96211765 tokens");
+  });
 });

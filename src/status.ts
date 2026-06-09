@@ -1,4 +1,5 @@
 import type { SourceStatus } from "./file-scan.js";
+import type { AgentSource } from "./types.js";
 
 export interface RemoteDeviceStatus {
   linked: true;
@@ -37,11 +38,19 @@ export interface StatusReport {
   localEvents: number;
   localBuckets: number;
   unpricedBuckets?: number;
+  unpricedModels?: UnpricedModelStatus[];
   sources: SourceStatus[];
   home: string;
   remote?: RemoteDeviceStatus;
   remoteApiToken?: RemoteApiTokenStatus;
   remoteError?: string;
+}
+
+export interface UnpricedModelStatus {
+  agent: AgentSource;
+  model: string;
+  buckets: number;
+  totalTokens: number;
 }
 
 export function formatStatus(report: StatusReport): string {
@@ -56,12 +65,21 @@ export function formatStatus(report: StatusReport): string {
     `Local events: ${report.localEvents}`,
     `Local buckets: ${report.localBuckets}`,
     ...(report.unpricedBuckets ? [`Unpriced buckets: ${report.unpricedBuckets}`] : []),
+    ...unpricedModelLines(report.unpricedModels),
     ...report.sources.map(
       (source) => `Source ${source.agent}: ${source.exists ? "found" : "missing"} (${source.files} files) ${source.path}`,
     ),
     `Home: ${report.home}`,
     "",
   ].join("\n");
+}
+
+function unpricedModelLines(models: UnpricedModelStatus[] | undefined): string[] {
+  if (!models?.length) return [];
+  return [
+    "Unpriced models:",
+    ...models.map((model) => `  ${model.agent}/${model.model}: ${model.buckets} buckets, ${model.totalTokens} tokens`),
+  ];
 }
 
 function tokenStatus(report: StatusReport): string {

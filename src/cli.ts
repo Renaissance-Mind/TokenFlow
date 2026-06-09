@@ -22,7 +22,8 @@ import {
 } from "./config.js";
 import { collectLocalUsage } from "./file-scan.js";
 import { installAutoSync } from "./scheduler.js";
-import { formatStatus } from "./status.js";
+import { formatStatus, type UnpricedModelStatus } from "./status.js";
+import type { UsageBucket } from "./types.js";
 import { resolveUpdatePackageSpec } from "./update.js";
 import { aggregateEvents } from "./usage-buckets.js";
 
@@ -168,6 +169,7 @@ async function cmdStatus(): Promise<void> {
       localEvents: collection.events.length,
       localBuckets: buckets.length,
       unpricedBuckets: countUnpricedBuckets(buckets),
+      unpricedModels: summarizeUnpricedModels(buckets),
       sources: collection.sources,
       home: tokenUsageDir(),
       ...remoteReport,
@@ -280,6 +282,24 @@ function printHelp(): void {
 
 function countUnpricedBuckets(buckets: Array<{ pricingStatus?: string }>): number {
   return buckets.filter((bucket) => bucket.pricingStatus === "unpriced").length;
+}
+
+function summarizeUnpricedModels(buckets: UsageBucket[]): UnpricedModelStatus[] {
+  const models = new Map<string, UnpricedModelStatus>();
+  for (const bucket of buckets) {
+    if (bucket.pricingStatus !== "unpriced") continue;
+    const key = `${bucket.agent}\t${bucket.model}`;
+    const existing = models.get(key) || {
+      agent: bucket.agent,
+      model: bucket.model,
+      buckets: 0,
+      totalTokens: 0,
+    };
+    existing.buckets += 1;
+    existing.totalTokens += bucket.totalTokens;
+    models.set(key, existing);
+  }
+  return Array.from(models.values()).sort((a, b) => b.totalTokens - a.totalTokens);
 }
 
 main(process.argv.slice(2)).catch((error: unknown) => {
