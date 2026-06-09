@@ -17,7 +17,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "docs/i18n"
   ],
   "publishConfig": {
     "access": "public"
