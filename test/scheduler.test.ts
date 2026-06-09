@@ -10,7 +10,7 @@ describe("auto-sync scheduler command", () => {
         env: {},
       }),
     ).toBe(
-      "TOKENUSAGE_SERVER_URL='https://usage.example.com' npx --yes @renaissancemind/tokenusage@latest sync --auto",
+      "PATH='/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin' TOKENUSAGE_SERVER_URL='https://usage.example.com' npx --yes @renaissancemind/tokenusage@latest sync --auto",
     );
   });
 
@@ -24,7 +24,17 @@ describe("auto-sync scheduler command", () => {
         },
       }),
     ).toBe(
-      "TOKENUSAGE_SERVER_URL='http://127.0.0.1:8787' node /Users/chunqiu/Documents/workspace/TokenUsage/dist/cli.js sync --auto",
+      "PATH='/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin' TOKENUSAGE_SERVER_URL='http://127.0.0.1:8787' node /Users/chunqiu/Documents/workspace/TokenUsage/dist/cli.js sync --auto",
+    );
+  });
+
+  it("adds Homebrew paths for launchd's minimal environment", () => {
+    expect(
+      buildSyncCommand("https://usage.example.com", {
+        env: { PATH: "/usr/bin:/bin:/usr/sbin:/sbin" },
+      }),
+    ).toBe(
+      "PATH='/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin:/usr/local/bin' TOKENUSAGE_SERVER_URL='https://usage.example.com' npx --yes @renaissancemind/tokenusage@latest sync --auto",
     );
   });
 });

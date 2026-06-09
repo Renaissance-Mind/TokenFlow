@@ -93,7 +93,28 @@ export function buildSyncCommand(
   const env = options.env || process.env;
   const override = env.TOKENUSAGE_AUTO_SYNC_COMMAND?.trim();
   const command = override || "npx --yes @renaissancemind/tokenusage@latest sync --auto";
-  return `TOKENUSAGE_SERVER_URL=${shellQuote(serverUrl)} ${command}`;
+  return `PATH=${shellQuote(schedulerPath(env))} TOKENUSAGE_SERVER_URL=${shellQuote(serverUrl)} ${command}`;
+}
+
+function schedulerPath(env: Record<string, string | undefined>): string {
+  const entries = [
+    ...(env.PATH?.trim() ? env.PATH.split(":") : []),
+    "/opt/homebrew/bin",
+    "/usr/local/bin",
+    "/usr/bin",
+    "/bin",
+    "/usr/sbin",
+    "/sbin",
+  ];
+  const seen = new Set<string>();
+  return entries
+    .map((entry) => entry.trim())
+    .filter((entry) => {
+      if (!entry || seen.has(entry)) return false;
+      seen.add(entry);
+      return true;
+    })
+    .join(":");
 }
 
 function shellQuote(value: string): string {
