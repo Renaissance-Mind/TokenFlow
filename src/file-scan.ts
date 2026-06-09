@@ -1,11 +1,16 @@
+import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { promisify } from "node:util";
 
 import { parseClaudeJsonl } from "./sources/claude.js";
 import { parseCodexJsonl } from "./sources/codex.js";
 import { parseGeminiSession } from "./sources/gemini.js";
+import { parseOpenCodeMessageRow, type OpenCodeMessageRow } from "./sources/opencode.js";
 import type { UsageEvent } from "./types.js";
+
+const execFileAsync = promisify(execFile);
 
 export interface SourceStatus {
   agent: string;
@@ -23,6 +28,7 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
   const codexHome = process.env.CODEX_HOME || path.join(home, ".codex");
   const claudeHome = process.env.CLAUDE_HOME || path.join(home, ".claude");
   const geminiHome = process.env.GEMINI_HOME || path.join(home, ".gemini");
+  const opencodeDbPath = resolveOpenCodeDbPath(home);
 
   const codexFiles = [
     ...(await listFiles(path.join(codexHome, "sessions"), (file) =>
@@ -49,6 +55,10 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
     const raw = await fs.readFile(file, "utf8");
     events.push(...parseGeminiSession(raw, { sourcePath: file }));
   }
+  const opencodeDbExists = await exists(opencodeDbPath);
+  if (opencodeDbExists) {
+    events.push(...(await readOpenCodeEvents(opencodeDbPath)));
+  }
 
   return {
     events,
@@ -71,8 +81,59 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
         files: geminiFiles.length,
         exists: await exists(path.join(geminiHome, "tmp")),
       },
+      {
+        agent: "opencode",
+        path: opencodeDbPath,
+        files: opencodeDbExists ? 1 : 0,
+        exists: opencodeDbExists,
+      },
     ],
   };
+}
+
+function resolveOpenCodeDbPath(home: string): string {
+  const explicitDb = process.env.OPENCODE_DB?.trim();
+  if (explicitDb) {
+    if (path.isAbsolute(explicitDb)) return explicitDb;
+    return path.join(resolveOpenCodeDataDir(home), explicitDb);
+  }
+  return path.join(resolveOpenCodeDataDir(home), "opencode.db");
+}
+
+function resolveOpenCodeDataDir(home: string): string {
+  const explicitHome = process.env.OPENCODE_HOME?.trim();
+  if (explicitHome) return explicitHome;
+  const xdgDataHome = process.env.XDG_DATA_HOME?.trim();
+  if (xdgDataHome) return path.join(xdgDataHome, "opencode");
+  return path.join(home, ".local", "share", "opencode");
+}
+
+async function readOpenCodeEvents(dbPath: string): Promise<UsageEvent[]> {
+  const { stdout } = await execFileAsync("sqlite3", ["-readonly", dbPath, openCodeMessageQuery()], {
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  const events: UsageEvent[] = [];
+  for (const line of String(stdout).split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const row = JSON.parse(trimmed) as OpenCodeMessageRow;
+    const event = parseOpenCodeMessageRow(row, dbPath);
+    if (event) events.push(event);
+  }
+  return events;
+}
+
+function openCodeMessageQuery(): string {
+  return [
+    "SELECT json_object(",
+    "'id', m.id,",
+    "'session_id', m.session_id,",
+    "'time_created', m.time_created,",
+    "'data', m.data",
+    ")",
+    "FROM message m",
+    "ORDER BY m.time_created ASC;",
+  ].join(" ");
 }
 
 async function listFiles(

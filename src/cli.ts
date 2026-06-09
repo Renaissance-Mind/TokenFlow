@@ -203,7 +203,7 @@ function printHelp(): void {
       "  tokenusage update [--source tokenusage@latest|/path/to/TokenUsage]",
       "  tokenusage logout",
       "",
-      "Supported local agents: Codex, Claude Code, Gemini CLI.",
+      "Supported local agents: Codex, Claude Code, Gemini CLI, OpenCode.",
       "Default server URL for local development: http://127.0.0.1:8787",
       "",
     ].join("\n"),
