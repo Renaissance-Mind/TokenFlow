@@ -1,114 +1,232 @@
 # TokenUsage
 
-Installable local collector for TokenUsage. It scans local AI-agent session logs, aggregates token usage into UTC daily buckets split by agent and model, and uploads only counts/cost metadata to TokenUsage_Server.
+> Private, local-first token accounting for the AI agents you actually use.
 
-## Supported Agents
+![npm](https://img.shields.io/npm/v/%40renaissancemind%2Ftokenusage?label=npm)
+![Node.js](https://img.shields.io/badge/node-%3E%3D20-339933)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6)
+![Privacy](https://img.shields.io/badge/privacy-metadata%20only-6A5ACD)
 
-- Codex: `~/.codex/sessions/**/rollout-*.jsonl`
-- Claude Code: `~/.claude/projects/**/*.jsonl`
-- Gemini CLI: `~/.gemini/tmp/**/chats/session-*.json`
-- OpenCode: `~/.local/share/opencode/opencode.db`
-- cc-switch: `~/.cc-switch/cc-switch.db` model pricing, and `proxy_request_logs` usage when `CC_SWITCH_DB` is set explicitly
+[Features](#features) - [Install](#install) - [Quick Start](#quick-start) - [Commands](#commands) - [Configuration](#configuration) - [Development](#development)
 
-Prompts and responses are not uploaded.
+TokenUsage is an installable local collector for multi-device AI-agent usage accounting. It scans local Codex, Claude Code, Gemini CLI, OpenCode, and cc-switch usage data, aggregates token counts into UTC daily buckets by agent and model, calculates known costs, and uploads only usage metadata to a TokenUsage server.
 
-OpenCode support reads the local SQLite database and requires `sqlite3` on `PATH`.
+Prompts and responses stay on your machine. Uploaded payloads contain counts, model names, bucket timestamps, pricing status, and optional device metadata.
 
-cc-switch support also requires `sqlite3` on `PATH`. TokenUsage reads `model_pricing` from the default cc-switch database when present so local pricing follows cc-switch. To avoid double-counting alongside native Codex/Claude/Gemini logs, cc-switch `proxy_request_logs` usage is imported only when you set `CC_SWITCH_DB=/path/to/cc-switch.db`.
+## Preview
 
-## Install and Link
+```bash
+$ tokenusage status
+TokenUsage status
+Config: /Users/alice/.tokenusage/config.json
+Server: https://tokenusage.renaissancemind.ai
+Device: dev_...
+Token: set (device)
+Remote: linked
+Local events: 1842
+Local buckets: 37
+Source codex: found (219 files) /Users/alice/.codex/sessions
+Source claude: found (64 files) /Users/alice/.claude/projects
+Source gemini: missing (0 files) /Users/alice/.gemini/tmp
+Source opencode: found (1 files) /Users/alice/.local/share/opencode/opencode.db
+Home: /Users/alice/.tokenusage
+```
 
-For normal users, install the published CLI and log in to the hosted Server:
+## Features
+
+- 🔐 **Local-first collection** - reads agent logs locally and uploads metadata only.
+- 🤖 **Multi-agent support** - Codex, Claude Code, Gemini CLI, OpenCode, and cc-switch.
+- 📊 **Daily UTC buckets** - aggregates usage by day, agent, and model for stable dashboards.
+- 💸 **Cost-aware accounting** - separates fresh input, cached input, cache creation, output, and reasoning output tokens.
+- 🧾 **Unpriced model visibility** - unknown models are counted and marked as `unpriced` instead of silently disappearing.
+- 🔁 **Automatic sync** - installs a 10-minute macOS `launchd` or Linux systemd user timer.
+- 🔑 **Device login or API key upload** - supports browser device linking and `read_write` API tokens.
+- 🛠️ **Self-host friendly** - point the CLI at any compatible TokenUsage server URL.
+
+## Supported Sources
+
+| Source | Local data read | Notes |
+| --- | --- | --- |
+| Codex | `~/.codex/sessions/**/rollout-*.jsonl` and archived session JSONL | Parses local rollout token events. |
+| Claude Code | `~/.claude/projects/**/*.jsonl` | Parses project JSONL usage data. |
+| Gemini CLI | `~/.gemini/tmp/**/chats/session-*.json` | Parses Gemini session JSON files. |
+| OpenCode | `~/.local/share/opencode/opencode.db` | Requires `sqlite3` on `PATH`. |
+| cc-switch | `~/.cc-switch/cc-switch.db` | Reads pricing by default; imports `proxy_request_logs` only when `CC_SWITCH_DB` is set. |
+
+TokenUsage intentionally does not upload source file paths, session IDs, prompts, or responses.
+
+## Install
+
+TokenUsage requires Node.js 20 or newer.
 
 ```bash
 npm install -g @renaissancemind/tokenusage
-tokenusage login
-tokenusage status
-tokenusage sync
 ```
 
-`tokenusage login` uses `https://tokenusage.renaissancemind.ai` by default. It starts a device-link flow: the CLI prints a verification URL and code, the user signs in on the Server with GitHub or Google, approves the device, and the CLI stores a device token in `~/.tokenusage/config.json`.
+If you want OpenCode or cc-switch support, make sure `sqlite3` is available:
 
-From this repository before npm publication:
+```bash
+sqlite3 --version
+```
+
+From a local checkout before npm publication:
 
 ```bash
 npm install
 npm install -g .
-tokenusage init --server-url https://tokenusage.renaissancemind.ai
 ```
 
-`npm install -g .` runs the package `prepare` script, so the CLI is compiled before npm links `dist/cli.js`.
+`npm install -g .` runs the package `prepare` script, so the TypeScript CLI is compiled before npm links `dist/cli.js`.
 
-If you want the auto-sync job to run this local checkout before publishing to npm, pin the scheduler command explicitly:
+## Quick Start
+
+### 1. Link this machine
+
+```bash
+tokenusage login
+```
+
+By default, `login` uses `https://tokenusage.renaissancemind.ai`. It prints a verification URL and user code, opens the browser when possible, and stores the approved device token in `~/.tokenusage/config.json`.
+
+To use a self-hosted server:
+
+```bash
+tokenusage login --server-url http://127.0.0.1:8787
+```
+
+### 2. Check what will be scanned
+
+```bash
+tokenusage status
+```
+
+`status` shows local source paths, parsed event counts, bucket counts, unpriced bucket counts, config location, and remote auth status when a token is configured.
+
+### 3. Sync usage
+
+```bash
+tokenusage sync
+```
+
+`sync` scans local logs, aggregates usage, uploads idempotent buckets, records a sync heartbeat, and reports parsed events and uploaded buckets.
+
+### 4. Install automatic sync
+
+```bash
+tokenusage init
+```
+
+`init` writes `~/.tokenusage/config.json`, installs automatic sync every 10 minutes on macOS or Linux, then starts the browser device-link flow unless a token already exists.
+
+## API Token Mode
+
+Browser device linking is convenient for personal machines. For servers, CI-style machines, or scripted installs, use a `read_write` API key from the TokenUsage server dashboard:
+
+```bash
+tokenusage init --server-url https://tokenusage.renaissancemind.ai --api-token tu_api_...
+```
+
+Only `read_write` keys can upload usage. `read_only` keys are for dashboards, API reads, and public heatmap embeds; the CLI rejects read-only keys during `init` and `login`.
+
+## Commands
+
+```bash
+tokenusage init --server-url https://tokenusage.renaissancemind.ai
+tokenusage login --server-url https://tokenusage.renaissancemind.ai
+tokenusage login --server-url https://tokenusage.renaissancemind.ai --api-token tu_api_...
+tokenusage sync
+tokenusage status
+tokenusage update [--source @renaissancemind/tokenusage@latest|/path/to/TokenUsage]
+tokenusage logout
+```
+
+| Command | What it does |
+| --- | --- |
+| `init` | Writes config, installs auto-sync, and optionally starts login. |
+| `login` | Links a browser-approved device token or stores a validated upload API token. |
+| `sync` | Parses local usage, builds UTC daily buckets, uploads them, and updates `lastSyncAt`. |
+| `status` | Prints local config, source availability, bucket counts, auth status, and unpriced models. |
+| `update` | Reinstalls the global package and refreshes the auto-sync scheduler. |
+| `logout` | Removes local upload tokens while keeping non-secret config. |
+
+## Pricing Model
+
+TokenUsage calculates costs locally before upload.
+
+- Built-in pricing covers known Codex, Claude, and Gemini model IDs.
+- cc-switch `model_pricing` can extend or override local pricing when its database exists.
+- Unknown models are still counted and uploaded with `pricing_status: "unpriced"`.
+- Unpriced buckets record cost as `$0.000000` so token totals remain accurate and cost gaps stay visible.
+- For Codex and Gemini, cached input is treated as part of reported input and is separated before cost calculation to avoid double-counting.
+
+## Configuration
+
+Environment overrides:
+
+| Variable | Purpose |
+| --- | --- |
+| `TOKENUSAGE_HOME` | Local state directory. Defaults to `~/.tokenusage`. |
+| `TOKENUSAGE_SERVER_URL` | Default server URL. |
+| `TOKENUSAGE_AUTO_SYNC_COMMAND` | Command written into launchd/systemd. Defaults to `npx --yes @renaissancemind/tokenusage@latest sync --auto`. |
+| `TOKENUSAGE_UPDATE_SOURCE` | Package/source used by `tokenusage update` when `--source` is omitted. |
+| `CODEX_HOME` | Codex config home. Defaults to `~/.codex`. |
+| `CLAUDE_HOME` | Claude config home. Defaults to `~/.claude`. |
+| `GEMINI_HOME` | Gemini config home. Defaults to `~/.gemini`. |
+| `OPENCODE_DB` | Explicit OpenCode SQLite database path. |
+| `OPENCODE_HOME` | OpenCode data home. Defaults to `~/.local/share/opencode`. |
+| `XDG_DATA_HOME` | Used to resolve OpenCode data when `OPENCODE_DB` and `OPENCODE_HOME` are unset. |
+| `CC_SWITCH_DB` | Explicit cc-switch SQLite path. Enables `proxy_request_logs` import and pricing reads. |
+
+### Local checkout in auto-sync
+
+Before publishing to npm, pin the scheduler to this checkout:
 
 ```bash
 TOKENUSAGE_AUTO_SYNC_COMMAND="node /Users/chunqiu/Documents/workspace/TokenUsage/dist/cli.js sync --auto" \
   tokenusage init --server-url https://tokenusage.renaissancemind.ai
 ```
 
-After publishing the package:
+After publishing, the default scheduler command can use npm:
 
 ```bash
 npx --yes @renaissancemind/tokenusage init --server-url https://tokenusage.renaissancemind.ai
 ```
-
-`init` writes `~/.tokenusage/config.json`, installs a 10-minute auto-sync job on macOS launchd or Linux systemd user timers, then opens a browser device-link flow. Sign in on the server with GitHub or Google and approve the device.
-
-If you create a `read_write` API key in the server dashboard, a machine can upload without the browser device-link flow:
-
-```bash
-tokenusage init --server-url https://tokenusage.renaissancemind.ai --api-token tu_api_...
-```
-
-Use only `read_write` keys for uploads. `read_only` keys are for dashboards, API reads, and public heatmap embeds. The CLI validates `--api-token` during `init` and `login` and rejects read-only keys before writing local config.
-
-For local development against the server in `../TokenUsage_Server`:
-
-```bash
-tokenusage init --server-url http://127.0.0.1:8787
-```
-
-## Commands
-
-```bash
-tokenusage login --server-url https://tokenusage.renaissancemind.ai
-tokenusage login --server-url https://tokenusage.renaissancemind.ai --api-token tu_api_...
-tokenusage sync
-tokenusage status
-tokenusage update --source /Users/chunqiu/Documents/workspace/TokenUsage
-tokenusage logout
-```
-
-- `sync` scans local logs, aggregates UTC daily buckets split by agent and model, uploads idempotently, and records a sync heartbeat. It uses a configured `read_write` API key first, otherwise the linked device token. Cached input, cache creation, fresh input, and output tokens remain separate for cost calculation. If a model has no local pricing rule, sync still uploads the usage bucket and reports how many buckets are unpriced.
-- `status` shows local config, verifies the linked device or configured API token with the server, identifies API-token upload mode and scope, and prints source paths, event counts, bucket counts, and unpriced bucket counts.
-- `update` upgrades the global package and refreshes the auto-sync scheduler. Use `--source /path/to/TokenUsage` before npm publication, or omit `--source` after publishing to update from `@renaissancemind/tokenusage@latest`.
-
-## Pricing Coverage
-
-TokenUsage prices buckets only when the local pricing table recognizes the model. Unknown models are still counted and uploaded with `pricing_status: "unpriced"`, but their cost fields are recorded as `$0.000000` until a matching pricing rule is added. This keeps token totals accurate while making undercounted cost totals visible in local `status`, manual `sync`, and the server dashboard/API.
-
-Known priced buckets are uploaded with `pricing_status: "priced"`. The server aggregates both statuses and surfaces the unpriced bucket count so dashboard totals are not mistaken for exact billing when new model names appear before the pricing table is updated.
-
-## Configuration
-
-Environment overrides:
-
-- `TOKENUSAGE_HOME`: local state directory, default `~/.tokenusage`
-- `TOKENUSAGE_SERVER_URL`: default server URL
-- `TOKENUSAGE_AUTO_SYNC_COMMAND`: command written into launchd/systemd for automatic sync, default `npx --yes @renaissancemind/tokenusage@latest sync --auto`
-- `CODEX_HOME`: Codex config home, default `~/.codex`
-- `CLAUDE_HOME`: Claude config home, default `~/.claude`
-- `GEMINI_HOME`: Gemini config home, default `~/.gemini`
-- `OPENCODE_DB`: OpenCode SQLite database path override
-- `OPENCODE_HOME`: OpenCode data home override, default `~/.local/share/opencode`
-- `XDG_DATA_HOME`: used for OpenCode when `OPENCODE_DB` and `OPENCODE_HOME` are unset
-- `CC_SWITCH_DB`: cc-switch SQLite database path. When set, TokenUsage imports cc-switch `proxy_request_logs` usage and `model_pricing`; when unset, only the default `~/.cc-switch/cc-switch.db` pricing table is used if it exists.
 
 ## Development
 
 ```bash
 npm install
 npm test
+npm run typecheck
 npm run build
 node dist/cli.js status
 ```
+
+The source is a small TypeScript CLI:
+
+- `src/cli.ts` - command routing and user-facing behavior.
+- `src/file-scan.ts` - local agent discovery and parsing entrypoint.
+- `src/sources/*` - source-specific parsers.
+- `src/usage-buckets.ts` - UTC bucket aggregation.
+- `src/pricing.ts` - pricing resolution and cost calculation.
+- `src/api.ts` - device flow, token validation, and ingest calls.
+- `src/scheduler.ts` - macOS launchd and Linux systemd timer installation.
+
+## Limitations
+
+- OpenCode and cc-switch database reads require the `sqlite3` CLI.
+- Automatic sync is installed only on macOS and Linux; other platforms can run `tokenusage sync` manually or wire their own scheduler.
+- cc-switch request logs are not imported unless `CC_SWITCH_DB` is set explicitly, which avoids double-counting alongside native Codex, Claude, and Gemini logs.
+- Costs for unknown model IDs are intentionally marked `unpriced` until a pricing rule exists.
+
+## Documentation
+
+This README is the primary user documentation for the CLI. For implementation details, start with the focused tests in `test/` and the TypeScript modules in `src/`.
+
+## Contributing
+
+Issues and pull requests are welcome. Please include a focused test for parser, pricing, scheduler, or command behavior changes.
+
+## License
+
+No license file is currently included in this repository.
