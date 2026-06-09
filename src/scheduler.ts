@@ -5,6 +5,11 @@ import path from "node:path";
 
 import { tokenUsageDir } from "./config.js";
 
+interface SyncCommandOptions {
+  argvPath?: string;
+  env?: Record<string, string | undefined>;
+}
+
 export async function installAutoSync(serverUrl: string, home = os.homedir()): Promise<string> {
   const syncCommand = buildSyncCommand(serverUrl);
   if (process.platform === "darwin") return installLaunchAgent(syncCommand, home);
@@ -81,12 +86,14 @@ WantedBy=timers.target
   return `systemd user timer installed: ${timerPath}`;
 }
 
-function buildSyncCommand(serverUrl: string): string {
-  const argvPath = process.argv[1];
-  if (argvPath) {
-    return `TOKENUSAGE_SERVER_URL=${shellQuote(serverUrl)} ${shellQuote(process.execPath)} ${shellQuote(argvPath)} sync --auto`;
-  }
-  return `TOKENUSAGE_SERVER_URL=${shellQuote(serverUrl)} tokenusage sync --auto`;
+export function buildSyncCommand(
+  serverUrl: string,
+  options: SyncCommandOptions = {},
+): string {
+  const env = options.env || process.env;
+  const override = env.TOKENUSAGE_AUTO_SYNC_COMMAND?.trim();
+  const command = override || "npx --yes tokenusage@latest sync --auto";
+  return `TOKENUSAGE_SERVER_URL=${shellQuote(serverUrl)} ${command}`;
 }
 
 function shellQuote(value: string): string {

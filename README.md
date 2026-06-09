@@ -24,6 +24,13 @@ npm install -g .
 tokenusage init --server-url https://usage.example.com
 ```
 
+If you want the auto-sync job to run this local checkout before publishing to npm, pin the scheduler command explicitly:
+
+```bash
+TOKENUSAGE_AUTO_SYNC_COMMAND="node /Users/chunqiu/Documents/workspace/TokenUsage/dist/cli.js sync --auto" \
+  tokenusage init --server-url https://usage.example.com
+```
+
 After publishing the package:
 
 ```bash
@@ -67,6 +74,7 @@ Environment overrides:
 
 - `TOKENUSAGE_HOME`: local state directory, default `~/.tokenusage`
 - `TOKENUSAGE_SERVER_URL`: default server URL
+- `TOKENUSAGE_AUTO_SYNC_COMMAND`: command written into launchd/systemd for automatic sync, default `npx --yes tokenusage@latest sync --auto`
 - `CODEX_HOME`: Codex config home, default `~/.codex`
 - `CLAUDE_HOME`: Claude config home, default `~/.claude`
 - `GEMINI_HOME`: Gemini config home, default `~/.gemini`
