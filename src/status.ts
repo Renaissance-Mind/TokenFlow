@@ -17,6 +17,16 @@ export interface RemoteDeviceStatus {
   };
 }
 
+export interface RemoteApiTokenStatus {
+  authenticated: true;
+  account: {
+    id: string;
+    email: string | null;
+    name: string | null;
+  };
+  scope: "read_only" | "read_write";
+}
+
 export interface StatusReport {
   configPath: string;
   serverUrl: string;
@@ -30,6 +40,7 @@ export interface StatusReport {
   sources: SourceStatus[];
   home: string;
   remote?: RemoteDeviceStatus;
+  remoteApiToken?: RemoteApiTokenStatus;
   remoteError?: string;
 }
 
@@ -41,7 +52,7 @@ export function formatStatus(report: StatusReport): string {
     `Device: ${report.deviceId || "not linked"}`,
     `Token: ${tokenStatus(report)}`,
     `Last sync: ${report.lastSyncAt || "never"}`,
-    ...remoteLines(report.remote, report.remoteError, Boolean(report.hasApiToken), report.hasDeviceToken),
+    ...remoteLines(report.remote, report.remoteApiToken, report.remoteError, Boolean(report.hasApiToken), report.hasDeviceToken),
     `Local events: ${report.localEvents}`,
     `Local buckets: ${report.localBuckets}`,
     ...(report.unpricedBuckets ? [`Unpriced buckets: ${report.unpricedBuckets}`] : []),
@@ -61,11 +72,20 @@ function tokenStatus(report: StatusReport): string {
 
 function remoteLines(
   remote: RemoteDeviceStatus | undefined,
+  remoteApiToken: RemoteApiTokenStatus | undefined,
   remoteError: string | undefined,
   hasApiToken: boolean,
   hasDeviceToken: boolean,
 ): string[] {
   if (remoteError) return [`Remote: unavailable (${remoteError})`];
+  if (remoteApiToken) {
+    return [
+      "Remote: API token valid",
+      `Remote account: ${remoteApiToken.account.email || remoteApiToken.account.name || remoteApiToken.account.id}`,
+      `Remote API key scope: ${scopeLabel(remoteApiToken.scope)}`,
+      ...(remoteApiToken.scope === "read_only" ? ["Remote API key warning: uploads require read-write"] : []),
+    ];
+  }
   if (hasApiToken && !hasDeviceToken) return ["Remote: API token configured; device status not checked"];
   if (!remote) return ["Remote: not checked"];
   return [
@@ -75,4 +95,8 @@ function remoteLines(
     `Remote last sync: ${remote.device.last_sync_at || "never"}`,
     `Remote server time: ${remote.server_time}`,
   ];
+}
+
+function scopeLabel(scope: "read_only" | "read_write"): string {
+  return scope === "read_write" ? "read-write" : "read-only";
 }

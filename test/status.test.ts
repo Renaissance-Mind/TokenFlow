@@ -80,6 +80,32 @@ describe("status output", () => {
     expect(output).toContain("Remote: API token configured; device status not checked");
   });
 
+  it("shows validated API token account and scope when checked", () => {
+    const output = formatStatus({
+      configPath: "/home/user/.tokenusage/config.json",
+      serverUrl: "https://usage.example.com",
+      hasDeviceToken: false,
+      hasApiToken: true,
+      localEvents: 7,
+      localBuckets: 4,
+      sources: [],
+      home: "/home/user/.tokenusage",
+      remoteApiToken: {
+        authenticated: true,
+        account: {
+          id: "usr_123",
+          email: "user@example.com",
+          name: "Chunqiu",
+        },
+        scope: "read_write",
+      },
+    });
+
+    expect(output).toContain("Remote: API token valid");
+    expect(output).toContain("Remote account: user@example.com");
+    expect(output).toContain("Remote API key scope: read-write");
+  });
+
   it("surfaces unpriced local buckets so cost totals are not mistaken for complete billing", () => {
     const output = formatStatus({
       configPath: "/home/user/.tokenusage/config.json",

@@ -1,5 +1,5 @@
 import { toIngestPayload } from "./ingest-payload.js";
-import type { RemoteDeviceStatus } from "./status.js";
+import type { RemoteApiTokenStatus, RemoteDeviceStatus } from "./status.js";
 import type { UsageBucket } from "./types.js";
 
 export interface DeviceStartResponse {
@@ -83,6 +83,21 @@ export async function getDeviceStatus(serverUrl: string, deviceToken: string): P
   return data as unknown as RemoteDeviceStatus;
 }
 
+export async function getApiTokenStatus(serverUrl: string, apiToken: string): Promise<RemoteApiTokenStatus> {
+  const data = await getJson(`${serverUrl}/api/me`, apiToken);
+  const user = objectField(data.user, "user");
+  const scope = assertApiKeyScope(user.api_key_scope);
+  return {
+    authenticated: true,
+    account: {
+      id: assertString(user.id, "user.id"),
+      email: typeof user.email === "string" && user.email.trim() ? user.email : null,
+      name: typeof user.name === "string" && user.name.trim() ? user.name : null,
+    },
+    scope,
+  };
+}
+
 async function getJson(url: string, bearerToken?: string): Promise<Record<string, unknown>> {
   return requestJson(url, "GET", undefined, bearerToken);
 }
@@ -117,4 +132,14 @@ async function requestJson(
 function assertString(value: unknown, field: string): string {
   if (typeof value !== "string" || !value.trim()) throw new Error(`Missing ${field}`);
   return value;
+}
+
+function objectField(value: unknown, field: string): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`Missing ${field}`);
+  return value as Record<string, unknown>;
+}
+
+function assertApiKeyScope(value: unknown): "read_only" | "read_write" {
+  if (value === "read_only" || value === "read_write") return value;
+  throw new Error("Missing user.api_key_scope");
 }

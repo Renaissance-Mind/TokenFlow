@@ -2,7 +2,7 @@
 import { execFileSync } from "node:child_process";
 import os from "node:os";
 
-import { getDeviceStatus, ingestUsage, pollDeviceFlow, startDeviceFlow, syncPing } from "./api.js";
+import { getApiTokenStatus, getDeviceStatus, ingestUsage, pollDeviceFlow, startDeviceFlow, syncPing } from "./api.js";
 import { tryOpenBrowser } from "./browser.js";
 import {
   configPath,
@@ -141,9 +141,11 @@ async function cmdStatus(): Promise<void> {
   const collection = await collectLocalUsage();
   const buckets = aggregateEvents(collection.events, collection.pricingProfiles);
   const serverUrl = normalizeServerUrl(config?.serverUrl);
-  const remoteReport = config?.deviceToken
-    ? await getRemoteStatusForReport(serverUrl, config.deviceToken)
-    : {};
+  const remoteReport = config?.apiToken
+    ? await getRemoteApiTokenStatusForReport(serverUrl, config.apiToken)
+    : config?.deviceToken
+      ? await getRemoteStatusForReport(serverUrl, config.deviceToken)
+      : {};
   process.stdout.write(
     formatStatus({
       configPath: config ? configPath() : "missing",
@@ -221,6 +223,20 @@ async function getRemoteStatusForReport(
 > {
   try {
     return { remote: await getDeviceStatus(serverUrl, deviceToken) };
+  } catch (error) {
+    return { remoteError: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+async function getRemoteApiTokenStatusForReport(
+  serverUrl: string,
+  apiToken: string,
+): Promise<
+  | { remoteApiToken: Awaited<ReturnType<typeof getApiTokenStatus>>; remoteError?: undefined }
+  | { remoteApiToken?: undefined; remoteError: string }
+> {
+  try {
+    return { remoteApiToken: await getApiTokenStatus(serverUrl, apiToken) };
   } catch (error) {
     return { remoteError: error instanceof Error ? error.message : String(error) };
   }

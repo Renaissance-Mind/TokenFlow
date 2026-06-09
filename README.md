@@ -69,7 +69,7 @@ tokenusage logout
 ```
 
 - `sync` scans local logs, aggregates buckets, uploads idempotently, and records a sync heartbeat. It uses a configured `read_write` API key first, otherwise the linked device token. If a model has no local pricing rule, sync still uploads the usage bucket and reports how many buckets are unpriced.
-- `status` shows local config, verifies the linked device with the server when logged in, identifies API-token upload mode, and prints source paths, event counts, bucket counts, and unpriced bucket counts.
+- `status` shows local config, verifies the linked device or configured API token with the server, identifies API-token upload mode and scope, and prints source paths, event counts, bucket counts, and unpriced bucket counts.
 - `update` upgrades the global package and refreshes the auto-sync scheduler. Use `--source /path/to/TokenUsage` before npm publication, or omit `--source` after publishing to update from `tokenusage@latest`.
 
 ## Pricing Coverage
