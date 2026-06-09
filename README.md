@@ -88,12 +88,18 @@ npm install -g .
 tokenusage login
 ```
 
-By default, `login` uses `https://tokenusage.renaissancemind.ai`. It prints a verification URL and user code, opens the browser when possible, and stores the approved device token in `~/.tokenusage/config.json`.
+By default, `login` uses `https://tokenusage.renaissancemind.ai`. It prints a verification URL and user code, opens the browser when possible, stores the approved device token in `~/.tokenusage/config.json`, then runs one initial `sync`.
 
 To use a self-hosted server:
 
 ```bash
 tokenusage login --server-url http://127.0.0.1:8787
+```
+
+To link the machine without the initial upload:
+
+```bash
+tokenusage login --no-sync
 ```
 
 ### 2. Check what will be scanned
@@ -145,7 +151,7 @@ tokenusage logout
 | Command | What it does |
 | --- | --- |
 | `init` | Writes config, installs auto-sync, and optionally starts login. |
-| `login` | Links a browser-approved device token or stores a validated upload API token. |
+| `login` | Links a browser-approved device token or stores a validated upload API token, then runs an initial sync unless `--no-sync` is set. |
 | `sync` | Parses local usage, builds UTC daily buckets, uploads them, and updates `lastSyncAt`. |
 | `status` | Prints local config, source availability, bucket counts, auth status, and unpriced models. |
 | `update` | Reinstalls the global package and refreshes the auto-sync scheduler. |

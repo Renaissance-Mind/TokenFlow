@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
+import { realpathSync } from "node:fs";
 import os from "node:os";
+import { fileURLToPath } from "node:url";
 
 import {
   getApiTokenStatus,
@@ -29,7 +31,7 @@ import { aggregateEvents } from "./usage-buckets.js";
 
 type Command = "init" | "login" | "sync" | "status" | "update" | "logout" | "help";
 
-async function main(argv: string[]): Promise<void> {
+export async function main(argv: string[]): Promise<void> {
   const [rawCommand = "help", ...rest] = argv;
   const command = normalizeCommand(rawCommand);
 
@@ -65,7 +67,7 @@ async function cmdInit(argv: string[]): Promise<void> {
   process.stdout.write(`TokenUsage configured at ${configPath()}\n`);
   process.stdout.write(`${schedulerStatus}\n`);
   if (!next.deviceToken && !next.apiToken && !options["no-login"]) {
-    await cmdLogin(["--server-url", serverUrl]);
+    await cmdLogin(["--server-url", serverUrl, ...(options["no-sync"] ? ["--no-sync"] : [])]);
   }
 }
 
@@ -84,6 +86,7 @@ async function cmdLogin(argv: string[]): Promise<void> {
       apiToken,
     });
     process.stdout.write("Read-write API token configured for uploads.\n");
+    if (!options["no-sync"]) await runInitialSync(serverUrl);
     return;
   }
   const flow = await startDeviceFlow({
@@ -112,10 +115,16 @@ async function cmdLogin(argv: string[]): Promise<void> {
         deviceId: status.deviceId,
       });
       process.stdout.write(`Device linked: ${status.deviceId}\n`);
+      if (!options["no-sync"]) await runInitialSync(serverUrl);
       return;
     }
   }
   throw new Error("Login timed out before the device was approved");
+}
+
+async function runInitialSync(serverUrl: string): Promise<void> {
+  process.stdout.write("Running initial sync...\n");
+  await cmdSync(["--server-url", serverUrl]);
 }
 
 async function cmdSync(argv: string[]): Promise<void> {
@@ -267,6 +276,7 @@ function printHelp(): void {
       "Usage:",
       "  tokenusage init --server-url https://tokenusage.renaissancemind.ai",
       "  tokenusage login --server-url https://tokenusage.renaissancemind.ai",
+      "  tokenusage login --no-sync",
       "  tokenusage login --server-url https://tokenusage.renaissancemind.ai --api-token tu_api_...",
       "  tokenusage sync",
       "  tokenusage status",
@@ -303,8 +313,16 @@ function summarizeUnpricedModels(buckets: UsageBucket[]): UnpricedModelStatus[] 
   return Array.from(models.values()).sort((a, b) => b.totalTokens - a.totalTokens);
 }
 
-main(process.argv.slice(2)).catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error);
-  process.stderr.write(`${message}\n`);
-  process.exitCode = 1;
-});
+if (isCliEntrypoint()) {
+  main(process.argv.slice(2)).catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`${message}\n`);
+    process.exitCode = 1;
+  });
+}
+
+function isCliEntrypoint(): boolean {
+  const entrypoint = process.argv[1];
+  if (!entrypoint) return false;
+  return realpathSync(entrypoint) === fileURLToPath(import.meta.url);
+}
