@@ -41,13 +41,13 @@ tokenusage init --server-url http://127.0.0.1:8787
 tokenusage login --server-url https://usage.example.com
 tokenusage sync
 tokenusage status
-tokenusage update
+tokenusage update --source /Users/chunqiu/Documents/workspace/TokenUsage
 tokenusage logout
 ```
 
 - `sync` scans local logs, aggregates buckets, uploads idempotently, and records a sync heartbeat.
 - `status` shows local config, linked device status, source paths, event counts, and bucket counts.
-- `update` upgrades the global package and refreshes the auto-sync scheduler.
+- `update` upgrades the global package and refreshes the auto-sync scheduler. Use `--source /path/to/TokenUsage` before npm publication, or omit `--source` after publishing to update from `tokenusage@latest`.
 
 ## Configuration
 

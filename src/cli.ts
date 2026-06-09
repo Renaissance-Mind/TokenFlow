@@ -13,6 +13,7 @@ import {
 } from "./config.js";
 import { collectLocalUsage } from "./file-scan.js";
 import { installAutoSync } from "./scheduler.js";
+import { resolveUpdatePackageSpec } from "./update.js";
 import { aggregateEvents } from "./usage-buckets.js";
 
 type Command = "init" | "login" | "sync" | "status" | "update" | "logout" | "help";
@@ -130,11 +131,12 @@ async function cmdStatus(): Promise<void> {
 
 async function cmdUpdate(argv: string[]): Promise<void> {
   const options = parseOptions(argv);
-  execFileSync("npm", ["install", "-g", "tokenusage@latest"], { stdio: "inherit" });
+  const packageSpec = resolveUpdatePackageSpec(optionString(options, "source"));
+  execFileSync("npm", ["install", "-g", packageSpec], { stdio: "inherit" });
   const config = await readConfig();
   const serverUrl = normalizeServerUrl(optionString(options, "server-url") || config?.serverUrl);
   const schedulerStatus = await installAutoSync(serverUrl);
-  process.stdout.write(`TokenUsage updated.\n${schedulerStatus}\n`);
+  process.stdout.write(`TokenUsage updated from ${packageSpec}.\n${schedulerStatus}\n`);
 }
 
 async function cmdLogout(): Promise<void> {
@@ -198,7 +200,7 @@ function printHelp(): void {
       "  tokenusage login --server-url https://usage.example.com",
       "  tokenusage sync",
       "  tokenusage status",
-      "  tokenusage update",
+      "  tokenusage update [--source tokenusage@latest|/path/to/TokenUsage]",
       "  tokenusage logout",
       "",
       "Supported local agents: Codex, Claude Code, Gemini CLI.",
