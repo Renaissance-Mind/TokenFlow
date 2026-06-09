@@ -2,7 +2,7 @@
 import { execFileSync } from "node:child_process";
 import os from "node:os";
 
-import { ingestUsage, pollDeviceFlow, startDeviceFlow, syncPing } from "./api.js";
+import { getDeviceStatus, ingestUsage, pollDeviceFlow, startDeviceFlow, syncPing } from "./api.js";
 import {
   configPath,
   DEFAULT_SERVER_URL,
@@ -13,6 +13,7 @@ import {
 } from "./config.js";
 import { collectLocalUsage } from "./file-scan.js";
 import { installAutoSync } from "./scheduler.js";
+import { formatStatus } from "./status.js";
 import { resolveUpdatePackageSpec } from "./update.js";
 import { aggregateEvents } from "./usage-buckets.js";
 
@@ -110,22 +111,21 @@ async function cmdStatus(): Promise<void> {
   const config = await readConfig();
   const collection = await collectLocalUsage();
   const buckets = aggregateEvents(collection.events);
+  const serverUrl = normalizeServerUrl(config?.serverUrl);
+  const remote = config?.deviceToken ? await getDeviceStatus(serverUrl, config.deviceToken) : undefined;
   process.stdout.write(
-    [
-      "TokenUsage status",
-      `Config: ${config ? configPath() : "missing"}`,
-      `Server: ${config?.serverUrl || process.env.TOKENUSAGE_SERVER_URL || DEFAULT_SERVER_URL}`,
-      `Device: ${config?.deviceId || "not linked"}`,
-      `Token: ${config?.deviceToken ? "set" : "missing"}`,
-      `Last sync: ${config?.lastSyncAt || "never"}`,
-      `Local events: ${collection.events.length}`,
-      `Local buckets: ${buckets.length}`,
-      ...collection.sources.map(
-        (source) => `Source ${source.agent}: ${source.exists ? "found" : "missing"} (${source.files} files) ${source.path}`,
-      ),
-      `Home: ${tokenUsageDir()}`,
-      "",
-    ].join("\n"),
+    formatStatus({
+      configPath: config ? configPath() : "missing",
+      serverUrl,
+      deviceId: config?.deviceId,
+      hasDeviceToken: Boolean(config?.deviceToken),
+      lastSyncAt: config?.lastSyncAt,
+      localEvents: collection.events.length,
+      localBuckets: buckets.length,
+      sources: collection.sources,
+      home: tokenUsageDir(),
+      remote,
+    }),
   );
 }
 

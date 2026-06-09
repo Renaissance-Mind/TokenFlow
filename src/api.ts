@@ -1,4 +1,5 @@
 import { toIngestPayload } from "./ingest-payload.js";
+import type { RemoteDeviceStatus } from "./status.js";
 import type { UsageBucket } from "./types.js";
 
 export interface DeviceStartResponse {
@@ -61,14 +62,32 @@ export async function syncPing(serverUrl: string, deviceToken: string): Promise<
   await postJson(`${serverUrl}/api/sync-ping`, {}, deviceToken);
 }
 
+export async function getDeviceStatus(serverUrl: string, deviceToken: string): Promise<RemoteDeviceStatus> {
+  const data = await getJson(`${serverUrl}/api/device/status`, deviceToken);
+  return data as unknown as RemoteDeviceStatus;
+}
+
+async function getJson(url: string, bearerToken?: string): Promise<Record<string, unknown>> {
+  return requestJson(url, "GET", undefined, bearerToken);
+}
+
 async function postJson(url: string, body: unknown, bearerToken?: string): Promise<Record<string, unknown>> {
+  return requestJson(url, "POST", body, bearerToken);
+}
+
+async function requestJson(
+  url: string,
+  method: "GET" | "POST",
+  body?: unknown,
+  bearerToken?: string,
+): Promise<Record<string, unknown>> {
   const response = await fetch(url, {
-    method: "POST",
+    method,
     headers: {
       "Content-Type": "application/json",
       ...(bearerToken ? { Authorization: `Bearer ${bearerToken}` } : {}),
     },
-    body: JSON.stringify(body),
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
   const text = await response.text();
   const data = text ? (JSON.parse(text) as Record<string, unknown>) : {};

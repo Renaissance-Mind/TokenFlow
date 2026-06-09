@@ -46,7 +46,7 @@ tokenusage logout
 ```
 
 - `sync` scans local logs, aggregates buckets, uploads idempotently, and records a sync heartbeat.
-- `status` shows local config, linked device status, source paths, event counts, and bucket counts.
+- `status` shows local config, verifies the linked device with the server when logged in, and prints source paths, event counts, and bucket counts.
 - `update` upgrades the global package and refreshes the auto-sync scheduler. Use `--source /path/to/TokenUsage` before npm publication, or omit `--source` after publishing to update from `tokenusage@latest`.
 
 ## Configuration
