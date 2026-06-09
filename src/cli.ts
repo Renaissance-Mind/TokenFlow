@@ -2,7 +2,15 @@
 import { execFileSync } from "node:child_process";
 import os from "node:os";
 
-import { getApiTokenStatus, getDeviceStatus, ingestUsage, pollDeviceFlow, startDeviceFlow, syncPing } from "./api.js";
+import {
+  getApiTokenStatus,
+  getDeviceStatus,
+  getUploadApiTokenStatus,
+  ingestUsage,
+  pollDeviceFlow,
+  startDeviceFlow,
+  syncPing,
+} from "./api.js";
 import { tryOpenBrowser } from "./browser.js";
 import {
   configPath,
@@ -40,11 +48,13 @@ async function cmdInit(argv: string[]): Promise<void> {
   const options = parseOptions(argv);
   const serverUrl = normalizeServerUrl(optionString(options, "server-url"));
   const existing = await readConfig();
+  const apiToken = optionString(options, "api-token");
+  if (apiToken) await getUploadApiTokenStatus(serverUrl, apiToken);
   const next = {
     serverUrl,
     deviceToken: existing?.deviceToken,
     deviceId: existing?.deviceId,
-    apiToken: optionString(options, "api-token") || existing?.apiToken,
+    apiToken: apiToken || existing?.apiToken,
     deviceName: existing?.deviceName || os.hostname(),
     installedAt: existing?.installedAt || new Date().toISOString(),
     lastSyncAt: existing?.lastSyncAt,
@@ -65,6 +75,7 @@ async function cmdLogin(argv: string[]): Promise<void> {
   const deviceName = optionString(options, "device-name") || existing?.deviceName || os.hostname();
   const apiToken = optionString(options, "api-token");
   if (apiToken) {
+    await getUploadApiTokenStatus(serverUrl, apiToken);
     await writeConfig({
       ...(existing || { installedAt: new Date().toISOString() }),
       serverUrl,

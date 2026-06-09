@@ -1,7 +1,7 @@
 import http from "node:http";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { getApiTokenStatus } from "../src/api.js";
+import { getApiTokenStatus, getUploadApiTokenStatus } from "../src/api.js";
 
 let server: http.Server | null = null;
 
@@ -47,5 +47,29 @@ describe("API token remote status", () => {
       },
       scope: "read_write",
     });
+  });
+
+  it("rejects read-only API tokens for upload configuration", async () => {
+    server = http.createServer((_request, response) => {
+      response.setHeader("Content-Type", "application/json");
+      response.end(
+        JSON.stringify({
+          authenticated: true,
+          user: {
+            id: "usr_123",
+            email: "user@example.com",
+            name: "Chunqiu",
+            api_key_scope: "read_only",
+          },
+        }),
+      );
+    });
+    await new Promise<void>((resolve) => server?.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("missing server address");
+
+    await expect(getUploadApiTokenStatus(`http://127.0.0.1:${address.port}`, "tu_api_readonly")).rejects.toThrow(
+      "Read-write API key required for uploads",
+    );
   });
 });

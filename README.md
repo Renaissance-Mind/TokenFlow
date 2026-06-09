@@ -49,7 +49,7 @@ If you create a `read_write` API key in the server dashboard, a machine can uplo
 tokenusage init --server-url https://usage.example.com --api-token tu_api_...
 ```
 
-Use only `read_write` keys for uploads. `read_only` keys are for dashboards, API reads, and public heatmap embeds.
+Use only `read_write` keys for uploads. `read_only` keys are for dashboards, API reads, and public heatmap embeds. The CLI validates `--api-token` during `init` and `login` and rejects read-only keys before writing local config.
 
 For local development against the server in `../TokenUsage_Server`:
 

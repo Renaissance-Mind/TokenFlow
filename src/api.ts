@@ -98,6 +98,14 @@ export async function getApiTokenStatus(serverUrl: string, apiToken: string): Pr
   };
 }
 
+export async function getUploadApiTokenStatus(serverUrl: string, apiToken: string): Promise<RemoteApiTokenStatus> {
+  const status = await getApiTokenStatus(serverUrl, apiToken);
+  if (status.scope !== "read_write") {
+    throw new Error("Read-write API key required for uploads");
+  }
+  return status;
+}
+
 async function getJson(url: string, bearerToken?: string): Promise<Record<string, unknown>> {
   return requestJson(url, "GET", undefined, bearerToken);
 }
