@@ -21,6 +21,7 @@ describe("ingest payload", () => {
           cacheCreationUsd: "0.000000",
           totalUsd: "0.000053",
         },
+        pricingStatus: "unpriced",
       },
     ]);
 
@@ -41,6 +42,7 @@ describe("ingest payload", () => {
           cache_read_cost_usd: "0.000001",
           cache_creation_cost_usd: "0.000000",
           total_cost_usd: "0.000053",
+          pricing_status: "unpriced",
         },
       ],
     });

@@ -18,6 +18,7 @@ export interface IngestPayload {
     cache_read_cost_usd: string;
     cache_creation_cost_usd: string;
     total_cost_usd: string;
+    pricing_status: "priced" | "unpriced";
   }>;
 }
 
@@ -43,6 +44,7 @@ export function toIngestPayload(
       cache_read_cost_usd: bucket.cost.cacheReadUsd,
       cache_creation_cost_usd: bucket.cost.cacheCreationUsd,
       total_cost_usd: bucket.cost.totalUsd,
+      pricing_status: bucket.pricingStatus,
     })),
   };
 }

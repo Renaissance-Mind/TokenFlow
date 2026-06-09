@@ -129,6 +129,10 @@ async function cmdSync(argv: string[]): Promise<void> {
   if (!options.auto) {
     process.stdout.write(`Parsed events: ${collection.events.length}\n`);
     process.stdout.write(`Uploaded buckets: ${buckets.length} (${result.inserted} inserted, ${result.updated} updated)\n`);
+    const unpricedBuckets = countUnpricedBuckets(buckets);
+    if (unpricedBuckets > 0) {
+      process.stdout.write(`Unpriced buckets: ${unpricedBuckets} (cost for these buckets is recorded as $0.000000)\n`);
+    }
   }
 }
 
@@ -150,6 +154,7 @@ async function cmdStatus(): Promise<void> {
       lastSyncAt: config?.lastSyncAt,
       localEvents: collection.events.length,
       localBuckets: buckets.length,
+      unpricedBuckets: countUnpricedBuckets(buckets),
       sources: collection.sources,
       home: tokenUsageDir(),
       ...remoteReport,
@@ -244,6 +249,10 @@ function printHelp(): void {
       "",
     ].join("\n"),
   );
+}
+
+function countUnpricedBuckets(buckets: Array<{ pricingStatus?: string }>): number {
+  return buckets.filter((bucket) => bucket.pricingStatus === "unpriced").length;
 }
 
 main(process.argv.slice(2)).catch((error: unknown) => {

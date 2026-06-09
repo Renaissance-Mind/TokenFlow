@@ -43,4 +43,5 @@ export interface UsageBucket extends UsageTotals {
   model: string;
   bucketStart: string;
   cost: CostBreakdown;
+  pricingStatus: "priced" | "unpriced";
 }

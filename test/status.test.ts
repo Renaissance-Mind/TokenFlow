@@ -79,4 +79,19 @@ describe("status output", () => {
     expect(output).toContain("Token: set (read-write API)");
     expect(output).toContain("Remote: API token configured; device status not checked");
   });
+
+  it("surfaces unpriced local buckets so cost totals are not mistaken for complete billing", () => {
+    const output = formatStatus({
+      configPath: "/home/user/.tokenusage/config.json",
+      serverUrl: "https://usage.example.com",
+      hasDeviceToken: false,
+      localEvents: 7,
+      localBuckets: 4,
+      unpricedBuckets: 2,
+      sources: [],
+      home: "/home/user/.tokenusage",
+    });
+
+    expect(output).toContain("Unpriced buckets: 2");
+  });
 });

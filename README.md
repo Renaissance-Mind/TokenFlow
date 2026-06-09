@@ -64,9 +64,15 @@ tokenusage update --source /Users/chunqiu/Documents/workspace/TokenUsage
 tokenusage logout
 ```
 
-- `sync` scans local logs, aggregates buckets, uploads idempotently, and records a sync heartbeat. It uses a configured `read_write` API key first, otherwise the linked device token.
-- `status` shows local config, verifies the linked device with the server when logged in, identifies API-token upload mode, and prints source paths, event counts, and bucket counts.
+- `sync` scans local logs, aggregates buckets, uploads idempotently, and records a sync heartbeat. It uses a configured `read_write` API key first, otherwise the linked device token. If a model has no local pricing rule, sync still uploads the usage bucket and reports how many buckets are unpriced.
+- `status` shows local config, verifies the linked device with the server when logged in, identifies API-token upload mode, and prints source paths, event counts, bucket counts, and unpriced bucket counts.
 - `update` upgrades the global package and refreshes the auto-sync scheduler. Use `--source /path/to/TokenUsage` before npm publication, or omit `--source` after publishing to update from `tokenusage@latest`.
+
+## Pricing Coverage
+
+TokenUsage prices buckets only when the local pricing table recognizes the model. Unknown models are still counted and uploaded with `pricing_status: "unpriced"`, but their cost fields are recorded as `$0.000000` until a matching pricing rule is added. This keeps token totals accurate while making undercounted cost totals visible in local `status`, manual `sync`, and the server dashboard/API.
+
+Known priced buckets are uploaded with `pricing_status: "priced"`. The server aggregates both statuses and surfaces the unpriced bucket count so dashboard totals are not mistaken for exact billing when new model names appear before the pricing table is updated.
 
 ## Configuration
 

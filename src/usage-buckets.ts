@@ -27,10 +27,13 @@ export function aggregateEvents(events: UsageEvent[]): UsageBucket[] {
         cacheCreationTokens: 0,
         totalTokens: 0,
         cost: ZERO_COST,
+        pricingStatus: "unpriced",
       } satisfies UsageBucket);
 
     addTotals(bucket, event);
-    bucket.cost = calculateBucketCost(bucket);
+    const pricing = calculateBucketCost(bucket);
+    bucket.cost = pricing.cost;
+    bucket.pricingStatus = pricing.status;
     buckets.set(key, bucket);
   }
 
@@ -39,10 +42,10 @@ export function aggregateEvents(events: UsageEvent[]): UsageBucket[] {
   );
 }
 
-function calculateBucketCost(bucket: UsageBucket): CostBreakdown {
+function calculateBucketCost(bucket: UsageBucket): { cost: CostBreakdown; status: "priced" | "unpriced" } {
   const pricing = resolvePricing(bucket.model);
-  if (!pricing) return ZERO_COST;
-  return calculateCost(bucket.agent, bucket, pricing);
+  if (!pricing) return { cost: ZERO_COST, status: "unpriced" };
+  return { cost: calculateCost(bucket.agent, bucket, pricing), status: "priced" };
 }
 
 function addTotals(target: UsageTotals, delta: UsageTotals): void {

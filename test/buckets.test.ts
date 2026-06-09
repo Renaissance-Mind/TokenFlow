@@ -46,5 +46,33 @@ describe("usage buckets", () => {
       totalTokens: 215,
     });
     expect(buckets[0].cost.totalUsd).toMatch(/^\d+\.\d{6}$/);
+    expect(buckets[0].pricingStatus).toBe("priced");
+  });
+
+  it("marks unknown model buckets as unpriced instead of silently treating cost as accurate", () => {
+    const buckets = aggregateEvents([
+      {
+        agent: "codex",
+        model: "unknown-local-model",
+        sessionId: "s1",
+        sourcePath: "/a.jsonl",
+        timestamp: "2026-06-09T01:05:00.000Z",
+        bucketStart: "2026-06-09T01:00:00.000Z",
+        inputTokens: 100,
+        cachedInputTokens: 0,
+        outputTokens: 10,
+        reasoningOutputTokens: 0,
+        cacheCreationTokens: 0,
+        totalTokens: 110,
+      },
+    ]);
+
+    expect(buckets[0]).toMatchObject({
+      model: "unknown-local-model",
+      pricingStatus: "unpriced",
+      cost: {
+        totalUsd: "0.000000",
+      },
+    });
   });
 });

@@ -26,6 +26,7 @@ export interface StatusReport {
   lastSyncAt?: string;
   localEvents: number;
   localBuckets: number;
+  unpricedBuckets?: number;
   sources: SourceStatus[];
   home: string;
   remote?: RemoteDeviceStatus;
@@ -43,6 +44,7 @@ export function formatStatus(report: StatusReport): string {
     ...remoteLines(report.remote, report.remoteError, Boolean(report.hasApiToken), report.hasDeviceToken),
     `Local events: ${report.localEvents}`,
     `Local buckets: ${report.localBuckets}`,
+    ...(report.unpricedBuckets ? [`Unpriced buckets: ${report.unpricedBuckets}`] : []),
     ...report.sources.map(
       (source) => `Source ${source.agent}: ${source.exists ? "found" : "missing"} (${source.files} files) ${source.path}`,
     ),
