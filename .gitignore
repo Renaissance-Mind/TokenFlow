@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.tokenusage/
+*.log
+.DS_Store

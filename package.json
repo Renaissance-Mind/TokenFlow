@@ -1,0 +1,26 @@
+{
+  "name": "tokenusage",
+  "version": "0.1.0",
+  "description": "Local token usage collector for multi-device AI agent accounting.",
+  "type": "module",
+  "bin": {
+    "tokenusage": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.5.4",
+    "vitest": "^1.6.0"
+  }
+}
