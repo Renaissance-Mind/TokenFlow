@@ -8,10 +8,13 @@ Installable local collector for TokenUsage. It scans local AI-agent session logs
 - Claude Code: `~/.claude/projects/**/*.jsonl`
 - Gemini CLI: `~/.gemini/tmp/**/chats/session-*.json`
 - OpenCode: `~/.local/share/opencode/opencode.db`
+- cc-switch: `~/.cc-switch/cc-switch.db` model pricing, and `proxy_request_logs` usage when `CC_SWITCH_DB` is set explicitly
 
 Prompts and responses are not uploaded.
 
 OpenCode support reads the local SQLite database and requires `sqlite3` on `PATH`.
+
+cc-switch support also requires `sqlite3` on `PATH`. TokenUsage reads `model_pricing` from the default cc-switch database when present so local pricing follows cc-switch. To avoid double-counting alongside native Codex/Claude/Gemini logs, cc-switch `proxy_request_logs` usage is imported only when you set `CC_SWITCH_DB=/path/to/cc-switch.db`.
 
 ## Install and Link
 
@@ -88,6 +91,7 @@ Environment overrides:
 - `OPENCODE_DB`: OpenCode SQLite database path override
 - `OPENCODE_HOME`: OpenCode data home override, default `~/.local/share/opencode`
 - `XDG_DATA_HOME`: used for OpenCode when `OPENCODE_DB` and `OPENCODE_HOME` are unset
+- `CC_SWITCH_DB`: cc-switch SQLite database path. When set, TokenUsage imports cc-switch `proxy_request_logs` usage and `model_pricing`; when unset, only the default `~/.cc-switch/cc-switch.db` pricing table is used if it exists.
 
 ## Development
 

@@ -114,7 +114,7 @@ async function cmdSync(argv: string[]): Promise<void> {
   const serverUrl = normalizeServerUrl(optionString(options, "server-url") || config.serverUrl);
   const deviceName = config.deviceName || os.hostname();
   const collection = await collectLocalUsage();
-  const buckets = aggregateEvents(collection.events);
+  const buckets = aggregateEvents(collection.events, collection.pricingProfiles);
   const result = buckets.length > 0
     ? await ingestUsage({
         serverUrl,
@@ -139,7 +139,7 @@ async function cmdSync(argv: string[]): Promise<void> {
 async function cmdStatus(): Promise<void> {
   const config = await readConfig();
   const collection = await collectLocalUsage();
-  const buckets = aggregateEvents(collection.events);
+  const buckets = aggregateEvents(collection.events, collection.pricingProfiles);
   const serverUrl = normalizeServerUrl(config?.serverUrl);
   const remoteReport = config?.deviceToken
     ? await getRemoteStatusForReport(serverUrl, config.deviceToken)

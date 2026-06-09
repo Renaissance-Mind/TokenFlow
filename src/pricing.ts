@@ -77,8 +77,6 @@ export const BUILTIN_PRICING: PricingProfile[] = [
   },
 ];
 
-const PRICING_BY_MODEL = new Map(BUILTIN_PRICING.map((profile) => [profile.modelId, profile]));
-
 export function calculateCost(
   agent: AgentSource,
   totals: UsageTotals,
@@ -111,14 +109,17 @@ export function calculateCost(
   };
 }
 
-export function resolvePricing(model: string): PricingProfile | null {
+export function resolvePricing(model: string, extraProfiles: PricingProfile[] = []): PricingProfile | null {
   const candidates = pricingCandidates(model);
+  const pricingByModel = new Map(BUILTIN_PRICING.map((profile) => [profile.modelId, profile]));
+  for (const profile of extraProfiles) pricingByModel.set(profile.modelId, profile);
   for (const candidate of candidates) {
-    const exact = PRICING_BY_MODEL.get(candidate);
+    const exact = pricingByModel.get(candidate);
     if (exact) return exact;
   }
+  const allPricing = [...extraProfiles, ...BUILTIN_PRICING];
   for (const candidate of candidates) {
-    const prefixMatch = BUILTIN_PRICING.find((profile) => profile.modelId.startsWith(`${candidate}-`));
+    const prefixMatch = allPricing.find((profile) => profile.modelId.startsWith(`${candidate}-`));
     if (prefixMatch) return prefixMatch;
   }
   return null;

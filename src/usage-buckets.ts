@@ -1,5 +1,5 @@
 import { calculateCost, resolvePricing } from "./pricing.js";
-import type { CostBreakdown, UsageBucket, UsageEvent, UsageTotals } from "./types.js";
+import type { CostBreakdown, PricingProfile, UsageBucket, UsageEvent, UsageTotals } from "./types.js";
 
 const ZERO_COST: CostBreakdown = {
   inputUsd: "0.000000",
@@ -9,7 +9,7 @@ const ZERO_COST: CostBreakdown = {
   totalUsd: "0.000000",
 };
 
-export function aggregateEvents(events: UsageEvent[]): UsageBucket[] {
+export function aggregateEvents(events: UsageEvent[], pricingProfiles: PricingProfile[] = []): UsageBucket[] {
   const buckets = new Map<string, UsageBucket>();
 
   for (const event of events) {
@@ -31,7 +31,7 @@ export function aggregateEvents(events: UsageEvent[]): UsageBucket[] {
       } satisfies UsageBucket);
 
     addTotals(bucket, event);
-    const pricing = calculateBucketCost(bucket);
+    const pricing = calculateBucketCost(bucket, pricingProfiles);
     bucket.cost = pricing.cost;
     bucket.pricingStatus = pricing.status;
     buckets.set(key, bucket);
@@ -42,8 +42,11 @@ export function aggregateEvents(events: UsageEvent[]): UsageBucket[] {
   );
 }
 
-function calculateBucketCost(bucket: UsageBucket): { cost: CostBreakdown; status: "priced" | "unpriced" } {
-  const pricing = resolvePricing(bucket.model);
+function calculateBucketCost(
+  bucket: UsageBucket,
+  pricingProfiles: PricingProfile[],
+): { cost: CostBreakdown; status: "priced" | "unpriced" } {
+  const pricing = resolvePricing(bucket.model, pricingProfiles);
   if (!pricing) return { cost: ZERO_COST, status: "unpriced" };
   return { cost: calculateCost(bucket.agent, bucket, pricing), status: "priced" };
 }
