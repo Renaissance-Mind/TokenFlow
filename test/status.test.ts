@@ -44,4 +44,23 @@ describe("status output", () => {
     expect(output).toContain("Remote device: Work Mac (darwin)");
     expect(output).toContain("Remote last sync: 2026-06-09T02:30:00.000Z");
   });
+
+  it("keeps local status visible when the remote status check fails", () => {
+    const output = formatStatus({
+      configPath: "/home/user/.tokenusage/config.json",
+      serverUrl: "https://usage.example.com",
+      deviceId: "dev_123",
+      hasDeviceToken: true,
+      lastSyncAt: "2026-06-09T02:00:00.000Z",
+      localEvents: 7,
+      localBuckets: 4,
+      sources: [],
+      home: "/home/user/.tokenusage",
+      remoteError: "fetch failed",
+    });
+
+    expect(output).toContain("Remote: unavailable (fetch failed)");
+    expect(output).toContain("Local events: 7");
+    expect(output).toContain("Local buckets: 4");
+  });
 });

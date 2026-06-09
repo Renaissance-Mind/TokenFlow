@@ -28,6 +28,7 @@ export interface StatusReport {
   sources: SourceStatus[];
   home: string;
   remote?: RemoteDeviceStatus;
+  remoteError?: string;
 }
 
 export function formatStatus(report: StatusReport): string {
@@ -38,7 +39,7 @@ export function formatStatus(report: StatusReport): string {
     `Device: ${report.deviceId || "not linked"}`,
     `Token: ${report.hasDeviceToken ? "set" : "missing"}`,
     `Last sync: ${report.lastSyncAt || "never"}`,
-    ...remoteLines(report.remote),
+    ...remoteLines(report.remote, report.remoteError),
     `Local events: ${report.localEvents}`,
     `Local buckets: ${report.localBuckets}`,
     ...report.sources.map(
@@ -49,7 +50,8 @@ export function formatStatus(report: StatusReport): string {
   ].join("\n");
 }
 
-function remoteLines(remote: RemoteDeviceStatus | undefined): string[] {
+function remoteLines(remote: RemoteDeviceStatus | undefined, remoteError: string | undefined): string[] {
+  if (remoteError) return [`Remote: unavailable (${remoteError})`];
   if (!remote) return ["Remote: not checked"];
   return [
     "Remote: linked",

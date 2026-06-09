@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import os from "node:os";
 
 import { getDeviceStatus, ingestUsage, pollDeviceFlow, startDeviceFlow, syncPing } from "./api.js";
+import { tryOpenBrowser } from "./browser.js";
 import {
   configPath,
   DEFAULT_SERVER_URL,
@@ -69,7 +70,9 @@ async function cmdLogin(argv: string[]): Promise<void> {
 
   process.stdout.write(`Open this URL and sign in with GitHub or Google:\n${flow.verificationUrl}\n`);
   process.stdout.write(`Code: ${flow.userCode}\n`);
-  if (!options["no-open"]) openBrowser(flow.verificationUrl);
+  if (!options["no-open"] && !tryOpenBrowser(flow.verificationUrl)) {
+    process.stdout.write("Could not open a browser automatically; open the URL above manually.\n");
+  }
 
   const expiresAt = new Date(flow.expiresAt).getTime();
   while (Date.now() < expiresAt) {
@@ -112,7 +115,9 @@ async function cmdStatus(): Promise<void> {
   const collection = await collectLocalUsage();
   const buckets = aggregateEvents(collection.events);
   const serverUrl = normalizeServerUrl(config?.serverUrl);
-  const remote = config?.deviceToken ? await getDeviceStatus(serverUrl, config.deviceToken) : undefined;
+  const remoteReport = config?.deviceToken
+    ? await getRemoteStatusForReport(serverUrl, config.deviceToken)
+    : {};
   process.stdout.write(
     formatStatus({
       configPath: config ? configPath() : "missing",
@@ -124,7 +129,7 @@ async function cmdStatus(): Promise<void> {
       localBuckets: buckets.length,
       sources: collection.sources,
       home: tokenUsageDir(),
-      remote,
+      ...remoteReport,
     }),
   );
 }
@@ -179,11 +184,18 @@ function optionString(options: Record<string, string | boolean>, key: string): s
   return typeof value === "string" ? value : undefined;
 }
 
-function openBrowser(url: string): void {
-  const command =
-    process.platform === "darwin" ? "open" : process.platform === "win32" ? "cmd" : "xdg-open";
-  const args = process.platform === "win32" ? ["/c", "start", "", url] : [url];
-  execFileSync(command, args, { stdio: "ignore" });
+async function getRemoteStatusForReport(
+  serverUrl: string,
+  deviceToken: string,
+): Promise<
+  | { remote: Awaited<ReturnType<typeof getDeviceStatus>>; remoteError?: undefined }
+  | { remote?: undefined; remoteError: string }
+> {
+  try {
+    return { remote: await getDeviceStatus(serverUrl, deviceToken) };
+  } catch (error) {
+    return { remoteError: error instanceof Error ? error.message : String(error) };
+  }
 }
 
 function sleep(ms: number): Promise<void> {
