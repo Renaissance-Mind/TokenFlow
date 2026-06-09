@@ -6,21 +6,18 @@ import path from "node:path";
 import { tokenUsageDir } from "./config.js";
 
 export async function installAutoSync(serverUrl: string, home = os.homedir()): Promise<string> {
-  if (process.platform === "darwin") return installLaunchAgent(serverUrl, home);
-  if (process.platform === "linux") return installSystemdUserTimer(serverUrl, home);
+  const syncCommand = buildSyncCommand(serverUrl);
+  if (process.platform === "darwin") return installLaunchAgent(syncCommand, home);
+  if (process.platform === "linux") return installSystemdUserTimer(syncCommand, home);
   return "automatic sync is not installed on this platform; run tokenusage sync manually or add it to your scheduler";
 }
 
-async function installLaunchAgent(serverUrl: string, home: string): Promise<string> {
+async function installLaunchAgent(syncCommand: string, home: string): Promise<string> {
   const dir = tokenUsageDir(home);
   const binDir = path.join(dir, "bin");
   await fs.mkdir(binDir, { recursive: true });
   const scriptPath = path.join(binDir, "sync.sh");
-  await fs.writeFile(
-    scriptPath,
-    `#!/bin/sh\nTOKENUSAGE_SERVER_URL=${shellQuote(serverUrl)} npx --yes tokenusage@latest sync --auto\n`,
-    { mode: 0o755 },
-  );
+  await fs.writeFile(scriptPath, `#!/bin/sh\n${syncCommand}\n`, { mode: 0o755 });
 
   const launchAgentsDir = path.join(home, "Library", "LaunchAgents");
   await fs.mkdir(launchAgentsDir, { recursive: true });
@@ -48,7 +45,7 @@ async function installLaunchAgent(serverUrl: string, home: string): Promise<stri
   return `launchd agent installed: ${plistPath}`;
 }
 
-async function installSystemdUserTimer(serverUrl: string, home: string): Promise<string> {
+async function installSystemdUserTimer(syncCommand: string, home: string): Promise<string> {
   const configDir = path.join(home, ".config", "systemd", "user");
   await fs.mkdir(configDir, { recursive: true });
   const servicePath = path.join(configDir, "tokenusage-sync.service");
@@ -60,8 +57,7 @@ Description=TokenUsage sync
 
 [Service]
 Type=oneshot
-Environment=TOKENUSAGE_SERVER_URL=${serverUrl}
-ExecStart=npx --yes tokenusage@latest sync --auto
+ExecStart=/bin/sh -lc ${shellQuote(syncCommand)}
 `,
   );
   await fs.writeFile(
@@ -83,6 +79,14 @@ WantedBy=timers.target
     stdio: "inherit",
   });
   return `systemd user timer installed: ${timerPath}`;
+}
+
+function buildSyncCommand(serverUrl: string): string {
+  const argvPath = process.argv[1];
+  if (argvPath) {
+    return `TOKENUSAGE_SERVER_URL=${shellQuote(serverUrl)} ${shellQuote(process.execPath)} ${shellQuote(argvPath)} sync --auto`;
+  }
+  return `TOKENUSAGE_SERVER_URL=${shellQuote(serverUrl)} tokenusage sync --auto`;
 }
 
 function shellQuote(value: string): string {

@@ -12,6 +12,17 @@ Prompts and responses are not uploaded.
 
 ## Install and Link
 
+From this repository before npm publication:
+
+```bash
+npm install
+npm run build
+npm install -g .
+tokenusage init --server-url https://usage.example.com
+```
+
+After publishing the package:
+
 ```bash
 npx --yes tokenusage init --server-url https://usage.example.com
 ```
@@ -21,7 +32,7 @@ npx --yes tokenusage init --server-url https://usage.example.com
 For local development against the server in `../TokenUsage_Server`:
 
 ```bash
-npx --yes tokenusage init --server-url http://127.0.0.1:8787
+tokenusage init --server-url http://127.0.0.1:8787
 ```
 
 ## Commands
