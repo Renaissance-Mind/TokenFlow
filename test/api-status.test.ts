@@ -72,4 +72,10 @@ describe("API token remote status", () => {
       "Read-write API key required for uploads",
     );
   });
+
+  it("includes the target server URL when a request cannot be reached", async () => {
+    await expect(getApiTokenStatus("http://127.0.0.1:9", "tu_api_test")).rejects.toThrow(
+      "Unable to reach TokenUsage server at http://127.0.0.1:9/api/me",
+    );
+  });
 });

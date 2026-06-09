@@ -274,7 +274,8 @@ function printHelp(): void {
       "  tokenusage logout",
       "",
       "Supported local agents: Codex, Claude Code, Gemini CLI, OpenCode.",
-      "Default server URL for local development: http://127.0.0.1:8787",
+      "Default server URL: https://tokenusage.renaissancemind.ai",
+      "For local development, pass --server-url http://127.0.0.1:8787",
       "",
     ].join("\n"),
   );

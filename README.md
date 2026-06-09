@@ -18,6 +18,17 @@ cc-switch support also requires `sqlite3` on `PATH`. TokenUsage reads `model_pri
 
 ## Install and Link
 
+For normal users, install the published CLI and log in to the hosted Server:
+
+```bash
+npm install -g @renaissancemind/tokenusage
+tokenusage login
+tokenusage status
+tokenusage sync
+```
+
+`tokenusage login` uses `https://tokenusage.renaissancemind.ai` by default. It starts a device-link flow: the CLI prints a verification URL and code, the user signs in on the Server with GitHub or Google, approves the device, and the CLI stores a device token in `~/.tokenusage/config.json`.
+
 From this repository before npm publication:
 
 ```bash

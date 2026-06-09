@@ -1,10 +1,10 @@
 {
   "name": "@renaissancemind/tokenusage",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Local token usage collector for multi-device AI agent accounting.",
   "type": "module",
   "bin": {
-    "tokenusage": "./dist/cli.js"
+    "tokenusage": "dist/cli.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

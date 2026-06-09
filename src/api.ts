@@ -128,14 +128,20 @@ async function requestJson(
   body?: unknown,
   bearerToken?: string,
 ): Promise<Record<string, unknown>> {
-  const response = await fetch(url, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      ...(bearerToken ? { Authorization: `Bearer ${bearerToken}` } : {}),
-    },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        ...(bearerToken ? { Authorization: `Bearer ${bearerToken}` } : {}),
+      },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`Unable to reach TokenUsage server at ${url}: ${detail}`);
+  }
   const text = await response.text();
   const data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
   if (!response.ok) {

@@ -12,7 +12,7 @@ export interface TokenUsageConfig {
   lastSyncAt?: string;
 }
 
-export const DEFAULT_SERVER_URL = "http://127.0.0.1:8787";
+export const DEFAULT_SERVER_URL = "https://tokenusage.renaissancemind.ai";
 
 export function tokenUsageDir(home = os.homedir()): string {
   return process.env.TOKENUSAGE_HOME || path.join(home, ".tokenusage");

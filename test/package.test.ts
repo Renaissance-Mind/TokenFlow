@@ -13,7 +13,8 @@ describe("npm package", () => {
     };
 
     expect(pkg.name).toBe("@renaissancemind/tokenusage");
-    expect(pkg.bin?.tokenusage).toBe("./dist/cli.js");
+    expect(pkg.version).toBe("0.1.1");
+    expect(pkg.bin?.tokenusage).toBe("dist/cli.js");
     expect(pkg.files).toContain("dist");
     expect(pkg.publishConfig?.access).toBe("public");
     expect(pkg.scripts?.prepare).toBe("npm run build");
