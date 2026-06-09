@@ -7,11 +7,15 @@ describe("npm package", () => {
     const pkg = JSON.parse(fs.readFileSync("package.json", "utf8")) as {
       bin?: Record<string, string>;
       files?: string[];
+      name?: string;
+      publishConfig?: Record<string, string>;
       scripts?: Record<string, string>;
     };
 
+    expect(pkg.name).toBe("@renaissancemind/tokenusage");
     expect(pkg.bin?.tokenusage).toBe("./dist/cli.js");
     expect(pkg.files).toContain("dist");
+    expect(pkg.publishConfig?.access).toBe("public");
     expect(pkg.scripts?.prepare).toBe("npm run build");
   });
 });

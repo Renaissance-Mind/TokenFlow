@@ -23,7 +23,7 @@ From this repository before npm publication:
 ```bash
 npm install
 npm install -g .
-tokenusage init --server-url https://usage.example.com
+tokenusage init --server-url https://tokenusage.renaissancemind.ai
 ```
 
 `npm install -g .` runs the package `prepare` script, so the CLI is compiled before npm links `dist/cli.js`.
@@ -32,13 +32,13 @@ If you want the auto-sync job to run this local checkout before publishing to np
 
 ```bash
 TOKENUSAGE_AUTO_SYNC_COMMAND="node /Users/chunqiu/Documents/workspace/TokenUsage/dist/cli.js sync --auto" \
-  tokenusage init --server-url https://usage.example.com
+  tokenusage init --server-url https://tokenusage.renaissancemind.ai
 ```
 
 After publishing the package:
 
 ```bash
-npx --yes tokenusage init --server-url https://usage.example.com
+npx --yes @renaissancemind/tokenusage init --server-url https://tokenusage.renaissancemind.ai
 ```
 
 `init` writes `~/.tokenusage/config.json`, installs a 10-minute auto-sync job on macOS launchd or Linux systemd user timers, then opens a browser device-link flow. Sign in on the server with GitHub or Google and approve the device.
@@ -46,7 +46,7 @@ npx --yes tokenusage init --server-url https://usage.example.com
 If you create a `read_write` API key in the server dashboard, a machine can upload without the browser device-link flow:
 
 ```bash
-tokenusage init --server-url https://usage.example.com --api-token tu_api_...
+tokenusage init --server-url https://tokenusage.renaissancemind.ai --api-token tu_api_...
 ```
 
 Use only `read_write` keys for uploads. `read_only` keys are for dashboards, API reads, and public heatmap embeds. The CLI validates `--api-token` during `init` and `login` and rejects read-only keys before writing local config.
@@ -60,8 +60,8 @@ tokenusage init --server-url http://127.0.0.1:8787
 ## Commands
 
 ```bash
-tokenusage login --server-url https://usage.example.com
-tokenusage login --server-url https://usage.example.com --api-token tu_api_...
+tokenusage login --server-url https://tokenusage.renaissancemind.ai
+tokenusage login --server-url https://tokenusage.renaissancemind.ai --api-token tu_api_...
 tokenusage sync
 tokenusage status
 tokenusage update --source /Users/chunqiu/Documents/workspace/TokenUsage
@@ -70,7 +70,7 @@ tokenusage logout
 
 - `sync` scans local logs, aggregates buckets, uploads idempotently, and records a sync heartbeat. It uses a configured `read_write` API key first, otherwise the linked device token. If a model has no local pricing rule, sync still uploads the usage bucket and reports how many buckets are unpriced.
 - `status` shows local config, verifies the linked device or configured API token with the server, identifies API-token upload mode and scope, and prints source paths, event counts, bucket counts, and unpriced bucket counts.
-- `update` upgrades the global package and refreshes the auto-sync scheduler. Use `--source /path/to/TokenUsage` before npm publication, or omit `--source` after publishing to update from `tokenusage@latest`.
+- `update` upgrades the global package and refreshes the auto-sync scheduler. Use `--source /path/to/TokenUsage` before npm publication, or omit `--source` after publishing to update from `@renaissancemind/tokenusage@latest`.
 
 ## Pricing Coverage
 
@@ -84,7 +84,7 @@ Environment overrides:
 
 - `TOKENUSAGE_HOME`: local state directory, default `~/.tokenusage`
 - `TOKENUSAGE_SERVER_URL`: default server URL
-- `TOKENUSAGE_AUTO_SYNC_COMMAND`: command written into launchd/systemd for automatic sync, default `npx --yes tokenusage@latest sync --auto`
+- `TOKENUSAGE_AUTO_SYNC_COMMAND`: command written into launchd/systemd for automatic sync, default `npx --yes @renaissancemind/tokenusage@latest sync --auto`
 - `CODEX_HOME`: Codex config home, default `~/.codex`
 - `CLAUDE_HOME`: Claude config home, default `~/.claude`
 - `GEMINI_HOME`: Gemini config home, default `~/.gemini`

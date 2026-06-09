@@ -9,7 +9,9 @@ describe("auto-sync scheduler command", () => {
         argvPath: "/private/var/folders/npm/_npx/123/node_modules/tokenusage/dist/cli.js",
         env: {},
       }),
-    ).toBe("TOKENUSAGE_SERVER_URL='https://usage.example.com' npx --yes tokenusage@latest sync --auto");
+    ).toBe(
+      "TOKENUSAGE_SERVER_URL='https://usage.example.com' npx --yes @renaissancemind/tokenusage@latest sync --auto",
+    );
   });
 
   it("allows local installs to override the scheduled sync command", () => {

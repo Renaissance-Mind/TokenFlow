@@ -1,5 +1,5 @@
 {
-  "name": "tokenusage",
+  "name": "@renaissancemind/tokenusage",
   "version": "0.1.0",
   "description": "Local token usage collector for multi-device AI agent accounting.",
   "type": "module",
@@ -19,6 +19,9 @@
     "dist",
     "README.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "devDependencies": {
     "@types/node": "^20.14.0",
     "typescript": "^5.5.4",
