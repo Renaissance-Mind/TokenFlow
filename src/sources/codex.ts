@@ -6,6 +6,11 @@ interface ParseOptions {
   sourcePath: string;
 }
 
+interface JsonlUsageParser {
+  pushLine(line: string): void;
+  finish(): UsageEvent[];
+}
+
 interface CumulativeUsage {
   inputTokens: number;
   cachedInputTokens: number;
@@ -16,68 +21,80 @@ interface CumulativeUsage {
 }
 
 export function parseCodexJsonl(jsonl: string, options: ParseOptions): UsageEvent[] {
+  const parser = createCodexJsonlParser(options);
+  for (const line of jsonl.split(/\r?\n/)) {
+    parser.pushLine(line);
+  }
+  return parser.finish();
+}
+
+export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser {
   const events: UsageEvent[] = [];
   let sessionId: string | null = null;
   let currentModel = "unknown";
   let previousTotal: CumulativeUsage | null = null;
 
-  for (const line of jsonl.split(/\r?\n/)) {
-    if (!line.trim()) continue;
-    if (!line.includes("token_count") && !line.includes("turn_context") && !line.includes("session_meta")) {
-      continue;
-    }
+  return {
+    pushLine(line: string): void {
+      if (!line.trim()) return;
+      if (!line.includes("token_count") && !line.includes("turn_context") && !line.includes("session_meta")) {
+        return;
+      }
 
-    let row: unknown;
-    try {
-      row = JSON.parse(line);
-    } catch {
-      continue;
-    }
+      let row: unknown;
+      try {
+        row = JSON.parse(line);
+      } catch {
+        return;
+      }
 
-    if (!isRecord(row)) continue;
-    const type = stringField(row, "type");
-    const payload = recordField(row, "payload");
+      if (!isRecord(row)) return;
+      const type = stringField(row, "type");
+      const payload = recordField(row, "payload");
 
-    if ((type === "session_meta" || type === "turn_context") && payload) {
-      const payloadSessionId =
-        stringField(payload, "session_id") || stringField(payload, "sessionId") || stringField(payload, "id");
-      if (payloadSessionId && !sessionId) sessionId = payloadSessionId;
-      const model = stringField(payload, "model") || stringField(recordField(payload, "info"), "model");
+      if ((type === "session_meta" || type === "turn_context") && payload) {
+        const payloadSessionId =
+          stringField(payload, "session_id") || stringField(payload, "sessionId") || stringField(payload, "id");
+        if (payloadSessionId && !sessionId) sessionId = payloadSessionId;
+        const model = stringField(payload, "model") || stringField(recordField(payload, "info"), "model");
+        if (model) currentModel = normalizeAgentModel("codex", model);
+        return;
+      }
+
+      const token = extractTokenCount(row);
+      if (!token) return;
+      const timestamp = stringField(row, "timestamp");
+      if (!timestamp) return;
+
+      const info = token.info;
+      const model =
+        stringField(info, "model") || stringField(info, "model_name") || stringField(token.payload, "model");
       if (model) currentModel = normalizeAgentModel("codex", model);
-      continue;
-    }
 
-    const token = extractTokenCount(row);
-    if (!token) continue;
-    const timestamp = stringField(row, "timestamp");
-    if (!timestamp) continue;
+      const lastUsage = recordField(info, "last_token_usage");
+      const totalUsage = recordField(info, "total_token_usage");
+      const delta = pickDelta(lastUsage, totalUsage, previousTotal);
+      if (totalUsage) previousTotal = normalizeUsage(totalUsage);
+      if (!delta || isZero(delta)) return;
 
-    const info = token.info;
-    const model =
-      stringField(info, "model") || stringField(info, "model_name") || stringField(token.payload, "model");
-    if (model) currentModel = normalizeAgentModel("codex", model);
+      const bucketStart = toUtcHalfHourStart(timestamp);
+      if (!bucketStart) return;
 
-    const lastUsage = recordField(info, "last_token_usage");
-    const totalUsage = recordField(info, "total_token_usage");
-    const delta = pickDelta(lastUsage, totalUsage, previousTotal);
-    if (totalUsage) previousTotal = normalizeUsage(totalUsage);
-    if (!delta || isZero(delta)) continue;
+      events.push({
+        agent: "codex",
+        model: currentModel,
+        sessionId,
+        sourcePath: options.sourcePath,
+        timestamp,
+        bucketStart,
+        ...delta,
+      });
+    },
 
-    const bucketStart = toUtcHalfHourStart(timestamp);
-    if (!bucketStart) continue;
-
-    events.push({
-      agent: "codex",
-      model: currentModel,
-      sessionId,
-      sourcePath: options.sourcePath,
-      timestamp,
-      bucketStart,
-      ...delta,
-    });
-  }
-
-  return events;
+    finish(): UsageEvent[] {
+      return events;
+    },
+  };
 }
 
 function extractTokenCount(row: Record<string, unknown>) {

@@ -6,48 +6,65 @@ interface ParseOptions {
   sourcePath: string;
 }
 
+interface JsonlUsageParser {
+  pushLine(line: string): void;
+  finish(): UsageEvent[];
+}
+
 export function parseClaudeJsonl(jsonl: string, options: ParseOptions): UsageEvent[] {
+  const parser = createClaudeJsonlParser(options);
+  for (const line of jsonl.split(/\r?\n/)) {
+    parser.pushLine(line);
+  }
+  return parser.finish();
+}
+
+export function createClaudeJsonlParser(options: ParseOptions): JsonlUsageParser {
   const events: UsageEvent[] = [];
   const seen = new Set<string>();
 
-  for (const line of jsonl.split(/\r?\n/)) {
-    if (!line.trim() || !line.includes('"usage"')) continue;
+  return {
+    pushLine(line: string): void {
+      if (!line.trim() || !line.includes('"usage"')) return;
 
-    let row: unknown;
-    try {
-      row = JSON.parse(line);
-    } catch {
-      continue;
-    }
-    if (!isRecord(row)) continue;
+      let row: unknown;
+      try {
+        row = JSON.parse(line);
+      } catch {
+        return;
+      }
+      if (!isRecord(row)) return;
 
-    const message = recordField(row, "message");
-    const usage = recordField(message, "usage") || recordField(row, "usage");
-    if (!usage) continue;
+      const message = recordField(row, "message");
+      const usage = recordField(message, "usage") || recordField(row, "usage");
+      if (!usage) return;
 
-    const dedupeId = stringField(message, "id") || stringField(row, "requestId");
-    if (dedupeId && seen.has(dedupeId)) continue;
+      const dedupeId = stringField(message, "id") || stringField(row, "requestId");
+      if (dedupeId && seen.has(dedupeId)) return;
 
-    const timestamp = stringField(row, "timestamp");
-    const bucketStart = timestamp ? toUtcHalfHourStart(timestamp) : null;
-    if (!timestamp || !bucketStart) continue;
+      const timestamp = stringField(row, "timestamp");
+      const bucketStart = timestamp ? toUtcHalfHourStart(timestamp) : null;
+      if (!timestamp || !bucketStart) return;
 
-    const totals = normalizeClaudeUsage(usage);
-    if (isZero(totals)) continue;
+      const totals = normalizeClaudeUsage(usage);
+      if (isZero(totals)) return;
 
-    if (dedupeId) seen.add(dedupeId);
-    events.push({
-      agent: "claude",
-      model: normalizeAgentModel("claude", stringField(message, "model") || stringField(row, "model")),
-      sessionId: stringField(row, "sessionId") || stringField(row, "session_id"),
-      sourcePath: options.sourcePath,
-      timestamp,
-      bucketStart,
-      ...totals,
-    });
-  }
+      if (dedupeId) seen.add(dedupeId);
+      events.push({
+        agent: "claude",
+        model: normalizeAgentModel("claude", stringField(message, "model") || stringField(row, "model")),
+        sessionId: stringField(row, "sessionId") || stringField(row, "session_id"),
+        sourcePath: options.sourcePath,
+        timestamp,
+        bucketStart,
+        ...totals,
+      });
+    },
 
-  return events;
+    finish(): UsageEvent[] {
+      return events;
+    },
+  };
 }
 
 function normalizeClaudeUsage(usage: Record<string, unknown>): UsageTotals {

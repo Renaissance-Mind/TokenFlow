@@ -1,22 +1,29 @@
 import { execFile } from "node:child_process";
+import { createReadStream } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 
-import { parseClaudeJsonl } from "./sources/claude.js";
+import { createClaudeJsonlParser } from "./sources/claude.js";
 import {
   parseCcSwitchPricingRow,
   parseCcSwitchRequestLogRow,
   type CcSwitchPricingRow,
   type CcSwitchRequestLogRow,
 } from "./sources/cc-switch.js";
-import { parseCodexJsonl } from "./sources/codex.js";
+import { createCodexJsonlParser } from "./sources/codex.js";
 import { parseGeminiSession } from "./sources/gemini.js";
 import { parseOpenCodeMessageRow, type OpenCodeMessageRow } from "./sources/opencode.js";
 import type { PricingProfile, UsageEvent } from "./types.js";
 
 const execFileAsync = promisify(execFile);
+const MAX_JSONL_LINE_CHARS = 16 * 1024 * 1024;
+
+interface JsonlUsageParser {
+  pushLine(line: string): void;
+  finish(): UsageEvent[];
+}
 
 export interface SourceStatus {
   agent: string;
@@ -54,12 +61,10 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
 
   const events: UsageEvent[] = [];
   for (const file of codexFiles) {
-    const raw = await fs.readFile(file, "utf8");
-    events.push(...parseCodexJsonl(raw, { sourcePath: file }));
+    events.push(...(await readJsonlEvents(file, createCodexJsonlParser)));
   }
   for (const file of claudeFiles) {
-    const raw = await fs.readFile(file, "utf8");
-    events.push(...parseClaudeJsonl(raw, { sourcePath: file }));
+    events.push(...(await readJsonlEvents(file, createClaudeJsonlParser)));
   }
   for (const file of geminiFiles) {
     const raw = await fs.readFile(file, "utf8");
@@ -109,6 +114,52 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
       },
     ],
   };
+}
+
+async function readJsonlEvents(
+  filePath: string,
+  createParser: (options: { sourcePath: string }) => JsonlUsageParser,
+): Promise<UsageEvent[]> {
+  const parser = createParser({ sourcePath: filePath });
+  await streamJsonlLines(filePath, (line) => parser.pushLine(line));
+  return parser.finish();
+}
+
+async function streamJsonlLines(filePath: string, onLine: (line: string) => void): Promise<void> {
+  let line = "";
+  let skippingOverlongLine = false;
+
+  for await (const chunk of createReadStream(filePath, { encoding: "utf8" })) {
+    let start = 0;
+    const text = String(chunk);
+
+    while (start < text.length) {
+      const newlineIndex = text.indexOf("\n", start);
+      const end = newlineIndex === -1 ? text.length : newlineIndex;
+
+      if (!skippingOverlongLine) {
+        line += text.slice(start, end);
+        if (line.length > MAX_JSONL_LINE_CHARS) {
+          line = "";
+          skippingOverlongLine = true;
+        }
+      }
+
+      if (newlineIndex === -1) break;
+      if (!skippingOverlongLine) onLine(stripTrailingCarriageReturn(line));
+      line = "";
+      skippingOverlongLine = false;
+      start = newlineIndex + 1;
+    }
+  }
+
+  if (!skippingOverlongLine && line) {
+    onLine(stripTrailingCarriageReturn(line));
+  }
+}
+
+function stripTrailingCarriageReturn(line: string): string {
+  return line.endsWith("\r") ? line.slice(0, -1) : line;
 }
 
 function resolveOpenCodeDbPath(home: string): string {
