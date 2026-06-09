@@ -6,6 +6,7 @@ export interface TokenUsageConfig {
   serverUrl: string;
   deviceToken?: string;
   deviceId?: string;
+  apiToken?: string;
   deviceName?: string;
   installedAt?: string;
   lastSyncAt?: string;

@@ -22,6 +22,7 @@ export interface StatusReport {
   serverUrl: string;
   deviceId?: string;
   hasDeviceToken: boolean;
+  hasApiToken?: boolean;
   lastSyncAt?: string;
   localEvents: number;
   localBuckets: number;
@@ -37,9 +38,9 @@ export function formatStatus(report: StatusReport): string {
     `Config: ${report.configPath}`,
     `Server: ${report.serverUrl}`,
     `Device: ${report.deviceId || "not linked"}`,
-    `Token: ${report.hasDeviceToken ? "set" : "missing"}`,
+    `Token: ${tokenStatus(report)}`,
     `Last sync: ${report.lastSyncAt || "never"}`,
-    ...remoteLines(report.remote, report.remoteError),
+    ...remoteLines(report.remote, report.remoteError, Boolean(report.hasApiToken), report.hasDeviceToken),
     `Local events: ${report.localEvents}`,
     `Local buckets: ${report.localBuckets}`,
     ...report.sources.map(
@@ -50,8 +51,20 @@ export function formatStatus(report: StatusReport): string {
   ].join("\n");
 }
 
-function remoteLines(remote: RemoteDeviceStatus | undefined, remoteError: string | undefined): string[] {
+function tokenStatus(report: StatusReport): string {
+  if (report.hasApiToken) return "set (read-write API)";
+  if (report.hasDeviceToken) return "set (device)";
+  return "missing";
+}
+
+function remoteLines(
+  remote: RemoteDeviceStatus | undefined,
+  remoteError: string | undefined,
+  hasApiToken: boolean,
+  hasDeviceToken: boolean,
+): string[] {
   if (remoteError) return [`Remote: unavailable (${remoteError})`];
+  if (hasApiToken && !hasDeviceToken) return ["Remote: API token configured; device status not checked"];
   if (!remote) return ["Remote: not checked"];
   return [
     "Remote: linked",

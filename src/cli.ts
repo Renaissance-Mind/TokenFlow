@@ -44,6 +44,7 @@ async function cmdInit(argv: string[]): Promise<void> {
     serverUrl,
     deviceToken: existing?.deviceToken,
     deviceId: existing?.deviceId,
+    apiToken: optionString(options, "api-token") || existing?.apiToken,
     deviceName: existing?.deviceName || os.hostname(),
     installedAt: existing?.installedAt || new Date().toISOString(),
     lastSyncAt: existing?.lastSyncAt,
@@ -52,7 +53,7 @@ async function cmdInit(argv: string[]): Promise<void> {
   const schedulerStatus = options["no-auto-sync"] ? "automatic sync skipped" : await installAutoSync(serverUrl);
   process.stdout.write(`TokenUsage configured at ${configPath()}\n`);
   process.stdout.write(`${schedulerStatus}\n`);
-  if (!next.deviceToken && !options["no-login"]) {
+  if (!next.deviceToken && !next.apiToken && !options["no-login"]) {
     await cmdLogin(["--server-url", serverUrl]);
   }
 }
@@ -62,6 +63,17 @@ async function cmdLogin(argv: string[]): Promise<void> {
   const existing = await readConfig();
   const serverUrl = normalizeServerUrl(optionString(options, "server-url") || existing?.serverUrl);
   const deviceName = optionString(options, "device-name") || existing?.deviceName || os.hostname();
+  const apiToken = optionString(options, "api-token");
+  if (apiToken) {
+    await writeConfig({
+      ...(existing || { installedAt: new Date().toISOString() }),
+      serverUrl,
+      deviceName,
+      apiToken,
+    });
+    process.stdout.write("Read-write API token configured for uploads.\n");
+    return;
+  }
   const flow = await startDeviceFlow({
     serverUrl,
     deviceName,
@@ -97,12 +109,22 @@ async function cmdLogin(argv: string[]): Promise<void> {
 async function cmdSync(argv: string[]): Promise<void> {
   const options = parseOptions(argv);
   const config = await readConfig();
-  if (!config?.deviceToken) throw new Error("Not logged in. Run tokenusage login first.");
+  const uploadToken = config?.apiToken || config?.deviceToken;
+  if (!config || !uploadToken) throw new Error("Not logged in. Run tokenusage login first.");
   const serverUrl = normalizeServerUrl(optionString(options, "server-url") || config.serverUrl);
+  const deviceName = config.deviceName || os.hostname();
   const collection = await collectLocalUsage();
   const buckets = aggregateEvents(collection.events);
-  const result = buckets.length > 0 ? await ingestUsage({ serverUrl, deviceToken: config.deviceToken, buckets }) : { inserted: 0, updated: 0 };
-  await syncPing(serverUrl, config.deviceToken);
+  const result = buckets.length > 0
+    ? await ingestUsage({
+        serverUrl,
+        uploadToken,
+        deviceName,
+        platform: process.platform,
+        buckets,
+      })
+    : { inserted: 0, updated: 0 };
+  await syncPing(serverUrl, uploadToken, { deviceName, platform: process.platform });
   await writeConfig({ ...config, serverUrl, lastSyncAt: new Date().toISOString() });
   if (!options.auto) {
     process.stdout.write(`Parsed events: ${collection.events.length}\n`);
@@ -124,6 +146,7 @@ async function cmdStatus(): Promise<void> {
       serverUrl,
       deviceId: config?.deviceId,
       hasDeviceToken: Boolean(config?.deviceToken),
+      hasApiToken: Boolean(config?.apiToken),
       lastSyncAt: config?.lastSyncAt,
       localEvents: collection.events.length,
       localBuckets: buckets.length,
@@ -150,9 +173,9 @@ async function cmdLogout(): Promise<void> {
     process.stdout.write("No TokenUsage config found.\n");
     return;
   }
-  const { deviceToken: _deviceToken, deviceId: _deviceId, ...rest } = config;
+  const { deviceToken: _deviceToken, deviceId: _deviceId, apiToken: _apiToken, ...rest } = config;
   await writeConfig(rest);
-  process.stdout.write("Local device token removed.\n");
+  process.stdout.write("Local upload tokens removed.\n");
 }
 
 function normalizeCommand(command: string): Command {
@@ -210,6 +233,7 @@ function printHelp(): void {
       "Usage:",
       "  tokenusage init --server-url https://usage.example.com",
       "  tokenusage login --server-url https://usage.example.com",
+      "  tokenusage login --server-url https://usage.example.com --api-token tu_api_...",
       "  tokenusage sync",
       "  tokenusage status",
       "  tokenusage update [--source tokenusage@latest|/path/to/TokenUsage]",

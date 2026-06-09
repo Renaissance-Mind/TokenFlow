@@ -47,19 +47,35 @@ export async function pollDeviceFlow(serverUrl: string, deviceCode: string): Pro
 
 export async function ingestUsage(params: {
   serverUrl: string;
-  deviceToken: string;
+  uploadToken?: string;
+  deviceToken?: string;
+  deviceName?: string;
+  platform?: string;
   buckets: UsageBucket[];
 }): Promise<{ inserted: number; updated: number }> {
-  const payload = toIngestPayload(params.buckets);
-  const data = await postJson(`${params.serverUrl}/api/ingest`, payload, params.deviceToken);
+  const token = params.uploadToken || params.deviceToken;
+  if (!token) throw new Error("Missing upload token");
+  const payload = toIngestPayload(params.buckets, { deviceName: params.deviceName, platform: params.platform });
+  const data = await postJson(`${params.serverUrl}/api/ingest`, payload, token);
   return {
     inserted: Number(data.inserted || 0),
     updated: Number(data.updated || 0),
   };
 }
 
-export async function syncPing(serverUrl: string, deviceToken: string): Promise<void> {
-  await postJson(`${serverUrl}/api/sync-ping`, {}, deviceToken);
+export async function syncPing(
+  serverUrl: string,
+  uploadToken: string,
+  metadata: { deviceName?: string; platform?: string } = {},
+): Promise<void> {
+  await postJson(
+    `${serverUrl}/api/sync-ping`,
+    {
+      ...(metadata.deviceName ? { device_name: metadata.deviceName } : {}),
+      ...(metadata.platform ? { platform: metadata.platform } : {}),
+    },
+    uploadToken,
+  );
 }
 
 export async function getDeviceStatus(serverUrl: string, deviceToken: string): Promise<RemoteDeviceStatus> {

@@ -1,6 +1,8 @@
 import type { UsageBucket } from "./types.js";
 
 export interface IngestPayload {
+  device_name?: string;
+  platform?: string;
   hourly: Array<{
     agent: string;
     model: string;
@@ -19,8 +21,13 @@ export interface IngestPayload {
   }>;
 }
 
-export function toIngestPayload(buckets: UsageBucket[]): IngestPayload {
+export function toIngestPayload(
+  buckets: UsageBucket[],
+  metadata: { deviceName?: string; platform?: string } = {},
+): IngestPayload {
   return {
+    ...(metadata.deviceName ? { device_name: metadata.deviceName } : {}),
+    ...(metadata.platform ? { platform: metadata.platform } : {}),
     hourly: buckets.map((bucket) => ({
       agent: bucket.agent,
       model: bucket.model,

@@ -32,6 +32,14 @@ npx --yes tokenusage init --server-url https://usage.example.com
 
 `init` writes `~/.tokenusage/config.json`, installs a 10-minute auto-sync job on macOS launchd or Linux systemd user timers, then opens a browser device-link flow. Sign in on the server with GitHub or Google and approve the device.
 
+If you create a `read_write` API key in the server dashboard, a machine can upload without the browser device-link flow:
+
+```bash
+tokenusage init --server-url https://usage.example.com --api-token tu_api_...
+```
+
+Use only `read_write` keys for uploads. `read_only` keys are for dashboards, API reads, and public heatmap embeds.
+
 For local development against the server in `../TokenUsage_Server`:
 
 ```bash
@@ -42,14 +50,15 @@ tokenusage init --server-url http://127.0.0.1:8787
 
 ```bash
 tokenusage login --server-url https://usage.example.com
+tokenusage login --server-url https://usage.example.com --api-token tu_api_...
 tokenusage sync
 tokenusage status
 tokenusage update --source /Users/chunqiu/Documents/workspace/TokenUsage
 tokenusage logout
 ```
 
-- `sync` scans local logs, aggregates buckets, uploads idempotently, and records a sync heartbeat.
-- `status` shows local config, verifies the linked device with the server when logged in, and prints source paths, event counts, and bucket counts.
+- `sync` scans local logs, aggregates buckets, uploads idempotently, and records a sync heartbeat. It uses a configured `read_write` API key first, otherwise the linked device token.
+- `status` shows local config, verifies the linked device with the server when logged in, identifies API-token upload mode, and prints source paths, event counts, and bucket counts.
 - `update` upgrades the global package and refreshes the auto-sync scheduler. Use `--source /path/to/TokenUsage` before npm publication, or omit `--source` after publishing to update from `tokenusage@latest`.
 
 ## Configuration

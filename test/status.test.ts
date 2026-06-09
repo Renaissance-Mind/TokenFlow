@@ -63,4 +63,20 @@ describe("status output", () => {
     expect(output).toContain("Local events: 7");
     expect(output).toContain("Local buckets: 4");
   });
+
+  it("shows read-write API token upload mode without pretending a device status was checked", () => {
+    const output = formatStatus({
+      configPath: "/home/user/.tokenusage/config.json",
+      serverUrl: "https://usage.example.com",
+      hasDeviceToken: false,
+      hasApiToken: true,
+      localEvents: 7,
+      localBuckets: 4,
+      sources: [],
+      home: "/home/user/.tokenusage",
+    });
+
+    expect(output).toContain("Token: set (read-write API)");
+    expect(output).toContain("Remote: API token configured; device status not checked");
+  });
 });
