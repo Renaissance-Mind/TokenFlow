@@ -1,6 +1,9 @@
+import http from "node:http";
 import { describe, expect, it } from "vitest";
 
+import { ingestUsage } from "../src/api.js";
 import { toIngestPayload } from "../src/ingest-payload.js";
+import type { UsageBucket } from "../src/types.js";
 
 describe("read-write API token uploads", () => {
   it("adds device metadata to ingest payloads when uploading with an API token", () => {
@@ -39,4 +42,70 @@ describe("read-write API token uploads", () => {
       ],
     });
   });
+
+  it("uploads usage buckets in worker-safe ingest batches by default", async () => {
+    const requests: Array<{ auth: string | undefined; body: unknown }> = [];
+    const server = http.createServer((request, response) => {
+      let raw = "";
+      request.setEncoding("utf8");
+      request.on("data", (chunk) => {
+        raw += chunk;
+      });
+      request.on("end", () => {
+        const body = JSON.parse(raw) as { hourly: unknown[] };
+        requests.push({ auth: request.headers.authorization, body });
+        response.setHeader("Content-Type", "application/json");
+        response.end(JSON.stringify({ inserted: body.hourly.length, updated: 0 }));
+      });
+    });
+
+    try {
+      await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+      const address = server.address();
+      if (!address || typeof address === "string") throw new Error("missing server address");
+
+      const result = await ingestUsage({
+        serverUrl: `http://127.0.0.1:${address.port}`,
+        uploadToken: "tu_api_test",
+        deviceName: "Work Mac",
+        platform: "darwin",
+        buckets: Array.from({ length: 21 }, (_, index) =>
+          bucket(`2026-06-09T${String(index).padStart(2, "0")}:00:00.000Z`),
+        ),
+      });
+
+      expect(result).toEqual({ inserted: 21, updated: 0 });
+      expect(requests).toHaveLength(2);
+      expect(requests.map((request) => request.auth)).toEqual(["Bearer tu_api_test", "Bearer tu_api_test"]);
+      expect(requests.map((request) => (request.body as { hourly: unknown[] }).hourly.length)).toEqual([20, 1]);
+      expect(requests.map((request) => (request.body as { device_name?: string }).device_name)).toEqual([
+        "Work Mac",
+        "Work Mac",
+      ]);
+    } finally {
+      await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    }
+  });
 });
+
+function bucket(bucketStart: string): UsageBucket {
+  return {
+    agent: "codex",
+    model: "gpt-5.2-codex",
+    bucketStart,
+    inputTokens: 10,
+    cachedInputTokens: 3,
+    outputTokens: 2,
+    reasoningOutputTokens: 1,
+    cacheCreationTokens: 0,
+    totalTokens: 16,
+    cost: {
+      inputUsd: "0.000012",
+      outputUsd: "0.000040",
+      cacheReadUsd: "0.000001",
+      cacheCreationUsd: "0.000000",
+      totalUsd: "0.000053",
+    },
+    pricingStatus: "priced",
+  };
+}

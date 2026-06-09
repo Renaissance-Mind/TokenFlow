@@ -2,6 +2,8 @@ import { toIngestPayload } from "./ingest-payload.js";
 import type { RemoteApiTokenStatus, RemoteDeviceStatus } from "./status.js";
 import type { UsageBucket } from "./types.js";
 
+const INGEST_CHUNK_SIZE = 20;
+
 export interface DeviceStartResponse {
   deviceCode: string;
   userCode: string;
@@ -52,15 +54,21 @@ export async function ingestUsage(params: {
   deviceName?: string;
   platform?: string;
   buckets: UsageBucket[];
+  chunkSize?: number;
 }): Promise<{ inserted: number; updated: number }> {
   const token = params.uploadToken || params.deviceToken;
   if (!token) throw new Error("Missing upload token");
-  const payload = toIngestPayload(params.buckets, { deviceName: params.deviceName, platform: params.platform });
-  const data = await postJson(`${params.serverUrl}/api/ingest`, payload, token);
-  return {
-    inserted: Number(data.inserted || 0),
-    updated: Number(data.updated || 0),
-  };
+  const chunkSize = params.chunkSize || INGEST_CHUNK_SIZE;
+  if (chunkSize < 1) throw new Error("chunkSize must be at least 1");
+  let inserted = 0;
+  let updated = 0;
+  for (const buckets of chunks(params.buckets, chunkSize)) {
+    const payload = toIngestPayload(buckets, { deviceName: params.deviceName, platform: params.platform });
+    const data = await postJson(`${params.serverUrl}/api/ingest`, payload, token);
+    inserted += Number(data.inserted || 0);
+    updated += Number(data.updated || 0);
+  }
+  return { inserted, updated };
 }
 
 export async function syncPing(
@@ -150,4 +158,12 @@ function objectField(value: unknown, field: string): Record<string, unknown> {
 function assertApiKeyScope(value: unknown): "read_only" | "read_write" {
   if (value === "read_only" || value === "read_write") return value;
   throw new Error("Missing user.api_key_scope");
+}
+
+function chunks<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    out.push(items.slice(index, index + size));
+  }
+  return out;
 }

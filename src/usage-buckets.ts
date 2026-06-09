@@ -13,13 +13,14 @@ export function aggregateEvents(events: UsageEvent[], pricingProfiles: PricingPr
   const buckets = new Map<string, UsageBucket>();
 
   for (const event of events) {
-    const key = `${event.agent}|${event.model}|${event.bucketStart}`;
+    const bucketStart = toUtcDayStart(event.bucketStart);
+    const key = `${event.agent}|${event.model}|${bucketStart}`;
     const bucket =
       buckets.get(key) ||
       ({
         agent: event.agent,
         model: event.model,
-        bucketStart: event.bucketStart,
+        bucketStart,
         inputTokens: 0,
         cachedInputTokens: 0,
         outputTokens: 0,
@@ -58,4 +59,11 @@ function addTotals(target: UsageTotals, delta: UsageTotals): void {
   target.reasoningOutputTokens += delta.reasoningOutputTokens;
   target.cacheCreationTokens += delta.cacheCreationTokens;
   target.totalTokens += delta.totalTokens;
+}
+
+function toUtcDayStart(timestamp: string): string {
+  const date = new Date(timestamp);
+  const time = date.getTime();
+  if (!Number.isFinite(time)) throw new Error(`Invalid bucketStart: ${timestamp}`);
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())).toISOString();
 }
