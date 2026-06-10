@@ -17,6 +17,7 @@ const p = (
 });
 
 export const BUILTIN_PRICING: PricingProfile[] = [
+  p("claude-fable-5", "Claude Fable 5", "10", "50", "1", "12.50"),
   p("claude-opus-4-8", "Claude Opus 4.8", "5", "25", "0.50", "6.25"),
   p("claude-opus-4-7", "Claude Opus 4.7", "5", "25", "0.50", "6.25"),
   p("claude-opus-4-6-20260206", "Claude Opus 4.6", "5", "25", "0.50", "6.25"),
@@ -49,6 +50,7 @@ export const BUILTIN_PRICING: PricingProfile[] = [
   p("gpt-5.2-codex-high", "GPT-5.2 Codex", "1.75", "14", "0.175", "0"),
   p("gpt-5.2-codex-xhigh", "GPT-5.2 Codex", "1.75", "14", "0.175", "0"),
   p("gpt-5.3-codex", "GPT-5.3 Codex", "1.75", "14", "0.175", "0"),
+  p("gpt-5.3-codex-spark", "GPT-5.3 Codex Spark", "1.75", "14", "0.175", "0"),
   p("gpt-5.3-codex-low", "GPT-5.3 Codex", "1.75", "14", "0.175", "0"),
   p("gpt-5.3-codex-medium", "GPT-5.3 Codex", "1.75", "14", "0.175", "0"),
   p("gpt-5.3-codex-high", "GPT-5.3 Codex", "1.75", "14", "0.175", "0"),

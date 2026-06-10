@@ -82,6 +82,23 @@ describe("pricing", () => {
     });
   });
 
+  it("resolves Fable 5 and Codex Spark pricing", () => {
+    expect(resolvePricing("claude/claude-fable-5")).toMatchObject({
+      modelId: "claude-fable-5",
+      inputUsdPerMillion: "10",
+      outputUsdPerMillion: "50",
+      cacheReadUsdPerMillion: "1",
+      cacheCreationUsdPerMillion: "12.50",
+    });
+    expect(resolvePricing("openai/gpt-5.3-codex-spark")).toMatchObject({
+      modelId: "gpt-5.3-codex-spark",
+      inputUsdPerMillion: "1.75",
+      outputUsdPerMillion: "14",
+      cacheReadUsdPerMillion: "0.175",
+      cacheCreationUsdPerMillion: "0",
+    });
+  });
+
   it("does not invent per-token pricing for Kimi For Coding plan quotas", () => {
     expect(resolvePricing("kimi-for-coding")).toBeNull();
   });

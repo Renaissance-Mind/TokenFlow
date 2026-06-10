@@ -132,7 +132,7 @@ describe("status output", () => {
       unpricedModels: [
         {
           agent: "codex",
-          model: "gpt-5.3-codex-spark",
+          model: "unknown-codex-preview",
           buckets: 9,
           totalTokens: 259_983_759,
         },
@@ -148,7 +148,7 @@ describe("status output", () => {
     });
 
     expect(output).toContain("Unpriced models:");
-    expect(output).toContain("  codex/gpt-5.3-codex-spark: 9 buckets, 259983759 tokens");
+    expect(output).toContain("  codex/unknown-codex-preview: 9 buckets, 259983759 tokens");
     expect(output).toContain("  codex/unknown: 2 buckets, 96211765 tokens");
   });
 });
