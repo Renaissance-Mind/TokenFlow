@@ -54,7 +54,35 @@ describe("pricing", () => {
       "gpt-5.2-codex-high",
     );
     expect(resolvePricing("global.anthropic.claude-sonnet-4-6-20260217-v1:0")?.modelId).toBe(
-      "claude-sonnet-4-6",
+      "claude-sonnet-4-6-20260217",
     );
+  });
+
+  it("resolves cc-switch seed pricing for third-party coding models", () => {
+    expect(resolvePricing("moonshotai/kimi-k2-0905:exa")).toMatchObject({
+      modelId: "kimi-k2-0905",
+      inputUsdPerMillion: "0.55",
+      outputUsdPerMillion: "2.20",
+    });
+    expect(resolvePricing("deepseek-v4-flash")).toMatchObject({
+      modelId: "deepseek-v4-flash",
+      cacheReadUsdPerMillion: "0.0028",
+    });
+    expect(resolvePricing("glm-5.1")).toMatchObject({
+      modelId: "glm-5.1",
+      outputUsdPerMillion: "4.4",
+    });
+    expect(resolvePricing("minimax-m2.7-highspeed")).toMatchObject({
+      modelId: "minimax-m2.7-highspeed",
+      cacheCreationUsdPerMillion: "0.375",
+    });
+    expect(resolvePricing("doubao-seed-code")).toMatchObject({
+      modelId: "doubao-seed-code",
+      outputUsdPerMillion: "1.11",
+    });
+  });
+
+  it("does not invent per-token pricing for Kimi For Coding plan quotas", () => {
+    expect(resolvePricing("kimi-for-coding")).toBeNull();
   });
 });

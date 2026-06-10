@@ -160,10 +160,13 @@ tokenusage logout
 
 TokenUsage calculates costs locally before upload.
 
-- Built-in pricing covers known Codex, Claude, and Gemini model IDs.
+- Built-in pricing covers known Codex, Claude, Gemini, OpenCode, and cc-switch-inspired
+  third-party coding/provider model IDs including DeepSeek, Kimi K2, MiniMax, GLM,
+  Qwen, Doubao, StepFun, MiMo, Grok, Mistral, and Cohere.
 - Unknown models are still counted and uploaded with `pricing_status: "unpriced"`.
 - Unpriced buckets record cost as `$0.000000` so token totals remain accurate and cost gaps stay visible.
 - For Codex and Gemini, cached input is treated as part of reported input and is separated before cost calculation to avoid double-counting.
+- Plan/quota-only products such as `kimi-for-coding` are not assigned fixed per-token pricing.
 
 ## Configuration
 

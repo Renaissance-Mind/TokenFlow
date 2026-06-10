@@ -1,81 +1,9 @@
 import type { AgentSource, CostBreakdown, PricingProfile, PricingRate, UsageTotals } from "./types.js";
+import { BUILTIN_PRICING } from "./pricing-data.js";
+
+export { BUILTIN_PRICING } from "./pricing-data.js";
 
 const MICRO_USD_SCALE = 1_000_000n;
-
-export const BUILTIN_PRICING: PricingProfile[] = [
-  {
-    modelId: "gpt-5.5",
-    displayName: "GPT-5.5",
-    inputUsdPerMillion: "5",
-    outputUsdPerMillion: "30",
-    cacheReadUsdPerMillion: "0.50",
-    cacheCreationUsdPerMillion: "0",
-  },
-  {
-    modelId: "gpt-5.4",
-    displayName: "GPT-5.4",
-    inputUsdPerMillion: "2.50",
-    outputUsdPerMillion: "15",
-    cacheReadUsdPerMillion: "0.25",
-    cacheCreationUsdPerMillion: "0",
-  },
-  {
-    modelId: "gpt-5.2-codex",
-    displayName: "GPT-5.2 Codex",
-    inputUsdPerMillion: "1.75",
-    outputUsdPerMillion: "14",
-    cacheReadUsdPerMillion: "0.175",
-    cacheCreationUsdPerMillion: "0",
-  },
-  {
-    modelId: "gpt-5.3-codex",
-    displayName: "GPT-5.3 Codex",
-    inputUsdPerMillion: "1.75",
-    outputUsdPerMillion: "14",
-    cacheReadUsdPerMillion: "0.175",
-    cacheCreationUsdPerMillion: "0",
-  },
-  {
-    modelId: "claude-opus-4-8",
-    displayName: "Claude Opus 4.8",
-    inputUsdPerMillion: "5",
-    outputUsdPerMillion: "25",
-    cacheReadUsdPerMillion: "0.50",
-    cacheCreationUsdPerMillion: "6.25",
-  },
-  {
-    modelId: "claude-opus-4-7",
-    displayName: "Claude Opus 4.7",
-    inputUsdPerMillion: "5",
-    outputUsdPerMillion: "25",
-    cacheReadUsdPerMillion: "0.50",
-    cacheCreationUsdPerMillion: "6.25",
-  },
-  {
-    modelId: "claude-sonnet-4-6",
-    displayName: "Claude Sonnet 4.6",
-    inputUsdPerMillion: "3",
-    outputUsdPerMillion: "15",
-    cacheReadUsdPerMillion: "0.30",
-    cacheCreationUsdPerMillion: "3.75",
-  },
-  {
-    modelId: "claude-haiku-4-5",
-    displayName: "Claude Haiku 4.5",
-    inputUsdPerMillion: "1",
-    outputUsdPerMillion: "5",
-    cacheReadUsdPerMillion: "0.10",
-    cacheCreationUsdPerMillion: "1.25",
-  },
-  {
-    modelId: "gemini-3-pro",
-    displayName: "Gemini 3 Pro",
-    inputUsdPerMillion: "2",
-    outputUsdPerMillion: "12",
-    cacheReadUsdPerMillion: "0.20",
-    cacheCreationUsdPerMillion: "0",
-  },
-];
 
 export function calculateCost(
   agent: AgentSource,
@@ -119,6 +47,7 @@ export function resolvePricing(model: string, extraProfiles: PricingProfile[] = 
   }
   const allPricing = [...extraProfiles, ...BUILTIN_PRICING];
   for (const candidate of candidates) {
+    if (!shouldTryPricingPrefixMatch(candidate)) continue;
     const prefixMatch = allPricing.find((profile) => profile.modelId.startsWith(`${candidate}-`));
     if (prefixMatch) return prefixMatch;
   }
@@ -153,6 +82,8 @@ function pricingCandidates(model: string): string[] {
 
     const namespaceStripped = stripKnownNamespace(candidate);
     if (namespaceStripped) queue.push(namespaceStripped);
+    const claudeWrapperStripped = stripClaudeDesktopNonAnthropicPrefix(candidate);
+    if (claudeWrapperStripped) queue.push(claudeWrapperStripped);
     const bedrockStripped = stripBedrockVersionSuffix(candidate);
     if (bedrockStripped) queue.push(bedrockStripped);
     const dateStripped = stripModelDateSuffix(candidate);
@@ -170,7 +101,7 @@ function pricingCandidates(model: string): string[] {
 function cleanModelId(model: string): string {
   const afterSlash = model.includes("/") ? model.slice(model.lastIndexOf("/") + 1) : model;
   const beforeColon = afterSlash.split(":")[0] || afterSlash;
-  return beforeColon.trim().replaceAll("@", "-").toLowerCase();
+  return beforeColon.trim().replace(/\[1m\]$/i, "").replaceAll("@", "-").toLowerCase();
 }
 
 function stripKnownNamespace(model: string): string | null {
@@ -181,6 +112,14 @@ function stripKnownNamespace(model: string): string | null {
     if (model.startsWith(marker)) return model.slice(marker.length);
   }
   return null;
+}
+
+function stripClaudeDesktopNonAnthropicPrefix(model: string): string | null {
+  if (!model.startsWith("claude-")) return null;
+  const rest = model.slice("claude-".length);
+  return NON_ANTHROPIC_CLAUDE_WRAPPER_PREFIXES.some((prefix) => rest.startsWith(prefix))
+    ? rest
+    : null;
 }
 
 function stripBedrockVersionSuffix(model: string): string | null {
@@ -200,6 +139,62 @@ function stripReasoningEffortSuffix(model: string): string | null {
   const effort = model.match(/^(.*)-(minimal|low|medium|high|xhigh)$/);
   return effort?.[1] || null;
 }
+
+function shouldTryPricingPrefixMatch(model: string): boolean {
+  const dashCount = (model.match(/-/g) || []).length;
+  if (model.startsWith("claude-")) return dashCount >= 3;
+  if (["o1", "o3", "o4", "o5"].some((prefix) => model.startsWith(prefix))) return dashCount >= 1;
+  return PREFIX_MATCH_FAMILIES.some((prefix) => model.startsWith(prefix)) && dashCount >= 2;
+}
+
+const PREFIX_MATCH_FAMILIES = [
+  "gpt-",
+  "gemini-",
+  "deepseek-",
+  "qwen-",
+  "glm-",
+  "kimi-",
+  "minimax-",
+];
+
+const NON_ANTHROPIC_CLAUDE_WRAPPER_PREFIXES = [
+  "abab",
+  "ark-code",
+  "arctic",
+  "astron",
+  "codex",
+  "command-r",
+  "deepseek",
+  "doubao",
+  "ernie",
+  "gemini",
+  "gemma",
+  "glm",
+  "gpt",
+  "grok",
+  "hermes",
+  "hy3",
+  "hunyuan",
+  "jamba",
+  "kimi",
+  "lfm",
+  "llama",
+  "longcat",
+  "mercury",
+  "mimo",
+  "minimax",
+  "mistral",
+  "mixtral",
+  "moonshot",
+  "nemotron",
+  "nova-",
+  "openai",
+  "qianfan",
+  "qwen",
+  "seed-",
+  "solar",
+  "stepfun",
+];
 
 function tokenCostMicroUsd(tokens: number, usdPerMillion: string): bigint {
   const rateMicroUsdPerMillion = parseDecimalToMicroUnits(usdPerMillion);
