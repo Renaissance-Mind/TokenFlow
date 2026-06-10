@@ -6,12 +6,6 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 import { createClaudeJsonlParser } from "./sources/claude.js";
-import {
-  parseCcSwitchPricingRow,
-  parseCcSwitchRequestLogRow,
-  type CcSwitchPricingRow,
-  type CcSwitchRequestLogRow,
-} from "./sources/cc-switch.js";
 import { createCodexJsonlParser } from "./sources/codex.js";
 import { parseGeminiSession } from "./sources/gemini.js";
 import { parseOpenCodeMessageRow, type OpenCodeMessageRow } from "./sources/opencode.js";
@@ -43,9 +37,6 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
   const claudeHome = process.env.CLAUDE_HOME || path.join(home, ".claude");
   const geminiHome = process.env.GEMINI_HOME || path.join(home, ".gemini");
   const opencodeDbPath = resolveOpenCodeDbPath(home);
-  const ccSwitchDbPath = resolveCcSwitchDbPath(home);
-  const ccSwitchDbExists = await exists(ccSwitchDbPath);
-  const ccSwitchUsageEnabled = Boolean(process.env.CC_SWITCH_DB?.trim());
 
   const codexFiles = [
     ...(await listFiles(path.join(codexHome, "sessions"), (file) =>
@@ -74,13 +65,10 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
   if (opencodeDbExists) {
     events.push(...(await readOpenCodeEvents(opencodeDbPath)));
   }
-  if (ccSwitchDbExists && ccSwitchUsageEnabled) {
-    events.push(...(await readCcSwitchEvents(ccSwitchDbPath)));
-  }
 
   return {
     events,
-    pricingProfiles: ccSwitchDbExists ? await readCcSwitchPricing(ccSwitchDbPath) : [],
+    pricingProfiles: [],
     sources: [
       {
         agent: "codex",
@@ -105,12 +93,6 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
         path: opencodeDbPath,
         files: opencodeDbExists ? 1 : 0,
         exists: opencodeDbExists,
-      },
-      {
-        agent: "cc-switch",
-        path: ccSwitchDbPath,
-        files: ccSwitchDbExists && ccSwitchUsageEnabled ? 1 : 0,
-        exists: ccSwitchDbExists,
       },
     ],
   };
@@ -179,15 +161,6 @@ function resolveOpenCodeDataDir(home: string): string {
   return path.join(home, ".local", "share", "opencode");
 }
 
-function resolveCcSwitchDbPath(home: string): string {
-  const explicitDb = process.env.CC_SWITCH_DB?.trim();
-  if (explicitDb) {
-    if (path.isAbsolute(explicitDb)) return explicitDb;
-    return path.join(home, explicitDb);
-  }
-  return path.join(home, ".cc-switch", "cc-switch.db");
-}
-
 async function readOpenCodeEvents(dbPath: string): Promise<UsageEvent[]> {
   const { stdout } = await execFileAsync("sqlite3", ["-readonly", dbPath, openCodeMessageQuery()], {
     maxBuffer: 64 * 1024 * 1024,
@@ -203,34 +176,6 @@ async function readOpenCodeEvents(dbPath: string): Promise<UsageEvent[]> {
   return events;
 }
 
-async function readCcSwitchEvents(dbPath: string): Promise<UsageEvent[]> {
-  const { stdout } = await execFileAsync("sqlite3", ["-readonly", dbPath, ccSwitchRequestLogQuery()], {
-    maxBuffer: 64 * 1024 * 1024,
-  });
-  const events: UsageEvent[] = [];
-  for (const line of String(stdout).split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    const row = JSON.parse(trimmed) as CcSwitchRequestLogRow;
-    const event = parseCcSwitchRequestLogRow(row, dbPath);
-    if (event) events.push(event);
-  }
-  return events;
-}
-
-async function readCcSwitchPricing(dbPath: string): Promise<PricingProfile[]> {
-  const { stdout } = await execFileAsync("sqlite3", ["-readonly", dbPath, ccSwitchPricingQuery()], {
-    maxBuffer: 16 * 1024 * 1024,
-  });
-  const pricing: PricingProfile[] = [];
-  for (const line of String(stdout).split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    pricing.push(parseCcSwitchPricingRow(JSON.parse(trimmed) as CcSwitchPricingRow));
-  }
-  return pricing;
-}
-
 function openCodeMessageQuery(): string {
   return [
     "SELECT json_object(",
@@ -241,41 +186,6 @@ function openCodeMessageQuery(): string {
     ")",
     "FROM message m",
     "ORDER BY m.time_created ASC;",
-  ].join(" ");
-}
-
-function ccSwitchRequestLogQuery(): string {
-  return [
-    "SELECT json_object(",
-    "'request_id', request_id,",
-    "'app_type', app_type,",
-    "'model', model,",
-    "'request_model', request_model,",
-    "'input_tokens', input_tokens,",
-    "'output_tokens', output_tokens,",
-    "'cache_read_tokens', cache_read_tokens,",
-    "'cache_creation_tokens', cache_creation_tokens,",
-    "'status_code', status_code,",
-    "'session_id', session_id,",
-    "'created_at', created_at",
-    ")",
-    "FROM proxy_request_logs",
-    "ORDER BY created_at ASC;",
-  ].join(" ");
-}
-
-function ccSwitchPricingQuery(): string {
-  return [
-    "SELECT json_object(",
-    "'model_id', model_id,",
-    "'display_name', display_name,",
-    "'input_cost_per_million', input_cost_per_million,",
-    "'output_cost_per_million', output_cost_per_million,",
-    "'cache_read_cost_per_million', cache_read_cost_per_million,",
-    "'cache_creation_cost_per_million', cache_creation_cost_per_million",
-    ")",
-    "FROM model_pricing",
-    "ORDER BY model_id ASC;",
   ].join(" ");
 }
 

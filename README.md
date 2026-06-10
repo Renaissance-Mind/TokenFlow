@@ -11,7 +11,7 @@
 
 [Features](#features) - [Install](#install) - [Quick Start](#quick-start) - [Commands](#commands) - [Configuration](#configuration) - [Development](#development)
 
-TokenUsage is an installable local collector for multi-device AI-agent usage accounting. It scans local Codex, Claude Code, Gemini CLI, OpenCode, and cc-switch usage data, aggregates token counts into UTC daily buckets by agent and model, calculates known costs, and uploads only usage metadata to a TokenUsage server.
+TokenUsage is an installable local collector for multi-device AI-agent usage accounting. It scans local Codex, Claude Code, Gemini CLI, and OpenCode usage data, aggregates token counts into UTC daily buckets by agent and model, calculates known costs, and uploads only usage metadata to a TokenUsage server.
 
 Prompts and responses stay on your machine. Uploaded payloads contain counts, model names, bucket timestamps, pricing status, and optional device metadata.
 
@@ -37,7 +37,7 @@ Home: /Users/alice/.tokenusage
 ## Features
 
 - 🔐 **Local-first collection** - reads agent logs locally and uploads metadata only.
-- 🤖 **Multi-agent support** - Codex, Claude Code, Gemini CLI, OpenCode, and cc-switch.
+- 🤖 **Multi-agent support** - Codex, Claude Code, Gemini CLI, and OpenCode.
 - 📊 **Daily UTC buckets** - aggregates usage by day, agent, and model for stable dashboards.
 - 💸 **Cost-aware accounting** - separates fresh input, cached input, cache creation, output, and reasoning output tokens.
 - 🧾 **Unpriced model visibility** - unknown models are counted and marked as `unpriced` instead of silently disappearing.
@@ -53,7 +53,6 @@ Home: /Users/alice/.tokenusage
 | Claude Code | `~/.claude/projects/**/*.jsonl` | Parses project JSONL usage data. |
 | Gemini CLI | `~/.gemini/tmp/**/chats/session-*.json` | Parses Gemini session JSON files. |
 | OpenCode | `~/.local/share/opencode/opencode.db` | Requires `sqlite3` on `PATH`. |
-| cc-switch | `~/.cc-switch/cc-switch.db` | Reads pricing by default; imports `proxy_request_logs` only when `CC_SWITCH_DB` is set. |
 
 TokenUsage intentionally does not upload source file paths, session IDs, prompts, or responses.
 
@@ -65,7 +64,7 @@ TokenUsage requires Node.js 20 or newer.
 npm install -g @renaissancemind/tokenusage
 ```
 
-If you want OpenCode or cc-switch support, make sure `sqlite3` is available:
+If you want OpenCode support, make sure `sqlite3` is available:
 
 ```bash
 sqlite3 --version
@@ -162,7 +161,6 @@ tokenusage logout
 TokenUsage calculates costs locally before upload.
 
 - Built-in pricing covers known Codex, Claude, and Gemini model IDs.
-- cc-switch `model_pricing` can extend or override local pricing when its database exists.
 - Unknown models are still counted and uploaded with `pricing_status: "unpriced"`.
 - Unpriced buckets record cost as `$0.000000` so token totals remain accurate and cost gaps stay visible.
 - For Codex and Gemini, cached input is treated as part of reported input and is separated before cost calculation to avoid double-counting.
@@ -183,7 +181,6 @@ Environment overrides:
 | `OPENCODE_DB` | Explicit OpenCode SQLite database path. |
 | `OPENCODE_HOME` | OpenCode data home. Defaults to `~/.local/share/opencode`. |
 | `XDG_DATA_HOME` | Used to resolve OpenCode data when `OPENCODE_DB` and `OPENCODE_HOME` are unset. |
-| `CC_SWITCH_DB` | Explicit cc-switch SQLite path. Enables `proxy_request_logs` import and pricing reads. |
 
 ### Local checkout in auto-sync
 
@@ -222,9 +219,8 @@ The source is a small TypeScript CLI:
 
 ## Limitations
 
-- OpenCode and cc-switch database reads require the `sqlite3` CLI.
+- OpenCode database reads require the `sqlite3` CLI.
 - Automatic sync is installed only on macOS and Linux; other platforms can run `tokenusage sync` manually or wire their own scheduler.
-- cc-switch request logs are not imported unless `CC_SWITCH_DB` is set explicitly, which avoids double-counting alongside native Codex, Claude, and Gemini logs.
 - Costs for unknown model IDs are intentionally marked `unpriced` until a pricing rule exists.
 
 ## Documentation

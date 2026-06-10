@@ -89,7 +89,6 @@ async function prepareUsageHome(prefix: string): Promise<string> {
   process.env.CLAUDE_HOME = path.join(root, "claude");
   process.env.GEMINI_HOME = path.join(root, "gemini");
   process.env.OPENCODE_HOME = path.join(root, "opencode");
-  process.env.CC_SWITCH_DB = path.join(root, "cc-switch.db");
 
   await fs.mkdir(path.join(root, "codex", "sessions", "2026", "06", "09"), { recursive: true });
   await fs.mkdir(path.join(root, "claude", "projects"), { recursive: true });

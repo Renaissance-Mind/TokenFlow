@@ -1,4 +1,4 @@
-export type AgentSource = "codex" | "claude" | "gemini" | "opencode" | "kimi" | "unknown";
+export type AgentSource = "codex" | "claude" | "gemini" | "opencode" | "unknown";
 
 export interface UsageTotals {
   inputTokens: number;
