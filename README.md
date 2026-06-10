@@ -11,7 +11,7 @@
 
 [Features](#features) - [Install](#install) - [Quick Start](#quick-start) - [Commands](#commands) - [Configuration](#configuration) - [Development](#development)
 
-TokenUsage is an installable local collector for multi-device AI-agent usage accounting. It scans local Codex, Claude Code, Gemini CLI, and OpenCode usage data, aggregates token counts into UTC daily buckets by agent and model, calculates known costs, and uploads only usage metadata to a TokenUsage server.
+TokenUsage is an installable local collector for multi-device AI-agent usage accounting. It scans local Codex, Claude Code, Gemini CLI, and OpenCode usage data, aggregates token counts into UTC half-hour buckets by agent and model, calculates known costs, and uploads only changed usage metadata to a TokenUsage server.
 
 Prompts and responses stay on your machine. Uploaded payloads contain counts, model names, bucket timestamps, pricing status, and optional device metadata.
 
@@ -38,10 +38,10 @@ Home: /Users/alice/.tokenusage
 
 - 🔐 **Local-first collection** - reads agent logs locally and uploads metadata only.
 - 🤖 **Multi-agent support** - Codex, Claude Code, Gemini CLI, and OpenCode.
-- 📊 **Daily UTC buckets** - aggregates usage by day, agent, and model for stable dashboards.
+- 📊 **Half-hour UTC buckets** - keeps local usage detail while dashboards can still summarize by day.
 - 💸 **Cost-aware accounting** - separates fresh input, cached input, cache creation, output, and reasoning output tokens.
 - 🧾 **Unpriced model visibility** - unknown models are counted and marked as `unpriced` instead of silently disappearing.
-- 🔁 **Automatic sync** - installs a 10-minute macOS `launchd` or Linux systemd user timer.
+- 🔁 **Incremental automatic sync** - installs a 10-minute macOS `launchd` or Linux systemd user timer and uploads only new or changed buckets after the initial backfill.
 - 🔑 **Device login or API key upload** - supports browser device linking and `read_write` API tokens.
 - 🛠️ **Self-host friendly** - point the CLI at any compatible TokenUsage server URL.
 
@@ -115,7 +115,7 @@ tokenusage status
 tokenusage sync
 ```
 
-`sync` scans local logs, aggregates usage, uploads idempotent buckets, records a sync heartbeat, and reports parsed events and uploaded buckets.
+`sync` scans local logs, aggregates half-hour usage buckets, uploads only new or changed buckets, records a sync heartbeat, and reports parsed events plus uploaded buckets. The local upload ledger lives in `~/.tokenusage/sync-state.json`.
 
 ### 4. Install automatic sync
 
@@ -151,7 +151,7 @@ tokenusage logout
 | --- | --- |
 | `init` | Writes config, installs auto-sync, and optionally starts login. |
 | `login` | Links a browser-approved device token or stores a validated upload API token, then runs an initial sync unless `--no-sync` is set. |
-| `sync` | Parses local usage, builds UTC daily buckets, uploads them, and updates `lastSyncAt`. |
+| `sync` | Parses local usage, builds UTC half-hour buckets, uploads new or changed buckets, and updates `lastSyncAt`. |
 | `status` | Prints local config, source availability, bucket counts, auth status, and unpriced models. |
 | `update` | Reinstalls the global package and refreshes the auto-sync scheduler. |
 | `logout` | Removes local upload tokens while keeping non-secret config. |
@@ -177,6 +177,7 @@ Environment overrides:
 | `TOKENUSAGE_HOME` | Local state directory. Defaults to `~/.tokenusage`. |
 | `TOKENUSAGE_SERVER_URL` | Default server URL. |
 | `TOKENUSAGE_AUTO_SYNC_COMMAND` | Command written into launchd/systemd. Defaults to `npx --yes @renaissancemind/tokenusage@latest sync --auto`. |
+| `TOKENUSAGE_SYNC_MAX_BUCKETS` | Maximum changed buckets uploaded per sync. Defaults to `240` to keep first-time backfills Cloudflare-friendly. |
 | `TOKENUSAGE_UPDATE_SOURCE` | Package/source used by `tokenusage update` when `--source` is omitted. |
 | `CODEX_HOME` | Codex config home. Defaults to `~/.codex`. |
 | `CLAUDE_HOME` | Claude config home. Defaults to `~/.claude`. |

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { aggregateEvents } from "../src/usage-buckets.js";
 
 describe("usage buckets", () => {
-  it("aggregates by UTC day, agent, and model with cached input priced separately", () => {
+  it("aggregates by half-hour bucket, agent, and model with cached input priced separately", () => {
     const buckets = aggregateEvents(
       [
       {
@@ -64,7 +64,7 @@ describe("usage buckets", () => {
     expect(buckets[0]).toMatchObject({
       agent: "codex",
       model: "gpt-5.2-codex",
-      bucketStart: "2026-06-09T00:00:00.000Z",
+      bucketStart: "2026-06-09T01:00:00.000Z",
       inputTokens: 150,
       cachedInputTokens: 30,
       outputTokens: 30,
@@ -81,7 +81,7 @@ describe("usage buckets", () => {
     expect(buckets[1]).toMatchObject({
       agent: "codex",
       model: "gpt-5.4",
-      bucketStart: "2026-06-09T00:00:00.000Z",
+      bucketStart: "2026-06-09T23:00:00.000Z",
       totalTokens: 18,
     });
   });

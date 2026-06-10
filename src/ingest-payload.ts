@@ -3,15 +3,25 @@ import type { UsageBucket } from "./types.js";
 export interface UnknownReplacementScope {
   agent: string;
   bucket_start: string;
+  granularity?: "half_hour" | "day";
+}
+
+export interface DailyReplacementScope {
+  agent: string;
+  model: string;
+  bucket_start: string;
 }
 
 export interface IngestPayload {
   device_name?: string;
   platform?: string;
+  bucket_granularity?: "half_hour";
   replace_unknown_buckets?: UnknownReplacementScope[];
+  replace_daily_buckets?: DailyReplacementScope[];
   hourly: Array<{
     agent: string;
     model: string;
+    granularity: "half_hour";
     bucket_start: string;
     input_tokens: number;
     cached_input_tokens: number;
@@ -30,15 +40,23 @@ export interface IngestPayload {
 
 export function toIngestPayload(
   buckets: UsageBucket[],
-  metadata: { deviceName?: string; platform?: string; replaceUnknownBuckets?: UnknownReplacementScope[] } = {},
+  metadata: {
+    deviceName?: string;
+    platform?: string;
+    replaceUnknownBuckets?: UnknownReplacementScope[];
+    replaceDailyBuckets?: DailyReplacementScope[];
+  } = {},
 ): IngestPayload {
   return {
     ...(metadata.deviceName ? { device_name: metadata.deviceName } : {}),
     ...(metadata.platform ? { platform: metadata.platform } : {}),
+    bucket_granularity: "half_hour",
     ...(metadata.replaceUnknownBuckets?.length ? { replace_unknown_buckets: metadata.replaceUnknownBuckets } : {}),
+    ...(metadata.replaceDailyBuckets?.length ? { replace_daily_buckets: metadata.replaceDailyBuckets } : {}),
     hourly: buckets.map((bucket) => ({
       agent: bucket.agent,
       model: bucket.model,
+      granularity: "half_hour",
       bucket_start: bucket.bucketStart,
       input_tokens: bucket.inputTokens,
       cached_input_tokens: bucket.cachedInputTokens,
@@ -83,7 +101,7 @@ export function unknownReplacementScopesForBuckets(buckets: UsageBucket[]): Unkn
 
   return [...groups.values()]
     .filter((group) => group.hasKnown && !group.hasUnknown)
-    .map(({ agent, bucket_start }) => ({ agent, bucket_start }))
+    .map(({ agent, bucket_start }) => ({ agent, bucket_start, granularity: "half_hour" as const }))
     .sort((a, b) => a.bucket_start.localeCompare(b.bucket_start) || a.agent.localeCompare(b.agent));
 }
 

@@ -74,7 +74,7 @@ describe("read-write API token uploads", () => {
         ),
       });
 
-      expect(result).toEqual({ inserted: 21, updated: 0 });
+      expect(result).toEqual({ inserted: 21, updated: 0, accepted: 21, supersededDaily: 0 });
       expect(requests).toHaveLength(2);
       expect(requests.map((request) => request.auth)).toEqual(["Bearer tu_api_test", "Bearer tu_api_test"]);
       expect(requests.map((request) => (request.body as { hourly: unknown[] }).hourly.length)).toEqual([20, 1]);
@@ -120,9 +120,93 @@ describe("read-write API token uploads", () => {
       });
 
       expect(requests.map((request) => request.body.replace_unknown_buckets)).toEqual([
-        [{ agent: "codex", bucket_start: "2026-05-13T00:00:00.000Z" }],
+        [{ agent: "codex", bucket_start: "2026-05-13T00:00:00.000Z", granularity: "half_hour" }],
         undefined,
         undefined,
+      ]);
+    } finally {
+      await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    }
+  });
+
+  it("sends day-level unknown replacement scopes even when there are no bucket rows to upload", async () => {
+    const requests: Array<{ body: Record<string, unknown> }> = [];
+    const server = http.createServer((request, response) => {
+      let raw = "";
+      request.setEncoding("utf8");
+      request.on("data", (chunk) => {
+        raw += chunk;
+      });
+      request.on("end", () => {
+        const body = JSON.parse(raw) as { hourly: unknown[] };
+        requests.push({ body });
+        response.setHeader("Content-Type", "application/json");
+        response.end(JSON.stringify({ accepted: body.hourly.length, superseded_daily: 0 }));
+      });
+    });
+
+    try {
+      await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+      const address = server.address();
+      if (!address || typeof address === "string") throw new Error("missing server address");
+
+      await ingestUsage({
+        serverUrl: `http://127.0.0.1:${address.port}`,
+        uploadToken: "tu_api_test",
+        buckets: [],
+        replaceUnknownBuckets: [
+          { agent: "codex", bucket_start: "2026-05-13T00:00:00.000Z", granularity: "day" },
+        ],
+      });
+
+      expect(requests).toHaveLength(1);
+      expect(requests[0].body).toMatchObject({
+        hourly: [],
+        replace_unknown_buckets: [
+          { agent: "codex", bucket_start: "2026-05-13T00:00:00.000Z", granularity: "day" },
+        ],
+      });
+    } finally {
+      await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    }
+  });
+
+  it("chunks daily replacement scopes so each ingest request stays worker-safe", async () => {
+    const requests: Array<{ body: Record<string, unknown> }> = [];
+    const server = http.createServer((request, response) => {
+      let raw = "";
+      request.setEncoding("utf8");
+      request.on("data", (chunk) => {
+        raw += chunk;
+      });
+      request.on("end", () => {
+        const body = JSON.parse(raw) as { replace_daily_buckets?: unknown[]; hourly: unknown[] };
+        requests.push({ body });
+        response.setHeader("Content-Type", "application/json");
+        response.end(JSON.stringify({ accepted: body.hourly.length, superseded_daily: body.replace_daily_buckets?.length || 0 }));
+      });
+    });
+
+    try {
+      await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+      const address = server.address();
+      if (!address || typeof address === "string") throw new Error("missing server address");
+
+      const result = await ingestUsage({
+        serverUrl: `http://127.0.0.1:${address.port}`,
+        uploadToken: "tu_api_test",
+        buckets: [],
+        replaceDailyBuckets: Array.from({ length: 21 }, (_, index) => ({
+          agent: "codex",
+          model: "gpt-5.2-codex",
+          bucket_start: `2026-06-${String(index + 1).padStart(2, "0")}T00:00:00.000Z`,
+        })),
+      });
+
+      expect(result.supersededDaily).toBe(21);
+      expect(requests.map((request) => request.body.replace_daily_buckets as unknown[] | undefined).map((items) => items?.length)).toEqual([
+        20,
+        1,
       ]);
     } finally {
       await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));

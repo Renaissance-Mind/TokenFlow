@@ -1,4 +1,10 @@
-import { replacementScopeKey, toIngestPayload, unknownReplacementScopesForBuckets } from "./ingest-payload.js";
+import {
+  replacementScopeKey,
+  toIngestPayload,
+  unknownReplacementScopesForBuckets,
+  type DailyReplacementScope,
+  type UnknownReplacementScope,
+} from "./ingest-payload.js";
 import type { RemoteApiTokenStatus, RemoteDeviceStatus } from "./status.js";
 import type { UsageBucket } from "./types.js";
 
@@ -54,15 +60,19 @@ export async function ingestUsage(params: {
   deviceName?: string;
   platform?: string;
   buckets: UsageBucket[];
+  replaceDailyBuckets?: DailyReplacementScope[];
+  replaceUnknownBuckets?: UnknownReplacementScope[];
   chunkSize?: number;
-}): Promise<{ inserted: number; updated: number }> {
+}): Promise<{ inserted: number; updated: number; accepted: number; supersededDaily: number }> {
   const token = params.uploadToken || params.deviceToken;
   if (!token) throw new Error("Missing upload token");
   const chunkSize = params.chunkSize || INGEST_CHUNK_SIZE;
   if (chunkSize < 1) throw new Error("chunkSize must be at least 1");
-  const replacementScopes = unknownReplacementScopesForBuckets(params.buckets);
+  const replacementScopes = params.replaceUnknownBuckets || unknownReplacementScopesForBuckets(params.buckets);
   let inserted = 0;
   let updated = 0;
+  let accepted = 0;
+  let supersededDaily = 0;
   for (const buckets of chunks(params.buckets, chunkSize)) {
     const chunkScopeKeys = new Set(buckets.map((bucket) => replacementScopeKey(bucket.agent, bucket.bucketStart)));
     const replaceUnknownBuckets = replacementScopes.filter((scope) =>
@@ -76,8 +86,20 @@ export async function ingestUsage(params: {
     const data = await postJson(`${params.serverUrl}/api/ingest`, payload, token);
     inserted += Number(data.inserted || 0);
     updated += Number(data.updated || 0);
+    accepted += data.accepted === undefined ? Number(data.inserted || 0) + Number(data.updated || 0) : Number(data.accepted);
   }
-  return { inserted, updated };
+  const finalUnknownReplacements = replacementScopes.filter((scope) => scope.granularity === "day");
+  for (const cleanup of cleanupChunks(params.replaceDailyBuckets || [], finalUnknownReplacements, chunkSize)) {
+    const payload = toIngestPayload([], {
+      deviceName: params.deviceName,
+      platform: params.platform,
+      replaceDailyBuckets: cleanup.replaceDailyBuckets,
+      replaceUnknownBuckets: cleanup.replaceUnknownBuckets,
+    });
+    const data = await postJson(`${params.serverUrl}/api/ingest`, payload, token);
+    supersededDaily += Number(data.superseded_daily || 0);
+  }
+  return { inserted, updated, accepted, supersededDaily };
 }
 
 export async function syncPing(
@@ -179,6 +201,25 @@ function chunks<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
   for (let index = 0; index < items.length; index += size) {
     out.push(items.slice(index, index + size));
+  }
+  return out;
+}
+
+function cleanupChunks(
+  replaceDailyBuckets: DailyReplacementScope[],
+  replaceUnknownBuckets: UnknownReplacementScope[],
+  size: number,
+): Array<{ replaceDailyBuckets: DailyReplacementScope[]; replaceUnknownBuckets: UnknownReplacementScope[] }> {
+  const out: Array<{ replaceDailyBuckets: DailyReplacementScope[]; replaceUnknownBuckets: UnknownReplacementScope[] }> = [];
+  let dailyIndex = 0;
+  let unknownIndex = 0;
+  while (dailyIndex < replaceDailyBuckets.length || unknownIndex < replaceUnknownBuckets.length) {
+    const daily = replaceDailyBuckets.slice(dailyIndex, dailyIndex + size);
+    dailyIndex += daily.length;
+    const remaining = size - daily.length;
+    const unknown = remaining > 0 ? replaceUnknownBuckets.slice(unknownIndex, unknownIndex + remaining) : [];
+    unknownIndex += unknown.length;
+    out.push({ replaceDailyBuckets: daily, replaceUnknownBuckets: unknown });
   }
   return out;
 }
