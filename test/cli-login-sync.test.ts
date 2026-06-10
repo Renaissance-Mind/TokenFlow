@@ -33,7 +33,7 @@ describe("CLI login initial sync", () => {
     expect(config.deviceToken).toBe("dev_token_test");
     expect(config.deviceId).toBe("dev_test");
     expect(config.lastSyncAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-    expect(server.ingestCalls).toBe(1);
+    expect(server.ingestCalls).toBe(2);
     expect(server.syncPingCalls).toBe(1);
     expect(server.uploadedBucketCount).toBe(1);
   });
@@ -76,7 +76,7 @@ describe("CLI login initial sync", () => {
     };
     expect(config.apiToken).toBe("tu_api_test");
     expect(config.lastSyncAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-    expect(server.ingestCalls).toBe(1);
+    expect(server.ingestCalls).toBe(2);
     expect(server.syncPingCalls).toBe(1);
     expect(server.uploadedBucketCount).toBe(1);
   });

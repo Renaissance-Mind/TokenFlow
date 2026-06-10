@@ -13,7 +13,7 @@ export function aggregateEvents(events: UsageEvent[], pricingProfiles: PricingPr
   const buckets = new Map<string, UsageBucket>();
 
   for (const event of events) {
-    const bucketStart = toUtcDayStart(event.bucketStart);
+    const bucketStart = event.bucketStart;
     const key = `${event.agent}|${event.model}|${bucketStart}`;
     const bucket =
       buckets.get(key) ||
@@ -81,14 +81,6 @@ function addTotals(target: UsageTotals, delta: UsageTotals): void {
   target.extraTotalTokens = (target.extraTotalTokens || 0) + (delta.extraTotalTokens || 0);
   target.totalTokens += delta.totalTokens;
 }
-
-function toUtcDayStart(timestamp: string): string {
-  const date = new Date(timestamp);
-  const time = date.getTime();
-  if (!Number.isFinite(time)) throw new Error(`Invalid bucketStart: ${timestamp}`);
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())).toISOString();
-}
-
 function addUsdStrings(left: string | undefined, right: string | undefined): string | undefined {
   if (!right) return left;
   if (!left) return normalizeUsdString(right);

@@ -27,10 +27,12 @@ describe("ingest payload", () => {
     ]);
 
     expect(payload).toEqual({
+      bucket_granularity: "half_hour",
       hourly: [
         {
           agent: "codex",
           model: "gpt-5.2-codex",
+          granularity: "half_hour",
           bucket_start: "2026-06-09T01:00:00.000Z",
           input_tokens: 10,
           cached_input_tokens: 3,
@@ -55,9 +57,9 @@ describe("ingest payload", () => {
       bucket("claude", "claude-sonnet-4", "2026-05-13T00:00:00.000Z"),
     ]);
 
-    expect(scopes).toEqual([{ agent: "codex", bucket_start: "2026-05-13T00:00:00.000Z" }]);
+    expect(scopes).toEqual([{ agent: "codex", bucket_start: "2026-05-13T00:00:00.000Z", granularity: "half_hour" }]);
     expect(toIngestPayload([bucket("codex", "gpt-5.5", "2026-05-13T00:00:00.000Z")], { replaceUnknownBuckets: scopes })).toMatchObject({
-      replace_unknown_buckets: [{ agent: "codex", bucket_start: "2026-05-13T00:00:00.000Z" }],
+      replace_unknown_buckets: [{ agent: "codex", bucket_start: "2026-05-13T00:00:00.000Z", granularity: "half_hour" }],
     });
   });
 
