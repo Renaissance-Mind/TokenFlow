@@ -1,9 +1,14 @@
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import {
   emptySyncState,
   markSyncPlanUploaded,
   planIncrementalSync,
+  readSyncState,
 } from "../src/sync-state.js";
 import type { UsageBucket } from "../src/types.js";
 
@@ -92,6 +97,36 @@ describe("incremental sync state", () => {
 
     const completed = markSyncPlanUploaded(uploadedBuckets, retryPlan, "2026-06-09T02:05:00.000Z");
     expect(planIncrementalSync([first, second], completed, { maxBuckets: 100 }).replaceDailyBuckets).toEqual([]);
+  });
+
+  it("preserves uploaded buckets but retries replacement scopes from v1 state", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "tokenusage-sync-state-"));
+    const stateDir = path.join(root, ".tokenusage");
+    await fs.mkdir(stateDir, { recursive: true });
+    await fs.writeFile(
+      path.join(stateDir, "sync-state.json"),
+      JSON.stringify({
+        version: 1,
+        buckets: {
+          uploaded: { hash: "abc123", uploadedAt: "2026-06-09T02:00:00.000Z" },
+        },
+        dailyReplacements: {
+          stale: { uploadedAt: "2026-06-09T02:01:00.000Z" },
+        },
+        unknownDailyReplacements: {
+          stale: { uploadedAt: "2026-06-09T02:01:00.000Z" },
+        },
+      }),
+    );
+
+    const state = await readSyncState(root);
+
+    expect(state.version).toBe(2);
+    expect(state.buckets).toEqual({
+      uploaded: { hash: "abc123", uploadedAt: "2026-06-09T02:00:00.000Z" },
+    });
+    expect(state.dailyReplacements).toEqual({});
+    expect(state.unknownDailyReplacements).toEqual({});
   });
 });
 

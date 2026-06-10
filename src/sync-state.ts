@@ -7,7 +7,7 @@ import { tokenUsageDir } from "./config.js";
 import type { DailyReplacementScope, UnknownReplacementScope } from "./ingest-payload.js";
 import type { UsageBucket } from "./types.js";
 
-const SYNC_STATE_VERSION = 1;
+const SYNC_STATE_VERSION = 2;
 const DEFAULT_MAX_BUCKETS_PER_SYNC = 60;
 
 export interface BucketSyncRecord {
@@ -20,10 +20,17 @@ export interface ReplacementSyncRecord {
 }
 
 export interface SyncState {
-  version: 1;
+  version: 2;
   buckets: Record<string, BucketSyncRecord>;
   dailyReplacements: Record<string, ReplacementSyncRecord>;
   unknownDailyReplacements: Record<string, ReplacementSyncRecord>;
+}
+
+interface StoredSyncState {
+  version?: number;
+  buckets?: Record<string, BucketSyncRecord>;
+  dailyReplacements?: Record<string, ReplacementSyncRecord>;
+  unknownDailyReplacements?: Record<string, ReplacementSyncRecord>;
 }
 
 export interface IncrementalSyncPlan {
@@ -42,7 +49,15 @@ export async function readSyncState(home = os.homedir()): Promise<SyncState> {
     throw error;
   });
   if (!raw) return emptySyncState();
-  const parsed = JSON.parse(raw) as Partial<SyncState>;
+  const parsed = JSON.parse(raw) as StoredSyncState;
+  if (parsed.version === 1) {
+    return {
+      version: SYNC_STATE_VERSION,
+      buckets: parsed.buckets || {},
+      dailyReplacements: {},
+      unknownDailyReplacements: {},
+    };
+  }
   if (parsed.version !== SYNC_STATE_VERSION) return emptySyncState();
   return {
     version: SYNC_STATE_VERSION,
