@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toIngestPayload, unknownReplacementScopesForBuckets } from "../src/ingest-payload.js";
+import { toIngestPayload, toUsageSnapshotPayload, unknownReplacementScopesForBuckets } from "../src/ingest-payload.js";
 import type { UsageBucket } from "../src/types.js";
 
 describe("ingest payload", () => {
@@ -70,6 +70,37 @@ describe("ingest payload", () => {
         bucket("codex", "unknown", "2026-05-13T00:00:00.000Z"),
       ]),
     ).toEqual([]);
+  });
+
+  it("groups half-hour buckets into daily snapshot records with slot details", () => {
+    const payload = toUsageSnapshotPayload(
+      [
+        bucket("codex", "gpt-5.5", "2026-06-09T01:00:00.000Z"),
+        bucket("codex", "gpt-5.5", "2026-06-09T01:30:00.000Z"),
+      ],
+      { deviceName: "Work Mac", platform: "darwin" },
+    );
+
+    expect(payload).toMatchObject({
+      device_name: "Work Mac",
+      platform: "darwin",
+      snapshot_version: "daily-v1",
+      daily: [
+        {
+          day: "2026-06-09",
+          bucket_start: "2026-06-09T00:00:00.000Z",
+          agent: "codex",
+          model: "gpt-5.5",
+          total_tokens: 32,
+          total_cost_usd: "0.000106",
+          unpriced_buckets: 0,
+          slots: [
+            { bucket_start: "2026-06-09T01:00:00.000Z", total_tokens: 16 },
+            { bucket_start: "2026-06-09T01:30:00.000Z", total_tokens: 16 },
+          ],
+        },
+      ],
+    });
   });
 });
 

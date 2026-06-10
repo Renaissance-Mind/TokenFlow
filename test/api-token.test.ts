@@ -1,7 +1,7 @@
 import http from "node:http";
 import { describe, expect, it } from "vitest";
 
-import { ingestUsage } from "../src/api.js";
+import { ingestUsage, ingestUsageSnapshot } from "../src/api.js";
 import { toIngestPayload } from "../src/ingest-payload.js";
 import type { UsageBucket } from "../src/types.js";
 
@@ -82,6 +82,51 @@ describe("read-write API token uploads", () => {
         "Work Mac",
         "Work Mac",
       ]);
+    } finally {
+      await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    }
+  });
+
+  it("uploads a complete usage snapshot in a single ingest request", async () => {
+    const requests: Array<{ auth: string | undefined; body: Record<string, unknown> }> = [];
+    const server = http.createServer((request, response) => {
+      let raw = "";
+      request.setEncoding("utf8");
+      request.on("data", (chunk) => {
+        raw += chunk;
+      });
+      request.on("end", () => {
+        const body = JSON.parse(raw) as Record<string, unknown>;
+        requests.push({ auth: request.headers.authorization, body });
+        response.setHeader("Content-Type", "application/json");
+        response.end(JSON.stringify({ snapshot: true, accepted: 21, updated: 1 }));
+      });
+    });
+
+    try {
+      await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+      const address = server.address();
+      if (!address || typeof address === "string") throw new Error("missing server address");
+
+      const result = await ingestUsageSnapshot({
+        serverUrl: `http://127.0.0.1:${address.port}`,
+        uploadToken: "tu_api_test",
+        deviceName: "Work Mac",
+        platform: "darwin",
+        buckets: Array.from({ length: 21 }, (_, index) =>
+          bucket(`2026-06-09T${String(index).padStart(2, "0")}:00:00.000Z`),
+        ),
+      });
+
+      expect(result).toEqual({ accepted: 21, updated: 1 });
+      expect(requests).toHaveLength(1);
+      expect(requests[0].auth).toBe("Bearer tu_api_test");
+      expect(requests[0].body).toMatchObject({
+        device_name: "Work Mac",
+        platform: "darwin",
+        snapshot_version: "daily-v1",
+      });
+      expect((requests[0].body.daily as unknown[])).toHaveLength(1);
     } finally {
       await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
     }

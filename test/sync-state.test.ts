@@ -99,7 +99,7 @@ describe("incremental sync state", () => {
     expect(planIncrementalSync([first, second], completed, { maxBuckets: 100 }).replaceDailyBuckets).toEqual([]);
   });
 
-  it("preserves uploaded buckets but retries replacement scopes from v1 state", async () => {
+  it("forces one complete snapshot upload when upgrading legacy sync state", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "tokenusage-sync-state-"));
     const stateDir = path.join(root, ".tokenusage");
     await fs.mkdir(stateDir, { recursive: true });
@@ -121,10 +121,8 @@ describe("incremental sync state", () => {
 
     const state = await readSyncState(root);
 
-    expect(state.version).toBe(2);
-    expect(state.buckets).toEqual({
-      uploaded: { hash: "abc123", uploadedAt: "2026-06-09T02:00:00.000Z" },
-    });
+    expect(state.version).toBe(3);
+    expect(state.buckets).toEqual({});
     expect(state.dailyReplacements).toEqual({});
     expect(state.unknownDailyReplacements).toEqual({});
   });

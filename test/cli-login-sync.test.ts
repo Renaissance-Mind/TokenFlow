@@ -33,7 +33,7 @@ describe("CLI login initial sync", () => {
     expect(config.deviceToken).toBe("dev_token_test");
     expect(config.deviceId).toBe("dev_test");
     expect(config.lastSyncAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-    expect(server.ingestCalls).toBe(2);
+    expect(server.ingestCalls).toBe(1);
     expect(server.syncPingCalls).toBe(1);
     expect(server.uploadedBucketCount).toBe(1);
   });
@@ -76,7 +76,7 @@ describe("CLI login initial sync", () => {
     };
     expect(config.apiToken).toBe("tu_api_test");
     expect(config.lastSyncAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-    expect(server.ingestCalls).toBe(2);
+    expect(server.ingestCalls).toBe(1);
     expect(server.syncPingCalls).toBe(1);
     expect(server.uploadedBucketCount).toBe(1);
   });
@@ -163,8 +163,9 @@ async function startLoginServer(): Promise<{
     if (request.method === "POST" && request.url === "/api/ingest") {
       const body = await readJson(request);
       state.ingestCalls += 1;
-      state.uploadedBucketCount += Array.isArray(body.hourly) ? body.hourly.length : 0;
-      return json(response, { inserted: Array.isArray(body.hourly) ? body.hourly.length : 0, updated: 0 });
+      const daily = Array.isArray(body.daily) ? (body.daily as Array<{ slots?: unknown[] }>) : [];
+      state.uploadedBucketCount += daily.reduce((total, day) => total + (Array.isArray(day.slots) ? day.slots.length : 0), 0);
+      return json(response, { snapshot: true, accepted: state.uploadedBucketCount, updated: daily.length });
     }
     if (request.method === "POST" && request.url === "/api/sync-ping") {
       state.syncPingCalls += 1;

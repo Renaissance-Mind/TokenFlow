@@ -8,7 +8,7 @@ import {
   getApiTokenStatus,
   getDeviceStatus,
   getUploadApiTokenStatus,
-  ingestUsage,
+  ingestUsageSnapshot,
   pollDeviceFlow,
   startDeviceFlow,
   syncPing,
@@ -143,32 +143,27 @@ async function cmdSync(argv: string[]): Promise<void> {
   const collection = await collectLocalUsage();
   const buckets = aggregateEvents(collection.events, collection.pricingProfiles);
   const syncState = await readSyncState();
-  const plan = planIncrementalSync(buckets, syncState);
-  const shouldIngest = plan.buckets.length > 0 || plan.replaceDailyBuckets.length > 0 || plan.replaceUnknownBuckets.length > 0;
+  const plan = planIncrementalSync(buckets, syncState, { maxBuckets: Number.MAX_SAFE_INTEGER });
+  const shouldIngest = plan.buckets.length > 0;
   const result = shouldIngest
-    ? await ingestUsage({
+    ? await ingestUsageSnapshot({
         serverUrl,
         uploadToken,
         deviceName,
         platform: process.platform,
-        buckets: plan.buckets,
-        replaceDailyBuckets: plan.replaceDailyBuckets,
-        replaceUnknownBuckets: plan.replaceUnknownBuckets,
+        buckets,
       })
-    : { inserted: 0, updated: 0, accepted: 0, supersededDaily: 0 };
+    : { accepted: 0, updated: 0 };
   if (shouldIngest) {
-    await writeSyncState(markSyncPlanUploaded(syncState, plan, new Date().toISOString()));
+    await writeSyncState(
+      markSyncPlanUploaded(syncState, { buckets, replaceDailyBuckets: [], replaceUnknownBuckets: [] }, new Date().toISOString()),
+    );
   }
   await syncPing(serverUrl, uploadToken, { deviceName, platform: process.platform });
   await writeConfig({ ...config, serverUrl, lastSyncAt: new Date().toISOString() });
   if (!options.auto) {
     process.stdout.write(`Parsed events: ${collection.events.length}\n`);
-    process.stdout.write(
-      `Uploaded buckets: ${plan.buckets.length} of ${buckets.length} local buckets (${result.inserted} inserted, ${result.updated} updated)\n`,
-    );
-    if (plan.replaceDailyBuckets.length > 0) {
-      process.stdout.write(`Daily replacements: ${plan.replaceDailyBuckets.length} (${result.supersededDaily} superseded)\n`);
-    }
+    process.stdout.write(`Uploaded snapshot: ${result.accepted} of ${buckets.length} local buckets (${result.updated} daily records)\n`);
     const unpricedBuckets = countUnpricedBuckets(buckets);
     if (unpricedBuckets > 0) {
       process.stdout.write(`Unpriced buckets: ${unpricedBuckets} (cost for these buckets is recorded as $0.000000)\n`);

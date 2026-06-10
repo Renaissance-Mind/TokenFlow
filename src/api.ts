@@ -1,6 +1,7 @@
 import {
   replacementScopeKey,
   toIngestPayload,
+  toUsageSnapshotPayload,
   unknownReplacementScopesForBuckets,
   type DailyReplacementScope,
   type UnknownReplacementScope,
@@ -102,6 +103,27 @@ export async function ingestUsage(params: {
     supersededDaily += Number(data.superseded_daily || 0);
   }
   return { inserted, updated, accepted, supersededDaily };
+}
+
+export async function ingestUsageSnapshot(params: {
+  serverUrl: string;
+  uploadToken?: string;
+  deviceToken?: string;
+  deviceName?: string;
+  platform?: string;
+  buckets: UsageBucket[];
+}): Promise<{ accepted: number; updated: number }> {
+  const token = params.uploadToken || params.deviceToken;
+  if (!token) throw new Error("Missing upload token");
+  const payload = toUsageSnapshotPayload(params.buckets, {
+    deviceName: params.deviceName,
+    platform: params.platform,
+  });
+  const data = await postJson(`${params.serverUrl}/api/ingest`, payload, token);
+  return {
+    accepted: Number(data.accepted || 0),
+    updated: Number(data.updated || 0),
+  };
 }
 
 export async function syncPing(
