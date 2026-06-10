@@ -30,9 +30,16 @@ export function parseCodexJsonl(jsonl: string, options: ParseOptions): UsageEven
 
 export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser {
   const events: UsageEvent[] = [];
+  const seenModels = new Set<string>();
   let sessionId: string | null = null;
   let currentModel = "unknown";
   let previousTotal: CumulativeUsage | null = null;
+
+  function setCurrentModel(model: string): void {
+    const normalized = normalizeAgentModel("codex", model);
+    currentModel = normalized;
+    if (normalized !== "unknown") seenModels.add(normalized);
+  }
 
   return {
     pushLine(line: string): void {
@@ -56,8 +63,8 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
         const payloadSessionId =
           stringField(payload, "session_id") || stringField(payload, "sessionId") || stringField(payload, "id");
         if (payloadSessionId && !sessionId) sessionId = payloadSessionId;
-        const model = stringField(payload, "model") || stringField(recordField(payload, "info"), "model");
-        if (model) currentModel = normalizeAgentModel("codex", model);
+        const model = modelFromContextPayload(payload);
+        if (model) setCurrentModel(model);
         return;
       }
 
@@ -69,7 +76,7 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
       const info = token.info;
       const model =
         stringField(info, "model") || stringField(info, "model_name") || stringField(token.payload, "model");
-      if (model) currentModel = normalizeAgentModel("codex", model);
+      if (model) setCurrentModel(model);
 
       const lastUsage = recordField(info, "last_token_usage");
       const totalUsage = recordField(info, "total_token_usage");
@@ -92,9 +99,21 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
     },
 
     finish(): UsageEvent[] {
+      if (seenModels.size === 1) {
+        const [model] = [...seenModels];
+        return events.map((event) => (event.model === "unknown" ? { ...event, model } : event));
+      }
       return events;
     },
   };
+}
+
+function modelFromContextPayload(payload: Record<string, unknown>): string | null {
+  return (
+    stringField(payload, "model") ||
+    stringField(recordField(payload, "info"), "model") ||
+    stringField(recordField(recordField(payload, "collaboration_mode"), "settings"), "model")
+  );
 }
 
 function extractTokenCount(row: Record<string, unknown>) {

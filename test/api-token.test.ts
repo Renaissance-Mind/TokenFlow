@@ -86,12 +86,54 @@ describe("read-write API token uploads", () => {
       await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
     }
   });
+
+  it("sends unknown replacement scopes only for safe Codex days across upload batches", async () => {
+    const requests: Array<{ body: Record<string, unknown> }> = [];
+    const server = http.createServer((request, response) => {
+      let raw = "";
+      request.setEncoding("utf8");
+      request.on("data", (chunk) => {
+        raw += chunk;
+      });
+      request.on("end", () => {
+        const body = JSON.parse(raw) as { hourly: unknown[] };
+        requests.push({ body });
+        response.setHeader("Content-Type", "application/json");
+        response.end(JSON.stringify({ inserted: body.hourly.length, updated: 0 }));
+      });
+    });
+
+    try {
+      await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+      const address = server.address();
+      if (!address || typeof address === "string") throw new Error("missing server address");
+
+      await ingestUsage({
+        serverUrl: `http://127.0.0.1:${address.port}`,
+        uploadToken: "tu_api_test",
+        buckets: [
+          bucket("2026-05-13T00:00:00.000Z", "gpt-5.5"),
+          bucket("2026-05-14T00:00:00.000Z", "gpt-5.5"),
+          bucket("2026-05-14T00:00:00.000Z", "unknown"),
+        ],
+        chunkSize: 1,
+      });
+
+      expect(requests.map((request) => request.body.replace_unknown_buckets)).toEqual([
+        [{ agent: "codex", bucket_start: "2026-05-13T00:00:00.000Z" }],
+        undefined,
+        undefined,
+      ]);
+    } finally {
+      await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    }
+  });
 });
 
-function bucket(bucketStart: string): UsageBucket {
+function bucket(bucketStart: string, model = "gpt-5.2-codex"): UsageBucket {
   return {
     agent: "codex",
-    model: "gpt-5.2-codex",
+    model,
     bucketStart,
     inputTokens: 10,
     cachedInputTokens: 3,

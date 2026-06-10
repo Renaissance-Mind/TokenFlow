@@ -78,4 +78,71 @@ describe("Codex JSONL parser", () => {
       totalTokens: 740,
     });
   });
+
+  it("backfills early token counts when a session has one later model context", () => {
+    const lines = [
+      JSON.stringify({
+        type: "session_meta",
+        payload: { session_id: "s1", model_provider: "openai", model_context_window: 272_000 },
+      }),
+      JSON.stringify({
+        type: "event_msg",
+        timestamp: "2026-05-13T03:05:00.000Z",
+        payload: {
+          type: "token_count",
+          info: {
+            total_token_usage: {
+              input_tokens: 1_000,
+              cached_input_tokens: 100,
+              output_tokens: 50,
+            },
+          },
+        },
+      }),
+      JSON.stringify({
+        type: "turn_context",
+        payload: {
+          model: "OpenAI/GPT-5.5",
+          collaboration_mode: { settings: { model: "OpenAI/GPT-5.5" } },
+        },
+      }),
+    ].join("\n");
+
+    const events = parseCodexJsonl(lines, { sourcePath: "/tmp/rollout.jsonl" });
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      model: "gpt-5.5",
+      totalTokens: 1_150,
+    });
+  });
+
+  it("keeps early unknown token counts when a session contains multiple real models", () => {
+    const lines = [
+      JSON.stringify({ type: "session_meta", payload: { session_id: "s1", model_provider: "openai" } }),
+      JSON.stringify({
+        type: "event_msg",
+        timestamp: "2026-05-13T03:05:00.000Z",
+        payload: {
+          type: "token_count",
+          info: {
+            total_token_usage: {
+              input_tokens: 1_000,
+              output_tokens: 50,
+            },
+          },
+        },
+      }),
+      JSON.stringify({ type: "turn_context", payload: { model: "gpt-5.4" } }),
+      JSON.stringify({ type: "turn_context", payload: { model: "gpt-5.5" } }),
+    ].join("\n");
+
+    const events = parseCodexJsonl(lines, { sourcePath: "/tmp/rollout.jsonl" });
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      model: "unknown",
+      totalTokens: 1_050,
+    });
+  });
 });

@@ -1,4 +1,4 @@
-import { toIngestPayload } from "./ingest-payload.js";
+import { replacementScopeKey, toIngestPayload, unknownReplacementScopesForBuckets } from "./ingest-payload.js";
 import type { RemoteApiTokenStatus, RemoteDeviceStatus } from "./status.js";
 import type { UsageBucket } from "./types.js";
 
@@ -60,10 +60,19 @@ export async function ingestUsage(params: {
   if (!token) throw new Error("Missing upload token");
   const chunkSize = params.chunkSize || INGEST_CHUNK_SIZE;
   if (chunkSize < 1) throw new Error("chunkSize must be at least 1");
+  const replacementScopes = unknownReplacementScopesForBuckets(params.buckets);
   let inserted = 0;
   let updated = 0;
   for (const buckets of chunks(params.buckets, chunkSize)) {
-    const payload = toIngestPayload(buckets, { deviceName: params.deviceName, platform: params.platform });
+    const chunkScopeKeys = new Set(buckets.map((bucket) => replacementScopeKey(bucket.agent, bucket.bucketStart)));
+    const replaceUnknownBuckets = replacementScopes.filter((scope) =>
+      chunkScopeKeys.has(replacementScopeKey(scope.agent, scope.bucket_start)),
+    );
+    const payload = toIngestPayload(buckets, {
+      deviceName: params.deviceName,
+      platform: params.platform,
+      replaceUnknownBuckets,
+    });
     const data = await postJson(`${params.serverUrl}/api/ingest`, payload, token);
     inserted += Number(data.inserted || 0);
     updated += Number(data.updated || 0);
