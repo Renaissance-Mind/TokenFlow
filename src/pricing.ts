@@ -15,26 +15,65 @@ export function calculateCost(
   const billableInputTokens = inputIncludesCacheRead
     ? Math.max(0, totals.inputTokens - totals.cachedInputTokens)
     : totals.inputTokens;
-  const billableOutputTokens = totals.outputTokens + totals.reasoningOutputTokens;
+  const billableOutputTokens =
+    totals.outputTokens + totals.reasoningOutputTokens + (totals.extraTotalTokens || 0);
 
-  const inputMicro = tokenCostMicroUsd(billableInputTokens, pricing.inputUsdPerMillion);
-  const outputMicro = tokenCostMicroUsd(billableOutputTokens, pricing.outputUsdPerMillion);
-  const cacheReadMicro = tokenCostMicroUsd(totals.cachedInputTokens, pricing.cacheReadUsdPerMillion);
-  const cacheCreationMicro = tokenCostMicroUsd(
-    totals.cacheCreationTokens,
-    pricing.cacheCreationUsdPerMillion,
+  const inputMicro = tieredTokenCostMicroUsd(
+    billableInputTokens,
+    pricing.inputUsdPerMillion,
+    pricing.inputAbove200kUsdPerMillion,
   );
+  const outputMicro = tieredTokenCostMicroUsd(
+    billableOutputTokens,
+    pricing.outputUsdPerMillion,
+    pricing.outputAbove200kUsdPerMillion,
+  );
+  const cacheReadMicro = tieredTokenCostMicroUsd(
+    totals.cachedInputTokens,
+    pricing.cacheReadUsdPerMillion,
+    pricing.cacheReadAbove200kUsdPerMillion,
+  );
+  const cacheCreationMicro = cacheCreationCostMicroUsd(totals, pricing);
   const multiplierMicro = parseDecimalToMicroUnits(multiplier);
-  const baseTotal = inputMicro + outputMicro + cacheReadMicro + cacheCreationMicro;
-  const totalMicro = (baseTotal * multiplierMicro + MICRO_USD_SCALE / 2n) / MICRO_USD_SCALE;
+  const scaledInputMicro = applyMultiplier(inputMicro, multiplierMicro);
+  const scaledOutputMicro = applyMultiplier(outputMicro, multiplierMicro);
+  const scaledCacheReadMicro = applyMultiplier(cacheReadMicro, multiplierMicro);
+  const scaledCacheCreationMicro = applyMultiplier(cacheCreationMicro, multiplierMicro);
+  const totalMicro = scaledInputMicro + scaledOutputMicro + scaledCacheReadMicro + scaledCacheCreationMicro;
 
   return {
-    inputUsd: formatMicroUsd(inputMicro),
-    outputUsd: formatMicroUsd(outputMicro),
-    cacheReadUsd: formatMicroUsd(cacheReadMicro),
-    cacheCreationUsd: formatMicroUsd(cacheCreationMicro),
+    inputUsd: formatMicroUsd(scaledInputMicro),
+    outputUsd: formatMicroUsd(scaledOutputMicro),
+    cacheReadUsd: formatMicroUsd(scaledCacheReadMicro),
+    cacheCreationUsd: formatMicroUsd(scaledCacheCreationMicro),
     totalUsd: formatMicroUsd(totalMicro),
   };
+}
+
+function cacheCreationCostMicroUsd(totals: UsageTotals, pricing: PricingRate): bigint {
+  const cacheCreation5mTokens = totals.cacheCreation5mTokens || 0;
+  const cacheCreation1hTokens = totals.cacheCreation1hTokens || 0;
+  if (cacheCreation5mTokens || cacheCreation1hTokens) {
+    return (
+      tieredTokenCostMicroUsd(
+        cacheCreation5mTokens,
+        pricing.cacheCreationUsdPerMillion,
+        pricing.cacheCreationAbove200kUsdPerMillion,
+      ) +
+      tieredTokenCostMicroUsd(
+        cacheCreation1hTokens,
+        multiplyDecimalString(pricing.inputUsdPerMillion, "2"),
+        pricing.inputAbove200kUsdPerMillion
+          ? multiplyDecimalString(pricing.inputAbove200kUsdPerMillion, "2")
+          : undefined,
+      )
+    );
+  }
+  return tieredTokenCostMicroUsd(
+    totals.cacheCreationTokens,
+    pricing.cacheCreationUsdPerMillion,
+    pricing.cacheCreationAbove200kUsdPerMillion,
+  );
 }
 
 export function resolvePricing(model: string, extraProfiles: PricingProfile[] = []): PricingProfile | null {
@@ -196,10 +235,31 @@ const NON_ANTHROPIC_CLAUDE_WRAPPER_PREFIXES = [
   "stepfun",
 ];
 
+function tieredTokenCostMicroUsd(tokens: number, usdPerMillion: string, above200kUsdPerMillion?: string): bigint {
+  const safeTokens = Math.max(0, Math.floor(tokens));
+  if (!above200kUsdPerMillion || safeTokens <= 200_000) {
+    return tokenCostMicroUsd(safeTokens, usdPerMillion);
+  }
+  return (
+    tokenCostMicroUsd(200_000, usdPerMillion) +
+    tokenCostMicroUsd(safeTokens - 200_000, above200kUsdPerMillion)
+  );
+}
+
 function tokenCostMicroUsd(tokens: number, usdPerMillion: string): bigint {
   const rateMicroUsdPerMillion = parseDecimalToMicroUnits(usdPerMillion);
   const safeTokens = BigInt(Math.max(0, Math.floor(tokens)));
   return (safeTokens * rateMicroUsdPerMillion + 500_000n) / 1_000_000n;
+}
+
+function applyMultiplier(value: bigint, multiplierMicro: bigint): bigint {
+  return (value * multiplierMicro + MICRO_USD_SCALE / 2n) / MICRO_USD_SCALE;
+}
+
+function multiplyDecimalString(value: string, multiplier: string): string {
+  const left = parseDecimalToMicroUnits(value);
+  const right = parseDecimalToMicroUnits(multiplier);
+  return formatMicroUsd((left * right + MICRO_USD_SCALE / 2n) / MICRO_USD_SCALE);
 }
 
 function parseDecimalToMicroUnits(value: string): bigint {

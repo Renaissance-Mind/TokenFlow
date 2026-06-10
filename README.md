@@ -11,7 +11,7 @@
 
 [Features](#features) - [Install](#install) - [Quick Start](#quick-start) - [Commands](#commands) - [Configuration](#configuration) - [Development](#development)
 
-TokenUsage is an installable local collector for multi-device AI-agent usage accounting. It scans local Codex, Claude Code, Gemini CLI, and OpenCode usage data, aggregates token counts into UTC daily buckets by agent and model, calculates known costs, and uploads only usage metadata to a TokenUsage server.
+TokenUsage is an installable local collector for multi-device AI-agent usage accounting. It scans local Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, and Qwen Code usage data, aggregates token counts into UTC daily buckets by agent and model, calculates known costs, and uploads only usage metadata to a TokenUsage server.
 
 Prompts and responses stay on your machine. Uploaded payloads contain counts, model names, bucket timestamps, pricing status, and optional device metadata.
 
@@ -37,7 +37,7 @@ Home: /Users/alice/.tokenusage
 ## Features
 
 - 🔐 **Local-first collection** - reads agent logs locally and uploads metadata only.
-- 🤖 **Multi-agent support** - Codex, Claude Code, Gemini CLI, and OpenCode.
+- 🤖 **Multi-agent support** - Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, and Qwen Code.
 - 📊 **Daily UTC buckets** - aggregates usage by day, agent, and model for stable dashboards.
 - 💸 **Cost-aware accounting** - separates fresh input, cached input, cache creation, output, and reasoning output tokens.
 - 🧾 **Unpriced model visibility** - unknown models are counted and marked as `unpriced` instead of silently disappearing.
@@ -53,6 +53,8 @@ Home: /Users/alice/.tokenusage
 | Claude Code | `~/.claude/projects/**/*.jsonl` | Parses project JSONL usage data. |
 | Gemini CLI | `~/.gemini/tmp/**/chats/session-*.json` | Parses Gemini session JSON files. |
 | OpenCode | `~/.local/share/opencode/opencode.db` | Requires `sqlite3` on `PATH`. |
+| Kimi CLI | `~/.kimi/sessions/*/*/wire.jsonl` | Reads `StatusUpdate.token_usage` rows and `~/.kimi/config.json` model metadata. |
+| Qwen Code | `~/.qwen/projects/*/chats/*.jsonl` | Reads assistant `usageMetadata` rows. |
 
 TokenUsage intentionally does not upload source file paths, session IDs, prompts, or responses.
 
@@ -165,8 +167,9 @@ TokenUsage calculates costs locally before upload.
   Qwen, Doubao, StepFun, MiMo, Grok, Mistral, and Cohere.
 - Unknown models are still counted and uploaded with `pricing_status: "unpriced"`.
 - Unpriced buckets record cost as `$0.000000` so token totals remain accurate and cost gaps stay visible.
-- For Codex and Gemini, cached input is treated as part of reported input and is separated before cost calculation to avoid double-counting.
-- Plan/quota-only products such as `kimi-for-coding` are not assigned fixed per-token pricing.
+- Cost calculation follows ccusage-style token accounting: fresh input, output, cache read, cache creation, optional 200k+ pricing tiers, and 1-hour cache creation at 2x input price when a source reports cache creation duration.
+- For Codex and Gemini, cached input can be included in reported input and is separated before cost calculation to avoid double-counting.
+- Kimi CLI keeps `kimi-for-coding` as the displayed model, while pricing resolves to K2.5 before `2026-04-20T15:28:10.072Z` and K2.6 after that cutoff, matching ccusage's documented mapping.
 
 ## Configuration
 
@@ -183,6 +186,8 @@ Environment overrides:
 | `GEMINI_HOME` | Gemini config home. Defaults to `~/.gemini`. |
 | `OPENCODE_DB` | Explicit OpenCode SQLite database path. |
 | `OPENCODE_HOME` | OpenCode data home. Defaults to `~/.local/share/opencode`. |
+| `KIMI_DATA_DIR` | Kimi data root, or comma-separated roots. Defaults to `~/.kimi`. |
+| `QWEN_DATA_DIR` | Qwen data root, or comma-separated roots. Defaults to `~/.qwen`. |
 | `XDG_DATA_HOME` | Used to resolve OpenCode data when `OPENCODE_DB` and `OPENCODE_HOME` are unset. |
 
 ### Local checkout in auto-sync
@@ -223,6 +228,7 @@ The source is a small TypeScript CLI:
 ## Limitations
 
 - OpenCode database reads require the `sqlite3` CLI.
+- Qoder is not currently treated as a token source because ccusage has no Qoder adapter and public Qoder APIs expose credits/usage events rather than local input/output/cache token logs.
 - Automatic sync is installed only on macOS and Linux; other platforms can run `tokenusage sync` manually or wire their own scheduler.
 - Costs for unknown model IDs are intentionally marked `unpriced` until a pricing rule exists.
 
@@ -242,5 +248,6 @@ No license file is currently included in this repository.
 
 Parts of TokenUsage's implementation and product flow were informed by the excellent work in
 [cc-switch](https://github.com/farion1231/cc-switch) and
-[vibe-usage](https://github.com/vibe-cafe/vibe-usage). Both projects are MIT-licensed; retain
-their license notices when vendoring or copying substantial source code from them.
+[vibe-usage](https://github.com/vibe-cafe/vibe-usage). Local-source discovery, token-field mapping,
+and pricing behavior also reference [ccusage](https://github.com/ryoppippi/ccusage). These projects
+are MIT-licensed; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

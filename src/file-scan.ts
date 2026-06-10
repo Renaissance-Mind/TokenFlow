@@ -8,7 +8,9 @@ import { promisify } from "node:util";
 import { createClaudeJsonlParser } from "./sources/claude.js";
 import { createCodexJsonlParser } from "./sources/codex.js";
 import { parseGeminiSession } from "./sources/gemini.js";
+import { createKimiWireJsonlParser } from "./sources/kimi.js";
 import { parseOpenCodeMessageRow, type OpenCodeMessageRow } from "./sources/opencode.js";
+import { createQwenChatJsonlParser } from "./sources/qwen.js";
 import type { PricingProfile, UsageEvent } from "./types.js";
 
 const execFileAsync = promisify(execFile);
@@ -37,6 +39,8 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
   const claudeHome = process.env.CLAUDE_HOME || path.join(home, ".claude");
   const geminiHome = process.env.GEMINI_HOME || path.join(home, ".gemini");
   const opencodeDbPath = resolveOpenCodeDbPath(home);
+  const kimiRoots = await existingDirs(resolveDataDirs("KIMI_DATA_DIR", home, ".kimi"));
+  const qwenRoots = await existingDirs(resolveDataDirs("QWEN_DATA_DIR", home, ".qwen"));
 
   const codexFiles = [
     ...(await listFiles(path.join(codexHome, "sessions"), (file) =>
@@ -49,6 +53,8 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
     const base = path.basename(file);
     return base.startsWith("session-") && base.endsWith(".json");
   });
+  const kimiFiles = await listFilesForRoots(kimiRoots.map((root) => path.join(root, "sessions")), isKimiWireFile);
+  const qwenFiles = await listFilesForRoots(qwenRoots.map((root) => path.join(root, "projects")), isQwenChatFile);
 
   const events: UsageEvent[] = [];
   for (const file of codexFiles) {
@@ -60,6 +66,13 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
   for (const file of geminiFiles) {
     const raw = await fs.readFile(file, "utf8");
     events.push(...parseGeminiSession(raw, { sourcePath: file }));
+  }
+  for (const file of kimiFiles) {
+    const model = await readKimiModelForWireFile(file);
+    events.push(...(await readJsonlEvents(file, (options) => createKimiWireJsonlParser({ ...options, model }))));
+  }
+  for (const file of qwenFiles) {
+    events.push(...(await readJsonlEvents(file, createQwenChatJsonlParser)));
   }
   const opencodeDbExists = await exists(opencodeDbPath);
   if (opencodeDbExists) {
@@ -93,6 +106,18 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
         path: opencodeDbPath,
         files: opencodeDbExists ? 1 : 0,
         exists: opencodeDbExists,
+      },
+      {
+        agent: "kimi",
+        path: sourcePathLabel(kimiRoots, resolveDataDirs("KIMI_DATA_DIR", home, ".kimi")),
+        files: kimiFiles.length,
+        exists: kimiRoots.length > 0,
+      },
+      {
+        agent: "qwen",
+        path: sourcePathLabel(qwenRoots, resolveDataDirs("QWEN_DATA_DIR", home, ".qwen")),
+        files: qwenFiles.length,
+        exists: qwenRoots.length > 0,
       },
     ],
   };
@@ -176,6 +201,20 @@ async function readOpenCodeEvents(dbPath: string): Promise<UsageEvent[]> {
   return events;
 }
 
+async function readKimiModelForWireFile(filePath: string): Promise<string | null> {
+  const root = path.dirname(path.dirname(path.dirname(path.dirname(filePath))));
+  const configPath = path.join(root, "config.json");
+  const content = await fs.readFile(configPath, "utf8").catch((error: unknown) => {
+    if (isNodeError(error) && error.code === "ENOENT") return "";
+    throw error;
+  });
+  if (!content) return null;
+  const value = JSON.parse(content) as unknown;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const model = (value as Record<string, unknown>).model;
+  return typeof model === "string" && model.trim() ? model.trim() : null;
+}
+
 function openCodeMessageQuery(): string {
   return [
     "SELECT json_object(",
@@ -198,6 +237,61 @@ async function listFiles(
   await walk(root, predicate, output, 0, maxDepth);
   output.sort((a, b) => a.localeCompare(b));
   return output;
+}
+
+async function listFilesForRoots(roots: string[], predicate: (filePath: string) => boolean): Promise<string[]> {
+  const files = (
+    await Promise.all(roots.map((root) => listFiles(root, predicate)))
+  ).flat();
+  files.sort((a, b) => a.localeCompare(b));
+  return [...new Set(files)];
+}
+
+function resolveDataDirs(envName: string, home: string, defaultRelativeHomePath: string): string[] {
+  const explicit = process.env[envName]?.trim();
+  if (!explicit) return [path.join(home, defaultRelativeHomePath)];
+  return explicit
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+async function existingDirs(candidates: string[]): Promise<string[]> {
+  const existing = [];
+  for (const candidate of candidates) {
+    if (await isDirectory(candidate)) existing.push(candidate);
+  }
+  return existing;
+}
+
+async function isDirectory(filePath: string): Promise<boolean> {
+  return fs
+    .stat(filePath)
+    .then((stat) => stat.isDirectory())
+    .catch((error: unknown) => {
+      if (isNodeError(error) && error.code === "ENOENT") return false;
+      throw error;
+    });
+}
+
+function sourcePathLabel(existing: string[], candidates: string[]): string {
+  return (existing.length ? existing : candidates).join(",");
+}
+
+function isKimiWireFile(filePath: string): boolean {
+  if (path.basename(filePath) !== "wire.jsonl") return false;
+  const sessionDir = path.basename(path.dirname(filePath));
+  const groupDir = path.basename(path.dirname(path.dirname(filePath)));
+  const sessionsDir = path.basename(path.dirname(path.dirname(path.dirname(filePath))));
+  return Boolean(sessionDir && groupDir && sessionsDir === "sessions");
+}
+
+function isQwenChatFile(filePath: string): boolean {
+  return (
+    filePath.endsWith(".jsonl") &&
+    path.basename(path.dirname(filePath)) === "chats" &&
+    path.basename(path.dirname(path.dirname(path.dirname(filePath)))) === "projects"
+  );
 }
 
 async function walk(

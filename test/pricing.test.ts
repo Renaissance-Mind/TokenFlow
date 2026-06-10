@@ -85,4 +85,35 @@ describe("pricing", () => {
   it("does not invent per-token pricing for Kimi For Coding plan quotas", () => {
     expect(resolvePricing("kimi-for-coding")).toBeNull();
   });
+
+  it("prices cache creation duration tiers like ccusage", () => {
+    const cost = calculateCost(
+      "claude",
+      {
+        inputTokens: 210_000,
+        cachedInputTokens: 20,
+        outputTokens: 3,
+        reasoningOutputTokens: 2,
+        cacheCreationTokens: 30,
+        cacheCreation5mTokens: 10,
+        cacheCreation1hTokens: 20,
+        totalTokens: 210_055,
+      },
+      {
+        inputUsdPerMillion: "1",
+        outputUsdPerMillion: "10",
+        cacheReadUsdPerMillion: "0.1",
+        cacheCreationUsdPerMillion: "1.25",
+        inputAbove200kUsdPerMillion: "2",
+        outputAbove200kUsdPerMillion: "20",
+        cacheCreationAbove200kUsdPerMillion: "1.5",
+      },
+    );
+
+    expect(cost.inputUsd).toBe("0.220000");
+    expect(cost.outputUsd).toBe("0.000050");
+    expect(cost.cacheCreationUsd).toBe("0.000053");
+    expect(cost.cacheReadUsd).toBe("0.000002");
+    expect(cost.totalUsd).toBe("0.220105");
+  });
 });

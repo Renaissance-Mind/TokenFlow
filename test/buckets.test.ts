@@ -112,4 +112,66 @@ describe("usage buckets", () => {
       },
     });
   });
+
+  it("prices buckets by pricingModel while preserving the displayed model", () => {
+    const buckets = aggregateEvents([
+      {
+        agent: "kimi",
+        model: "kimi-for-coding",
+        pricingModel: "kimi-k2.6",
+        sessionId: "s1",
+        sourcePath: "/wire.jsonl",
+        timestamp: "2026-04-21T01:05:00.000Z",
+        bucketStart: "2026-04-21T01:00:00.000Z",
+        inputTokens: 1_000_000,
+        cachedInputTokens: 0,
+        outputTokens: 1_000_000,
+        reasoningOutputTokens: 0,
+        cacheCreationTokens: 0,
+        totalTokens: 2_000_000,
+      },
+    ]);
+
+    expect(buckets[0]).toMatchObject({
+      model: "kimi-for-coding",
+      pricingModel: "kimi-k2.6",
+      pricingStatus: "priced",
+      cost: {
+        inputUsd: "0.950000",
+        outputUsd: "4.000000",
+        totalUsd: "4.950000",
+      },
+    });
+  });
+
+  it("uses recorded costs when a source provides authoritative billing totals", () => {
+    const buckets = aggregateEvents([
+      {
+        agent: "opencode",
+        model: "gpt-5.2-codex",
+        sessionId: "s1",
+        sourcePath: "/opencode.db",
+        timestamp: "2026-06-09T01:05:00.000Z",
+        bucketStart: "2026-06-09T01:00:00.000Z",
+        inputTokens: 1_000_000,
+        cachedInputTokens: 0,
+        outputTokens: 1_000_000,
+        reasoningOutputTokens: 0,
+        cacheCreationTokens: 0,
+        totalTokens: 2_000_000,
+        recordedCostUsd: "0.123456",
+      },
+    ]);
+
+    expect(buckets[0]).toMatchObject({
+      pricingStatus: "priced",
+      cost: {
+        inputUsd: "0.000000",
+        outputUsd: "0.000000",
+        cacheReadUsd: "0.000000",
+        cacheCreationUsd: "0.000000",
+        totalUsd: "0.123456",
+      },
+    });
+  });
 });
