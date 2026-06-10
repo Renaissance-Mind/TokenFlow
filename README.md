@@ -238,3 +238,10 @@ Issues and pull requests are welcome. Please include a focused test for parser, 
 ## License
 
 No license file is currently included in this repository.
+
+## Acknowledgements
+
+Parts of TokenUsage's implementation and product flow were informed by the excellent work in
+[cc-switch](https://github.com/farion1231/cc-switch) and
+[vibe-usage](https://github.com/vibe-cafe/vibe-usage). Both projects are MIT-licensed; retain
+their license notices when vendoring or copying substantial source code from them.
