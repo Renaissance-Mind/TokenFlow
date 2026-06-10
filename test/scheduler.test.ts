@@ -3,14 +3,14 @@ import { describe, expect, it } from "vitest";
 import { buildSyncCommand } from "../src/scheduler.js";
 
 describe("auto-sync scheduler command", () => {
-  it("uses a stable package command instead of the current argv script path", () => {
+  it("uses the installed CLI instead of resolving npm on every scheduled run", () => {
     expect(
       buildSyncCommand("https://usage.example.com", {
         argvPath: "/private/var/folders/npm/_npx/123/node_modules/tokenusage/dist/cli.js",
         env: {},
       }),
     ).toBe(
-      "PATH='/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin' TOKENUSAGE_SERVER_URL='https://usage.example.com' npx --yes @renaissancemind/tokenusage@latest sync --auto",
+      "PATH='/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin' TOKENUSAGE_SERVER_URL='https://usage.example.com' tokenusage sync --auto",
     );
   });
 
@@ -34,7 +34,7 @@ describe("auto-sync scheduler command", () => {
         env: { PATH: "/usr/bin:/bin:/usr/sbin:/sbin" },
       }),
     ).toBe(
-      "PATH='/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin:/usr/local/bin' TOKENUSAGE_SERVER_URL='https://usage.example.com' npx --yes @renaissancemind/tokenusage@latest sync --auto",
+      "PATH='/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin:/usr/local/bin' TOKENUSAGE_SERVER_URL='https://usage.example.com' tokenusage sync --auto",
     );
   });
 });

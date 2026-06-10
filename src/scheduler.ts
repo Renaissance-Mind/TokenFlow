@@ -92,7 +92,7 @@ export function buildSyncCommand(
 ): string {
   const env = options.env || process.env;
   const override = env.TOKENUSAGE_AUTO_SYNC_COMMAND?.trim();
-  const command = override || "npx --yes @renaissancemind/tokenusage@latest sync --auto";
+  const command = override || "tokenusage sync --auto";
   return `PATH=${shellQuote(schedulerPath(env))} TOKENUSAGE_SERVER_URL=${shellQuote(serverUrl)} ${command}`;
 }
 
