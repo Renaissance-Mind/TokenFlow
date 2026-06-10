@@ -8,6 +8,15 @@ import {
 import type { UsageBucket } from "../src/types.js";
 
 describe("incremental sync state", () => {
+  it("uses a conservative default backfill size for first-time syncs", () => {
+    const plan = planIncrementalSync(
+      Array.from({ length: 61 }, (_, index) => bucket(bucketTime(index), 16 + index)),
+      emptySyncState(),
+    );
+
+    expect(plan.buckets).toHaveLength(60);
+  });
+
   it("uploads only new or changed half-hour buckets", () => {
     const first = bucket("2026-06-09T01:00:00.000Z", 16);
     const second = bucket("2026-06-09T01:30:00.000Z", 20);
@@ -85,6 +94,10 @@ describe("incremental sync state", () => {
     expect(planIncrementalSync([first, second], completed, { maxBuckets: 100 }).replaceDailyBuckets).toEqual([]);
   });
 });
+
+function bucketTime(index: number): string {
+  return new Date(Date.UTC(2026, 5, 9, 0, index * 30)).toISOString();
+}
 
 function bucket(bucketStart: string, totalTokens: number): UsageBucket {
   return {

@@ -9,6 +9,8 @@ import type { RemoteApiTokenStatus, RemoteDeviceStatus } from "./status.js";
 import type { UsageBucket } from "./types.js";
 
 const INGEST_CHUNK_SIZE = 20;
+const REQUEST_TIMEOUT_MS = 30_000;
+const REQUEST_RETRY_DELAYS_MS = [500, 1_500];
 
 export interface DeviceStartResponse {
   deviceCode: string;
@@ -159,9 +161,25 @@ async function requestJson(
   body?: unknown,
   bearerToken?: string,
 ): Promise<Record<string, unknown>> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await requestJsonOnce(url, method, body, bearerToken);
+    } catch (error) {
+      if (!(error instanceof TokenUsageNetworkError) || attempt >= REQUEST_RETRY_DELAYS_MS.length) throw error;
+      await sleep(REQUEST_RETRY_DELAYS_MS[attempt]);
+    }
+  }
+}
+
+async function requestJsonOnce(
+  url: string,
+  method: "GET" | "POST",
+  body?: unknown,
+  bearerToken?: string,
+): Promise<Record<string, unknown>> {
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await fetchWithTimeout(url, {
       method,
       headers: {
         "Content-Type": "application/json",
@@ -170,8 +188,7 @@ async function requestJson(
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
   } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
-    throw new Error(`Unable to reach TokenUsage server at ${url}: ${detail}`);
+    throw new TokenUsageNetworkError(url, error);
   }
   const text = await response.text();
   const data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
@@ -180,6 +197,50 @@ async function requestJson(
     throw new Error(message);
   }
   return data;
+}
+
+async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+  const timeoutMs = requestTimeoutMs();
+  const controller = new AbortController();
+  let timedOut = false;
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (timedOut) throw new Error(`timed out after ${timeoutMs}ms`);
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function requestTimeoutMs(): number {
+  const value = Number(process.env.TOKENUSAGE_REQUEST_TIMEOUT_MS || REQUEST_TIMEOUT_MS);
+  if (!Number.isFinite(value) || value < 1_000) return REQUEST_TIMEOUT_MS;
+  return Math.floor(value);
+}
+
+class TokenUsageNetworkError extends Error {
+  constructor(url: string, cause: unknown) {
+    super(`Unable to reach TokenUsage server at ${url}: ${errorDetail(cause)}`);
+    this.name = "TokenUsageNetworkError";
+    this.cause = cause;
+  }
+}
+
+function errorDetail(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  const cause = error && typeof error === "object" && "cause" in error ? (error as { cause?: unknown }).cause : undefined;
+  if (cause instanceof Error && cause.message && cause.message !== message) return `${message}: ${cause.message}`;
+  if (typeof cause === "string" && cause && cause !== message) return `${message}: ${cause}`;
+  return message;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function assertString(value: unknown, field: string): string {

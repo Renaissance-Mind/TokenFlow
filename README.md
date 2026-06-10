@@ -180,7 +180,8 @@ Environment overrides:
 | `TOKENUSAGE_HOME` | Local state directory. Defaults to `~/.tokenusage`. |
 | `TOKENUSAGE_SERVER_URL` | Default server URL. |
 | `TOKENUSAGE_AUTO_SYNC_COMMAND` | Command written into launchd/systemd. Defaults to `npx --yes @renaissancemind/tokenusage@latest sync --auto`. |
-| `TOKENUSAGE_SYNC_MAX_BUCKETS` | Maximum changed buckets uploaded per sync. Defaults to `240` to keep first-time backfills Cloudflare-friendly. |
+| `TOKENUSAGE_SYNC_MAX_BUCKETS` | Maximum changed buckets uploaded per sync. Defaults to `60` to keep first-time backfills Cloudflare-friendly. |
+| `TOKENUSAGE_REQUEST_TIMEOUT_MS` | HTTP request timeout for TokenUsage server calls. Defaults to `30000`. |
 | `TOKENUSAGE_UPDATE_SOURCE` | Package/source used by `tokenusage update` when `--source` is omitted. |
 | `CODEX_HOME` | Codex config home. Defaults to `~/.codex`. |
 | `CLAUDE_HOME` | Claude config home. Defaults to `~/.claude`. |

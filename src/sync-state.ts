@@ -8,7 +8,7 @@ import type { DailyReplacementScope, UnknownReplacementScope } from "./ingest-pa
 import type { UsageBucket } from "./types.js";
 
 const SYNC_STATE_VERSION = 1;
-const DEFAULT_MAX_BUCKETS_PER_SYNC = 240;
+const DEFAULT_MAX_BUCKETS_PER_SYNC = 60;
 
 export interface BucketSyncRecord {
   hash: string;

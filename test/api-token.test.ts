@@ -87,6 +87,45 @@ describe("read-write API token uploads", () => {
     }
   });
 
+  it("retries transient network failures while uploading usage", async () => {
+    let requests = 0;
+    const server = http.createServer((request, response) => {
+      requests += 1;
+      let raw = "";
+      request.setEncoding("utf8");
+      request.on("data", (chunk) => {
+        raw += chunk;
+      });
+      request.on("end", () => {
+        if (requests === 1) {
+          request.socket.destroy();
+          return;
+        }
+
+        const body = JSON.parse(raw) as { hourly: unknown[] };
+        response.setHeader("Content-Type", "application/json");
+        response.end(JSON.stringify({ inserted: body.hourly.length, updated: 0 }));
+      });
+    });
+
+    try {
+      await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+      const address = server.address();
+      if (!address || typeof address === "string") throw new Error("missing server address");
+
+      const result = await ingestUsage({
+        serverUrl: `http://127.0.0.1:${address.port}`,
+        uploadToken: "tu_api_test",
+        buckets: [bucket("2026-06-09T01:00:00.000Z")],
+      });
+
+      expect(result).toEqual({ inserted: 1, updated: 0, accepted: 1, supersededDaily: 0 });
+      expect(requests).toBe(2);
+    } finally {
+      await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    }
+  });
+
   it("sends unknown replacement scopes only for safe Codex days across upload batches", async () => {
     const requests: Array<{ body: Record<string, unknown> }> = [];
     const server = http.createServer((request, response) => {

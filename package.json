@@ -1,6 +1,6 @@
 {
   "name": "@renaissancemind/tokenusage",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Local token usage collector for multi-device AI agent accounting.",
   "type": "module",
   "bin": {

@@ -14,7 +14,7 @@ describe("npm package", () => {
     };
 
     expect(pkg.name).toBe("@renaissancemind/tokenusage");
-    expect(pkg.version).toBe("0.1.4");
+    expect(pkg.version).toBe("0.1.5");
     expect(pkg.bin?.tokenusage).toBe("dist/cli.js");
     expect(pkg.files).toContain("dist");
     expect(pkg.files).toContain("docs/i18n");
