@@ -70,7 +70,7 @@ async function cmdInit(argv: string[]): Promise<void> {
   };
   await writeConfig(next);
   const schedulerStatus = options["no-auto-sync"] ? "automatic sync skipped" : await installAutoSync(serverUrl);
-  process.stdout.write(`TokenUsage configured at ${configPath()}\n`);
+  process.stdout.write(`TokenFlow configured at ${configPath()}\n`);
   process.stdout.write(`${schedulerStatus}\n`);
   if (!next.deviceToken && !next.apiToken && !options["no-login"]) {
     await cmdLogin(["--server-url", serverUrl, ...(options["no-sync"] ? ["--no-sync"] : [])]);
@@ -137,7 +137,7 @@ async function cmdSync(argv: string[]): Promise<void> {
   const options = parseOptions(argv);
   const config = await readConfig();
   const uploadToken = config?.apiToken || config?.deviceToken;
-  if (!config || !uploadToken) throw new Error("Not logged in. Run tokenusage login first.");
+  if (!config || !uploadToken) throw new Error("Not logged in. Run tokenflow login first.");
   const serverUrl = normalizeServerUrl(optionString(options, "server-url") || config.serverUrl);
   const deviceName = config.deviceName || os.hostname();
   const collection = await collectLocalUsage();
@@ -207,13 +207,13 @@ async function cmdUpdate(argv: string[]): Promise<void> {
   const config = await readConfig();
   const serverUrl = normalizeServerUrl(optionString(options, "server-url") || config?.serverUrl);
   const schedulerStatus = await installAutoSync(serverUrl);
-  process.stdout.write(`TokenUsage updated from ${packageSpec}.\n${schedulerStatus}\n`);
+  process.stdout.write(`TokenFlow updated from ${packageSpec}.\n${schedulerStatus}\n`);
 }
 
 async function cmdLogout(): Promise<void> {
   const config = await readConfig();
   if (!config) {
-    process.stdout.write("No TokenUsage config found.\n");
+    process.stdout.write("No TokenFlow config found.\n");
     return;
   }
   const { deviceToken: _deviceToken, deviceId: _deviceId, apiToken: _apiToken, ...rest } = config;
@@ -285,20 +285,21 @@ function sleep(ms: number): Promise<void> {
 function printHelp(): void {
   process.stdout.write(
     [
-      "TokenUsage",
+      "TokenFlow",
       "",
       "Usage:",
-      "  tokenusage init --server-url https://tokenusage.renaissancemind.ai",
-      "  tokenusage login --server-url https://tokenusage.renaissancemind.ai",
-      "  tokenusage login --no-sync",
-      "  tokenusage login --server-url https://tokenusage.renaissancemind.ai --api-token tu_api_...",
-      "  tokenusage sync",
-      "  tokenusage status",
-      "  tokenusage update [--source @renaissancemind/tokenusage@latest|/path/to/TokenUsage]",
-      "  tokenusage logout",
+      "  tokenflow init --server-url https://tokenflow.renaissancemind.ai",
+      "  tokenflow login --server-url https://tokenflow.renaissancemind.ai",
+      "  tokenflow login --no-sync",
+      "  tokenflow login --server-url https://tokenflow.renaissancemind.ai --api-token tu_api_...",
+      "  tokenflow sync",
+      "  tokenflow status",
+      "  tokenflow update [--source tokenflow@latest|/path/to/TokenFlow]",
+      "  tokenflow logout",
       "",
-      "Supported local agents: Codex, Claude Code, Gemini CLI, OpenCode.",
-      "Default server URL: https://tokenusage.renaissancemind.ai",
+      "Compatibility: the old tokenusage command still works.",
+      "Supported local agents: Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, and Qwen Code.",
+      "Default server URL: https://tokenflow.renaissancemind.ai",
       "For local development, pass --server-url http://127.0.0.1:8787",
       "",
     ].join("\n"),

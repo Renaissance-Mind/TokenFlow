@@ -1,7 +1,7 @@
 # Third-Party Notices
 
-TokenUsage includes implementation ideas and behavior derived from the following MIT-licensed
-projects. TokenUsage does not vendor these packages as runtime dependencies.
+TokenFlow includes implementation ideas and behavior derived from the following MIT-licensed
+projects. TokenFlow does not vendor these packages as runtime dependencies.
 
 ## ccusage
 

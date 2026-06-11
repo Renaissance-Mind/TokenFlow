@@ -246,7 +246,9 @@ function unknownDailyReplacementKey(agent: string, bucketStart: string): string 
 }
 
 function maxBucketsPerSync(): number {
-  const value = Number(process.env.TOKENUSAGE_SYNC_MAX_BUCKETS || DEFAULT_MAX_BUCKETS_PER_SYNC);
+  const value = Number(
+    process.env.TOKENFLOW_SYNC_MAX_BUCKETS || process.env.TOKENUSAGE_SYNC_MAX_BUCKETS || DEFAULT_MAX_BUCKETS_PER_SYNC,
+  );
   if (!Number.isFinite(value) || value < 1) return DEFAULT_MAX_BUCKETS_PER_SYNC;
   return Math.floor(value);
 }

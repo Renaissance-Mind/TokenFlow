@@ -187,7 +187,7 @@ async function requestJson(
     try {
       return await requestJsonOnce(url, method, body, bearerToken);
     } catch (error) {
-      if (!(error instanceof TokenUsageNetworkError) || attempt >= REQUEST_RETRY_DELAYS_MS.length) throw error;
+      if (!(error instanceof TokenFlowNetworkError) || attempt >= REQUEST_RETRY_DELAYS_MS.length) throw error;
       await sleep(REQUEST_RETRY_DELAYS_MS[attempt]);
     }
   }
@@ -210,7 +210,7 @@ async function requestJsonOnce(
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
   } catch (error) {
-    throw new TokenUsageNetworkError(url, error);
+    throw new TokenFlowNetworkError(url, error);
   }
   const text = await response.text();
   const data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
@@ -240,15 +240,17 @@ async function fetchWithTimeout(url: string, init: RequestInit): Promise<Respons
 }
 
 function requestTimeoutMs(): number {
-  const value = Number(process.env.TOKENUSAGE_REQUEST_TIMEOUT_MS || REQUEST_TIMEOUT_MS);
+  const value = Number(
+    process.env.TOKENFLOW_REQUEST_TIMEOUT_MS || process.env.TOKENUSAGE_REQUEST_TIMEOUT_MS || REQUEST_TIMEOUT_MS,
+  );
   if (!Number.isFinite(value) || value < 1_000) return REQUEST_TIMEOUT_MS;
   return Math.floor(value);
 }
 
-class TokenUsageNetworkError extends Error {
+class TokenFlowNetworkError extends Error {
   constructor(url: string, cause: unknown) {
-    super(`Unable to reach TokenUsage server at ${url}: ${errorDetail(cause)}`);
-    this.name = "TokenUsageNetworkError";
+    super(`Unable to reach TokenFlow server at ${url}: ${errorDetail(cause)}`);
+    this.name = "TokenFlowNetworkError";
     this.cause = cause;
   }
 }

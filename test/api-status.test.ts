@@ -75,7 +75,7 @@ describe("API token remote status", () => {
 
   it("includes the target server URL when a request cannot be reached", async () => {
     await expect(getApiTokenStatus("http://127.0.0.1:9", "tu_api_test")).rejects.toThrow(
-      "Unable to reach TokenUsage server at http://127.0.0.1:9/api/me",
+      "Unable to reach TokenFlow server at http://127.0.0.1:9/api/me",
     );
   });
 });

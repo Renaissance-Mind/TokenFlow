@@ -1,27 +1,27 @@
-# TokenUsage
+# TokenFlow
 
 **語言:** [English](../../README.md) | [简体中文](README.zh-CN.md) | 繁體中文 | [日本語](README.ja.md) | [한국어](README.ko.md) | [Español](README.es.md) | [Türkçe](README.tr.md) | [Русский](README.ru.md)
 
 > 面向真實 AI Agent 工作流的本地優先 token 統計工具。
 
-![npm](https://img.shields.io/npm/v/%40renaissancemind%2Ftokenusage?label=npm)
+![npm](https://img.shields.io/npm/v/tokenflow?label=npm)
 ![Node.js](https://img.shields.io/badge/node-%3E%3D20-339933)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6)
 ![Privacy](https://img.shields.io/badge/privacy-metadata%20only-6A5ACD)
 
 [功能](#功能) - [安裝](#安裝) - [快速開始](#快速開始) - [命令](#命令) - [設定](#設定) - [開發](#開發)
 
-TokenUsage 是一個可安裝的本地採集器，用於統計多裝置 AI Agent 的 token 使用量。它會掃描本地 Codex、Claude Code、Gemini CLI、OpenCode 和 cc-switch 使用資料，按 UTC 日期、Agent 和模型彙總 token 數量，計算已知模型成本，並只把使用元資料上傳到 TokenUsage 伺服器。
+TokenFlow 是一個可安裝的本地採集器，用於統計多裝置 AI Agent 的 token 使用量。它會掃描本地 Codex、Claude Code、Gemini CLI、OpenCode 和 cc-switch 使用資料，按 UTC 日期、Agent 和模型彙總 token 數量，計算已知模型成本，並只把使用元資料上傳到 TokenFlow 伺服器。
 
 提示詞和回覆內容會留在你的機器上。上傳資料只包含計數、模型名稱、bucket 時間戳、計價狀態，以及可選的裝置元資料。
 
 ## 預覽
 
 ```bash
-$ tokenusage status
-TokenUsage status
-Config: /Users/alice/.tokenusage/config.json
-Server: https://tokenusage.renaissancemind.ai
+$ tokenflow status
+TokenFlow status
+Config: /Users/alice/.tokenflow/config.json
+Server: https://tokenflow.renaissancemind.ai
 Device: dev_...
 Token: set (device)
 Remote: linked
@@ -31,7 +31,7 @@ Source codex: found (219 files) /Users/alice/.codex/sessions
 Source claude: found (64 files) /Users/alice/.claude/projects
 Source gemini: missing (0 files) /Users/alice/.gemini/tmp
 Source opencode: found (1 files) /Users/alice/.local/share/opencode/opencode.db
-Home: /Users/alice/.tokenusage
+Home: /Users/alice/.tokenflow
 ```
 
 ## 功能
@@ -43,7 +43,7 @@ Home: /Users/alice/.tokenusage
 - 🧾 **未計價模型可見** - 未知模型仍然計入 token，並標記為 `unpriced`。
 - 🔁 **自動同步** - 在 macOS `launchd` 或 Linux systemd user timer 中安裝 10 分鐘同步任務。
 - 🔑 **裝置登入或 API key 上傳** - 支援瀏覽器裝置授權和 `read_write` API token。
-- 🛠️ **適合自託管** - 可以指向任意相容的 TokenUsage server URL。
+- 🛠️ **適合自託管** - 可以指向任意相容的 TokenFlow server URL。
 
 ## 支援的資料來源
 
@@ -55,14 +55,14 @@ Home: /Users/alice/.tokenusage
 | OpenCode | `~/.local/share/opencode/opencode.db` | 需要 `PATH` 中存在 `sqlite3`。 |
 | cc-switch | `~/.cc-switch/cc-switch.db` | 預設讀取計價表；只有設定 `CC_SWITCH_DB` 時才匯入 `proxy_request_logs`。 |
 
-TokenUsage 不會上傳來源檔案路徑、session ID、提示詞或回覆內容。
+TokenFlow 不會上傳來源檔案路徑、session ID、提示詞或回覆內容。
 
 ## 安裝
 
-TokenUsage 需要 Node.js 20 或更高版本。
+TokenFlow 需要 Node.js 20 或更高版本。
 
 ```bash
-npm install -g @renaissancemind/tokenusage
+npm install -g tokenflow
 ```
 
 如果需要 OpenCode 或 cc-switch 支援，請確認 `sqlite3` 可用：
@@ -85,21 +85,21 @@ npm install -g .
 ### 1. 關聯這台機器
 
 ```bash
-tokenusage login
+tokenflow login
 ```
 
-預設情況下，`login` 使用 `https://tokenusage.renaissancemind.ai`。它會列印 verification URL 和 user code，在可能時開啟瀏覽器，並把授權後的 device token 儲存到 `~/.tokenusage/config.json`。
+預設情況下，`login` 使用 `https://tokenflow.renaissancemind.ai`。它會列印 verification URL 和 user code，在可能時開啟瀏覽器，並把授權後的 device token 儲存到 `~/.tokenflow/config.json`。
 
 使用自託管伺服器：
 
 ```bash
-tokenusage login --server-url http://127.0.0.1:8787
+tokenflow login --server-url http://127.0.0.1:8787
 ```
 
 ### 2. 查看會掃描哪些資料
 
 ```bash
-tokenusage status
+tokenflow status
 ```
 
 `status` 會顯示本地 source 路徑、解析到的 event 數量、bucket 數量、未計價 bucket 數量、設定檔位置，以及已設定 token 時的遠端認證狀態。
@@ -107,7 +107,7 @@ tokenusage status
 ### 3. 同步使用量
 
 ```bash
-tokenusage sync
+tokenflow sync
 ```
 
 `sync` 會掃描本地日誌、彙總使用量、冪等上傳 bucket、記錄同步心跳，並回報解析到的 events 和上傳的 buckets。
@@ -115,17 +115,17 @@ tokenusage sync
 ### 4. 安裝自動同步
 
 ```bash
-tokenusage init
+tokenflow init
 ```
 
-`init` 會寫入 `~/.tokenusage/config.json`，在 macOS 或 Linux 上安裝每 10 分鐘執行一次的自動同步任務，然後在沒有 token 時啟動瀏覽器裝置授權流程。
+`init` 會寫入 `~/.tokenflow/config.json`，在 macOS 或 Linux 上安裝每 10 分鐘執行一次的自動同步任務，然後在沒有 token 時啟動瀏覽器裝置授權流程。
 
 ## API Token 模式
 
-瀏覽器裝置授權適合個人機器。對於伺服器、類 CI 機器或腳本化安裝，可以在 TokenUsage server dashboard 中建立 `read_write` API key：
+瀏覽器裝置授權適合個人機器。對於伺服器、類 CI 機器或腳本化安裝，可以在 TokenFlow server dashboard 中建立 `read_write` API key：
 
 ```bash
-tokenusage init --server-url https://tokenusage.renaissancemind.ai --api-token tu_api_...
+tokenflow init --server-url https://tokenflow.renaissancemind.ai --api-token tu_api_...
 ```
 
 只有 `read_write` key 可以上傳使用量。`read_only` key 用於 dashboard、API 讀取和公開 heatmap embed；CLI 會在 `init` 和 `login` 階段拒絕 read-only key。
@@ -133,13 +133,13 @@ tokenusage init --server-url https://tokenusage.renaissancemind.ai --api-token t
 ## 命令
 
 ```bash
-tokenusage init --server-url https://tokenusage.renaissancemind.ai
-tokenusage login --server-url https://tokenusage.renaissancemind.ai
-tokenusage login --server-url https://tokenusage.renaissancemind.ai --api-token tu_api_...
-tokenusage sync
-tokenusage status
-tokenusage update [--source @renaissancemind/tokenusage@latest|/path/to/TokenUsage]
-tokenusage logout
+tokenflow init --server-url https://tokenflow.renaissancemind.ai
+tokenflow login --server-url https://tokenflow.renaissancemind.ai
+tokenflow login --server-url https://tokenflow.renaissancemind.ai --api-token tu_api_...
+tokenflow sync
+tokenflow status
+tokenflow update [--source tokenflow@latest|/path/to/TokenFlow]
+tokenflow logout
 ```
 
 | 命令 | 作用 |
@@ -153,7 +153,7 @@ tokenusage logout
 
 ## 計價模型
 
-TokenUsage 會在上傳前本地計算成本。
+TokenFlow 會在上傳前本地計算成本。
 
 - 內建計價覆蓋已知 Codex、Claude 和 Gemini 模型 ID。
 - 當 cc-switch 資料庫存在時，cc-switch `model_pricing` 可以擴充或覆蓋本地計價。
@@ -167,10 +167,10 @@ TokenUsage 會在上傳前本地計算成本。
 
 | 變數 | 用途 |
 | --- | --- |
-| `TOKENUSAGE_HOME` | 本地狀態目錄。預設 `~/.tokenusage`。 |
-| `TOKENUSAGE_SERVER_URL` | 預設伺服器 URL。 |
-| `TOKENUSAGE_AUTO_SYNC_COMMAND` | 寫入 launchd/systemd 的命令。預設 `npx --yes @renaissancemind/tokenusage@latest sync --auto`。 |
-| `TOKENUSAGE_UPDATE_SOURCE` | `tokenusage update` 未傳 `--source` 時使用的 package/source。 |
+| `TOKENFLOW_HOME` | 本地狀態目錄。預設 `~/.tokenflow`。 |
+| `TOKENFLOW_SERVER_URL` | 預設伺服器 URL。 |
+| `TOKENFLOW_AUTO_SYNC_COMMAND` | 寫入 launchd/systemd 的命令。預設 `npx --yes tokenflow@latest sync --auto`。 |
+| `TOKENFLOW_UPDATE_SOURCE` | `tokenflow update` 未傳 `--source` 時使用的 package/source。 |
 | `CODEX_HOME` | Codex 設定目錄。預設 `~/.codex`。 |
 | `CLAUDE_HOME` | Claude 設定目錄。預設 `~/.claude`。 |
 | `GEMINI_HOME` | Gemini 設定目錄。預設 `~/.gemini`。 |
@@ -184,14 +184,14 @@ TokenUsage 會在上傳前本地計算成本。
 npm 發布前，可以讓排程器固定執行這個 checkout：
 
 ```bash
-TOKENUSAGE_AUTO_SYNC_COMMAND="node /Users/chunqiu/Documents/workspace/TokenUsage/dist/cli.js sync --auto" \
-  tokenusage init --server-url https://tokenusage.renaissancemind.ai
+TOKENFLOW_AUTO_SYNC_COMMAND="node /Users/chunqiu/Documents/workspace/TokenFlow/dist/cli.js sync --auto" \
+  tokenflow init --server-url https://tokenflow.renaissancemind.ai
 ```
 
 發布後，預設排程命令可以直接使用 npm：
 
 ```bash
-npx --yes @renaissancemind/tokenusage init --server-url https://tokenusage.renaissancemind.ai
+npx --yes tokenflow init --server-url https://tokenflow.renaissancemind.ai
 ```
 
 ## 開發
@@ -217,7 +217,7 @@ node dist/cli.js status
 ## 限制
 
 - OpenCode 和 cc-switch 資料庫讀取需要 `sqlite3` CLI。
-- 自動同步只在 macOS 和 Linux 上安裝；其他平台可以手動執行 `tokenusage sync` 或自行接入排程器。
+- 自動同步只在 macOS 和 Linux 上安裝；其他平台可以手動執行 `tokenflow sync` 或自行接入排程器。
 - 除非明確設定 `CC_SWITCH_DB`，否則不會匯入 cc-switch request logs，以避免和原生 Codex、Claude、Gemini 日誌重複計數。
 - 未知模型 ID 的成本會標記為 `unpriced`，直到存在對應計價規則。
 

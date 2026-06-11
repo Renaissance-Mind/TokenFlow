@@ -10,21 +10,21 @@ describe("auto-sync scheduler command", () => {
         env: {},
       }),
     ).toBe(
-      "PATH='/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin' TOKENUSAGE_SERVER_URL='https://usage.example.com' tokenusage sync --auto",
+      "PATH='/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin' TOKENFLOW_SERVER_URL='https://usage.example.com' TOKENUSAGE_SERVER_URL='https://usage.example.com' tokenflow sync --auto",
     );
   });
 
   it("allows local installs to override the scheduled sync command", () => {
     expect(
       buildSyncCommand("http://127.0.0.1:8787", {
-        argvPath: "/Users/chunqiu/Documents/workspace/TokenUsage/dist/cli.js",
+        argvPath: "/Users/chunqiu/Documents/workspace/TokenFlow/dist/cli.js",
         env: {
-          TOKENUSAGE_AUTO_SYNC_COMMAND:
-            "node /Users/chunqiu/Documents/workspace/TokenUsage/dist/cli.js sync --auto",
+          TOKENFLOW_AUTO_SYNC_COMMAND:
+            "node /Users/chunqiu/Documents/workspace/TokenFlow/dist/cli.js sync --auto",
         },
       }),
     ).toBe(
-      "PATH='/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin' TOKENUSAGE_SERVER_URL='http://127.0.0.1:8787' node /Users/chunqiu/Documents/workspace/TokenUsage/dist/cli.js sync --auto",
+      "PATH='/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin' TOKENFLOW_SERVER_URL='http://127.0.0.1:8787' TOKENUSAGE_SERVER_URL='http://127.0.0.1:8787' node /Users/chunqiu/Documents/workspace/TokenFlow/dist/cli.js sync --auto",
     );
   });
 
@@ -34,7 +34,7 @@ describe("auto-sync scheduler command", () => {
         env: { PATH: "/usr/bin:/bin:/usr/sbin:/sbin" },
       }),
     ).toBe(
-      "PATH='/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin:/usr/local/bin' TOKENUSAGE_SERVER_URL='https://usage.example.com' tokenusage sync --auto",
+      "PATH='/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin:/usr/local/bin' TOKENFLOW_SERVER_URL='https://usage.example.com' TOKENUSAGE_SERVER_URL='https://usage.example.com' tokenflow sync --auto",
     );
   });
 });

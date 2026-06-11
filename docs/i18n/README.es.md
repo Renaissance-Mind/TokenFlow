@@ -1,27 +1,27 @@
-# TokenUsage
+# TokenFlow
 
 **Idioma:** [English](../../README.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | Español | [Türkçe](README.tr.md) | [Русский](README.ru.md)
 
 > Contabilidad de tokens local-first para los AI agents que realmente usas.
 
-![npm](https://img.shields.io/npm/v/%40renaissancemind%2Ftokenusage?label=npm)
+![npm](https://img.shields.io/npm/v/tokenflow?label=npm)
 ![Node.js](https://img.shields.io/badge/node-%3E%3D20-339933)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6)
 ![Privacy](https://img.shields.io/badge/privacy-metadata%20only-6A5ACD)
 
 [Características](#características) - [Instalación](#instalación) - [Inicio rápido](#inicio-rápido) - [Comandos](#comandos) - [Configuración](#configuración) - [Desarrollo](#desarrollo)
 
-TokenUsage es un collector local instalable para contabilizar el uso de AI agents en varios dispositivos. Escanea datos locales de Codex, Claude Code, Gemini CLI, OpenCode y cc-switch, agrega tokens en buckets diarios UTC por agent y modelo, calcula costos conocidos y sube solo metadatos de uso a un servidor TokenUsage.
+TokenFlow es un collector local instalable para contabilizar el uso de AI agents en varios dispositivos. Escanea datos locales de Codex, Claude Code, Gemini CLI, OpenCode y cc-switch, agrega tokens en buckets diarios UTC por agent y modelo, calcula costos conocidos y sube solo metadatos de uso a un servidor TokenFlow.
 
 Los prompts y las respuestas permanecen en tu máquina. El payload subido contiene conteos, nombres de modelos, timestamps de buckets, estado de pricing y metadatos opcionales del dispositivo.
 
 ## Vista previa
 
 ```bash
-$ tokenusage status
-TokenUsage status
-Config: /Users/alice/.tokenusage/config.json
-Server: https://tokenusage.renaissancemind.ai
+$ tokenflow status
+TokenFlow status
+Config: /Users/alice/.tokenflow/config.json
+Server: https://tokenflow.renaissancemind.ai
 Device: dev_...
 Token: set (device)
 Remote: linked
@@ -31,7 +31,7 @@ Source codex: found (219 files) /Users/alice/.codex/sessions
 Source claude: found (64 files) /Users/alice/.claude/projects
 Source gemini: missing (0 files) /Users/alice/.gemini/tmp
 Source opencode: found (1 files) /Users/alice/.local/share/opencode/opencode.db
-Home: /Users/alice/.tokenusage
+Home: /Users/alice/.tokenflow
 ```
 
 ## Características
@@ -43,7 +43,7 @@ Home: /Users/alice/.tokenusage
 - 🧾 **Visibilidad de modelos sin precio** - los modelos desconocidos se cuentan y se marcan como `unpriced`.
 - 🔁 **Sincronización automática** - instala un job de 10 minutos con macOS `launchd` o Linux systemd user timers.
 - 🔑 **Login de dispositivo o API key** - soporta device linking en navegador y tokens API `read_write`.
-- 🛠️ **Listo para self-hosting** - permite apuntar a cualquier TokenUsage server URL compatible.
+- 🛠️ **Listo para self-hosting** - permite apuntar a cualquier TokenFlow server URL compatible.
 
 ## Fuentes soportadas
 
@@ -55,14 +55,14 @@ Home: /Users/alice/.tokenusage
 | OpenCode | `~/.local/share/opencode/opencode.db` | Requiere `sqlite3` en `PATH`. |
 | cc-switch | `~/.cc-switch/cc-switch.db` | Lee pricing por defecto; importa `proxy_request_logs` solo cuando `CC_SWITCH_DB` está definido. |
 
-TokenUsage no sube rutas de archivos fuente, session IDs, prompts ni respuestas.
+TokenFlow no sube rutas de archivos fuente, session IDs, prompts ni respuestas.
 
 ## Instalación
 
-TokenUsage requiere Node.js 20 o superior.
+TokenFlow requiere Node.js 20 o superior.
 
 ```bash
-npm install -g @renaissancemind/tokenusage
+npm install -g tokenflow
 ```
 
 Si quieres soporte para OpenCode o cc-switch, asegúrate de tener `sqlite3` disponible:
@@ -85,21 +85,21 @@ npm install -g .
 ### 1. Vincula esta máquina
 
 ```bash
-tokenusage login
+tokenflow login
 ```
 
-Por defecto, `login` usa `https://tokenusage.renaissancemind.ai`. Imprime una verification URL y un user code, abre el navegador cuando es posible y guarda el device token aprobado en `~/.tokenusage/config.json`.
+Por defecto, `login` usa `https://tokenflow.renaissancemind.ai`. Imprime una verification URL y un user code, abre el navegador cuando es posible y guarda el device token aprobado en `~/.tokenflow/config.json`.
 
 Para usar un servidor self-hosted:
 
 ```bash
-tokenusage login --server-url http://127.0.0.1:8787
+tokenflow login --server-url http://127.0.0.1:8787
 ```
 
 ### 2. Revisa qué se va a escanear
 
 ```bash
-tokenusage status
+tokenflow status
 ```
 
 `status` muestra rutas locales de sources, cantidad de events parseados, cantidad de buckets, buckets sin precio, ubicación de config y estado de autenticación remota cuando hay un token configurado.
@@ -107,7 +107,7 @@ tokenusage status
 ### 3. Sincroniza uso
 
 ```bash
-tokenusage sync
+tokenflow sync
 ```
 
 `sync` escanea logs locales, agrega uso, sube buckets de forma idempotente, registra un heartbeat de sincronización y reporta events parseados y buckets subidos.
@@ -115,17 +115,17 @@ tokenusage sync
 ### 4. Instala sincronización automática
 
 ```bash
-tokenusage init
+tokenflow init
 ```
 
-`init` escribe `~/.tokenusage/config.json`, instala sincronización automática cada 10 minutos en macOS o Linux y luego inicia el device-link flow en navegador si todavía no hay token.
+`init` escribe `~/.tokenflow/config.json`, instala sincronización automática cada 10 minutos en macOS o Linux y luego inicia el device-link flow en navegador si todavía no hay token.
 
 ## Modo API Token
 
-El device linking en navegador es cómodo para máquinas personales. Para servidores, máquinas tipo CI o instalaciones automatizadas, crea una API key `read_write` en el dashboard del servidor TokenUsage:
+El device linking en navegador es cómodo para máquinas personales. Para servidores, máquinas tipo CI o instalaciones automatizadas, crea una API key `read_write` en el dashboard del servidor TokenFlow:
 
 ```bash
-tokenusage init --server-url https://tokenusage.renaissancemind.ai --api-token tu_api_...
+tokenflow init --server-url https://tokenflow.renaissancemind.ai --api-token tu_api_...
 ```
 
 Solo las keys `read_write` pueden subir uso. Las keys `read_only` son para dashboards, lecturas de API y embeds públicos de heatmap; el CLI rechaza keys read-only durante `init` y `login`.
@@ -133,13 +133,13 @@ Solo las keys `read_write` pueden subir uso. Las keys `read_only` son para dashb
 ## Comandos
 
 ```bash
-tokenusage init --server-url https://tokenusage.renaissancemind.ai
-tokenusage login --server-url https://tokenusage.renaissancemind.ai
-tokenusage login --server-url https://tokenusage.renaissancemind.ai --api-token tu_api_...
-tokenusage sync
-tokenusage status
-tokenusage update [--source @renaissancemind/tokenusage@latest|/path/to/TokenUsage]
-tokenusage logout
+tokenflow init --server-url https://tokenflow.renaissancemind.ai
+tokenflow login --server-url https://tokenflow.renaissancemind.ai
+tokenflow login --server-url https://tokenflow.renaissancemind.ai --api-token tu_api_...
+tokenflow sync
+tokenflow status
+tokenflow update [--source tokenflow@latest|/path/to/TokenFlow]
+tokenflow logout
 ```
 
 | Comando | Qué hace |
@@ -153,7 +153,7 @@ tokenusage logout
 
 ## Modelo de precios
 
-TokenUsage calcula costos localmente antes de subir datos.
+TokenFlow calcula costos localmente antes de subir datos.
 
 - El pricing integrado cubre IDs conocidos de modelos Codex, Claude y Gemini.
 - `model_pricing` de cc-switch puede extender o sobrescribir el pricing local cuando existe su base de datos.
@@ -167,10 +167,10 @@ Overrides por variables de entorno:
 
 | Variable | Propósito |
 | --- | --- |
-| `TOKENUSAGE_HOME` | Directorio de estado local. Por defecto `~/.tokenusage`. |
-| `TOKENUSAGE_SERVER_URL` | URL del servidor por defecto. |
-| `TOKENUSAGE_AUTO_SYNC_COMMAND` | Comando escrito en launchd/systemd. Por defecto `npx --yes @renaissancemind/tokenusage@latest sync --auto`. |
-| `TOKENUSAGE_UPDATE_SOURCE` | Package/source usado por `tokenusage update` cuando se omite `--source`. |
+| `TOKENFLOW_HOME` | Directorio de estado local. Por defecto `~/.tokenflow`. |
+| `TOKENFLOW_SERVER_URL` | URL del servidor por defecto. |
+| `TOKENFLOW_AUTO_SYNC_COMMAND` | Comando escrito en launchd/systemd. Por defecto `npx --yes tokenflow@latest sync --auto`. |
+| `TOKENFLOW_UPDATE_SOURCE` | Package/source usado por `tokenflow update` cuando se omite `--source`. |
 | `CODEX_HOME` | Home de configuración de Codex. Por defecto `~/.codex`. |
 | `CLAUDE_HOME` | Home de configuración de Claude. Por defecto `~/.claude`. |
 | `GEMINI_HOME` | Home de configuración de Gemini. Por defecto `~/.gemini`. |
@@ -184,14 +184,14 @@ Overrides por variables de entorno:
 Antes de publicar en npm, puedes fijar el scheduler a este checkout:
 
 ```bash
-TOKENUSAGE_AUTO_SYNC_COMMAND="node /Users/chunqiu/Documents/workspace/TokenUsage/dist/cli.js sync --auto" \
-  tokenusage init --server-url https://tokenusage.renaissancemind.ai
+TOKENFLOW_AUTO_SYNC_COMMAND="node /Users/chunqiu/Documents/workspace/TokenFlow/dist/cli.js sync --auto" \
+  tokenflow init --server-url https://tokenflow.renaissancemind.ai
 ```
 
 Después de publicar, el comando por defecto del scheduler puede usar npm:
 
 ```bash
-npx --yes @renaissancemind/tokenusage init --server-url https://tokenusage.renaissancemind.ai
+npx --yes tokenflow init --server-url https://tokenflow.renaissancemind.ai
 ```
 
 ## Desarrollo
@@ -217,7 +217,7 @@ El código fuente es un CLI TypeScript pequeño:
 ## Limitaciones
 
 - Las lecturas de bases OpenCode y cc-switch requieren el CLI `sqlite3`.
-- La sincronización automática solo se instala en macOS y Linux; en otras plataformas puedes ejecutar `tokenusage sync` manualmente o conectarlo a tu propio scheduler.
+- La sincronización automática solo se instala en macOS y Linux; en otras plataformas puedes ejecutar `tokenflow sync` manualmente o conectarlo a tu propio scheduler.
 - Los request logs de cc-switch no se importan salvo que `CC_SWITCH_DB` esté definido explícitamente, lo que evita doble conteo junto a logs nativos de Codex, Claude y Gemini.
 - Los costos de model IDs desconocidos se marcan como `unpriced` hasta que exista una regla de pricing.
 

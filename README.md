@@ -1,37 +1,40 @@
-# TokenUsage
+# TokenFlow
 
 ## One-command setup
 
 ```bash
-npm install -g @renaissancemind/tokenusage && tokenusage init
+npm install -g tokenflow && tokenflow init
 ```
 
-Dashboard: https://tokenusage.renaissancemind.ai/
+Existing `tokenusage` installs keep working: the package still exposes a `tokenusage` command, reads existing
+`~/.tokenusage/config.json` files, and accepts the old `TOKENUSAGE_*` environment variables as fallbacks.
 
-![TokenUsage dashboard](docs/assets/dashboard.png)
+Dashboard: https://tokenflow.renaissancemind.ai/
+
+![TokenFlow dashboard](docs/assets/dashboard.png)
 
 **Language:** English | [简体中文](docs/i18n/README.zh-CN.md) | [繁體中文](docs/i18n/README.zh-TW.md) | [日本語](docs/i18n/README.ja.md) | [한국어](docs/i18n/README.ko.md) | [Español](docs/i18n/README.es.md) | [Türkçe](docs/i18n/README.tr.md) | [Русский](docs/i18n/README.ru.md)
 
 > Private, local-first token accounting for the AI agents you actually use.
 
-![npm](https://img.shields.io/npm/v/%40renaissancemind%2Ftokenusage?label=npm)
+![npm](https://img.shields.io/npm/v/tokenflow?label=npm)
 ![Node.js](https://img.shields.io/badge/node-%3E%3D20-339933)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6)
 ![Privacy](https://img.shields.io/badge/privacy-metadata%20only-6A5ACD)
 
 [Features](#features) - [Install](#install) - [Quick Start](#quick-start) - [Commands](#commands) - [Configuration](#configuration) - [Development](#development)
 
-TokenUsage is an installable local collector for multi-device AI-agent usage accounting. It scans local Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, and Qwen Code usage data, aggregates token counts into UTC half-hour buckets by agent and model, calculates known costs, and uploads only changed usage metadata to a TokenUsage server.
+TokenFlow is an installable local collector for multi-device AI-agent usage accounting. It scans local Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, and Qwen Code usage data, aggregates token counts into UTC half-hour buckets by agent and model, calculates known costs, and uploads only changed usage metadata to a TokenFlow server.
 
 Prompts and responses stay on your machine. Uploaded payloads contain counts, model names, bucket timestamps, pricing status, and optional device metadata.
 
 ## Preview
 
 ```bash
-$ tokenusage status
-TokenUsage status
-Config: /Users/alice/.tokenusage/config.json
-Server: https://tokenusage.renaissancemind.ai
+$ tokenflow status
+TokenFlow status
+Config: /Users/alice/.tokenflow/config.json
+Server: https://tokenflow.renaissancemind.ai
 Device: dev_...
 Token: set (device)
 Remote: linked
@@ -41,7 +44,7 @@ Source codex: found (219 files) /Users/alice/.codex/sessions
 Source claude: found (64 files) /Users/alice/.claude/projects
 Source gemini: missing (0 files) /Users/alice/.gemini/tmp
 Source opencode: found (1 files) /Users/alice/.local/share/opencode/opencode.db
-Home: /Users/alice/.tokenusage
+Home: /Users/alice/.tokenflow
 ```
 
 ## Features
@@ -53,7 +56,7 @@ Home: /Users/alice/.tokenusage
 - 🧾 **Unpriced model visibility** - unknown models are counted and marked as `unpriced` instead of silently disappearing.
 - 🔁 **Incremental automatic sync** - installs a 10-minute macOS `launchd` or Linux systemd user timer and uploads only new or changed buckets after the initial backfill.
 - 🔑 **Device login or API key upload** - supports browser device linking and `read_write` API tokens.
-- 🛠️ **Self-host friendly** - point the CLI at any compatible TokenUsage server URL.
+- 🛠️ **Self-host friendly** - point the CLI at any compatible TokenFlow server URL.
 
 ## Supported Sources
 
@@ -66,14 +69,14 @@ Home: /Users/alice/.tokenusage
 | Kimi CLI | `~/.kimi/sessions/*/*/wire.jsonl` | Reads `StatusUpdate.token_usage` rows and `~/.kimi/config.json` model metadata. |
 | Qwen Code | `~/.qwen/projects/*/chats/*.jsonl` | Reads assistant `usageMetadata` rows. |
 
-TokenUsage intentionally does not upload source file paths, session IDs, prompts, or responses.
+TokenFlow intentionally does not upload source file paths, session IDs, prompts, or responses.
 
 ## Install
 
-TokenUsage requires Node.js 20 or newer.
+TokenFlow requires Node.js 20 or newer.
 
 ```bash
-npm install -g @renaissancemind/tokenusage
+npm install -g tokenflow
 ```
 
 If you want OpenCode support, make sure `sqlite3` is available:
@@ -96,27 +99,27 @@ npm install -g .
 ### 1. Link this machine
 
 ```bash
-tokenusage login
+tokenflow login
 ```
 
-By default, `login` uses `https://tokenusage.renaissancemind.ai`. It prints a verification URL and user code, opens the browser when possible, stores the approved device token in `~/.tokenusage/config.json`, then runs one initial `sync`.
+By default, `login` uses `https://tokenflow.renaissancemind.ai`. It prints a verification URL and user code, opens the browser when possible, stores the approved device token in `~/.tokenflow/config.json`, then runs one initial `sync`.
 
 To use a self-hosted server:
 
 ```bash
-tokenusage login --server-url http://127.0.0.1:8787
+tokenflow login --server-url http://127.0.0.1:8787
 ```
 
 To link the machine without the initial upload:
 
 ```bash
-tokenusage login --no-sync
+tokenflow login --no-sync
 ```
 
 ### 2. Check what will be scanned
 
 ```bash
-tokenusage status
+tokenflow status
 ```
 
 `status` shows local source paths, parsed event counts, bucket counts, unpriced bucket counts, config location, and remote auth status when a token is configured.
@@ -124,25 +127,25 @@ tokenusage status
 ### 3. Sync usage
 
 ```bash
-tokenusage sync
+tokenflow sync
 ```
 
-`sync` scans local logs, aggregates half-hour usage buckets, uploads only new or changed buckets, records a sync heartbeat, and reports parsed events plus uploaded buckets. The local upload ledger lives in `~/.tokenusage/sync-state.json`.
+`sync` scans local logs, aggregates half-hour usage buckets, uploads only new or changed buckets, records a sync heartbeat, and reports parsed events plus uploaded buckets. The local upload ledger lives in `~/.tokenflow/sync-state.json`.
 
 ### 4. Install automatic sync
 
 ```bash
-tokenusage init
+tokenflow init
 ```
 
-`init` writes `~/.tokenusage/config.json`, installs automatic sync every 10 minutes on macOS or Linux, then starts the browser device-link flow unless a token already exists.
+`init` writes `~/.tokenflow/config.json`, installs automatic sync every 10 minutes on macOS or Linux, then starts the browser device-link flow unless a token already exists.
 
 ## API Token Mode
 
-Browser device linking is convenient for personal machines. For servers, CI-style machines, or scripted installs, use a `read_write` API key from the TokenUsage server dashboard:
+Browser device linking is convenient for personal machines. For servers, CI-style machines, or scripted installs, use a `read_write` API key from the TokenFlow server dashboard:
 
 ```bash
-tokenusage init --server-url https://tokenusage.renaissancemind.ai --api-token tu_api_...
+tokenflow init --server-url https://tokenflow.renaissancemind.ai --api-token tu_api_...
 ```
 
 Only `read_write` keys can upload usage. `read_only` keys are for dashboards, API reads, and public heatmap embeds; the CLI rejects read-only keys during `init` and `login`.
@@ -150,13 +153,13 @@ Only `read_write` keys can upload usage. `read_only` keys are for dashboards, AP
 ## Commands
 
 ```bash
-tokenusage init --server-url https://tokenusage.renaissancemind.ai
-tokenusage login --server-url https://tokenusage.renaissancemind.ai
-tokenusage login --server-url https://tokenusage.renaissancemind.ai --api-token tu_api_...
-tokenusage sync
-tokenusage status
-tokenusage update [--source @renaissancemind/tokenusage@latest|/path/to/TokenUsage]
-tokenusage logout
+tokenflow init --server-url https://tokenflow.renaissancemind.ai
+tokenflow login --server-url https://tokenflow.renaissancemind.ai
+tokenflow login --server-url https://tokenflow.renaissancemind.ai --api-token tu_api_...
+tokenflow sync
+tokenflow status
+tokenflow update [--source tokenflow@latest|/path/to/TokenFlow]
+tokenflow logout
 ```
 
 | Command | What it does |
@@ -170,7 +173,7 @@ tokenusage logout
 
 ## Pricing Model
 
-TokenUsage calculates costs locally before upload.
+TokenFlow calculates costs locally before upload.
 
 - Built-in pricing covers known Codex, Claude, Gemini, OpenCode, and cc-switch-inspired
   third-party coding/provider model IDs including DeepSeek, Kimi K2, MiniMax, GLM,
@@ -187,12 +190,12 @@ Environment overrides:
 
 | Variable | Purpose |
 | --- | --- |
-| `TOKENUSAGE_HOME` | Local state directory. Defaults to `~/.tokenusage`. |
-| `TOKENUSAGE_SERVER_URL` | Default server URL. |
-| `TOKENUSAGE_AUTO_SYNC_COMMAND` | Command written into launchd/systemd. Defaults to `tokenusage sync --auto`. |
-| `TOKENUSAGE_SYNC_MAX_BUCKETS` | Maximum changed buckets uploaded per sync. Defaults to `60` to keep first-time backfills Cloudflare-friendly. |
-| `TOKENUSAGE_REQUEST_TIMEOUT_MS` | HTTP request timeout for TokenUsage server calls. Defaults to `30000`. |
-| `TOKENUSAGE_UPDATE_SOURCE` | Package/source used by `tokenusage update` when `--source` is omitted. |
+| `TOKENFLOW_HOME` | Local state directory. Defaults to `~/.tokenflow`. |
+| `TOKENFLOW_SERVER_URL` | Default server URL. |
+| `TOKENFLOW_AUTO_SYNC_COMMAND` | Command written into launchd/systemd. Defaults to `tokenflow sync --auto`. |
+| `TOKENFLOW_SYNC_MAX_BUCKETS` | Maximum changed buckets uploaded per sync. Defaults to `60` to keep first-time backfills Cloudflare-friendly. |
+| `TOKENFLOW_REQUEST_TIMEOUT_MS` | HTTP request timeout for TokenFlow server calls. Defaults to `30000`. |
+| `TOKENFLOW_UPDATE_SOURCE` | Package/source used by `tokenflow update` when `--source` is omitted. |
 | `CODEX_HOME` | Codex config home. Defaults to `~/.codex`. |
 | `CLAUDE_HOME` | Claude config home. Defaults to `~/.claude`. |
 | `GEMINI_HOME` | Gemini config home. Defaults to `~/.gemini`. |
@@ -202,19 +205,21 @@ Environment overrides:
 | `QWEN_DATA_DIR` | Qwen data root, or comma-separated roots. Defaults to `~/.qwen`. |
 | `XDG_DATA_HOME` | Used to resolve OpenCode data when `OPENCODE_DB` and `OPENCODE_HOME` are unset. |
 
+Existing `TOKENUSAGE_*` variables are still accepted as compatibility fallbacks.
+
 ### Local checkout in auto-sync
 
 Before publishing to npm, pin the scheduler to this checkout:
 
 ```bash
-TOKENUSAGE_AUTO_SYNC_COMMAND="node /Users/chunqiu/Documents/workspace/TokenUsage/dist/cli.js sync --auto" \
-  tokenusage init --server-url https://tokenusage.renaissancemind.ai
+TOKENFLOW_AUTO_SYNC_COMMAND="node /Users/chunqiu/Documents/workspace/TokenFlow/dist/cli.js sync --auto" \
+  tokenflow init --server-url https://tokenflow.renaissancemind.ai
 ```
 
 After publishing, the default scheduler command can use npm:
 
 ```bash
-npx --yes @renaissancemind/tokenusage init --server-url https://tokenusage.renaissancemind.ai
+npx --yes tokenflow init --server-url https://tokenflow.renaissancemind.ai
 ```
 
 ## Development
@@ -241,7 +246,7 @@ The source is a small TypeScript CLI:
 
 - OpenCode database reads require the `sqlite3` CLI.
 - Qoder is not currently treated as a token source because ccusage has no Qoder adapter and public Qoder APIs expose credits/usage events rather than local input/output/cache token logs.
-- Automatic sync is installed only on macOS and Linux; other platforms can run `tokenusage sync` manually or wire their own scheduler.
+- Automatic sync is installed only on macOS and Linux; other platforms can run `tokenflow sync` manually or wire their own scheduler.
 - Costs for unknown model IDs are intentionally marked `unpriced` until a pricing rule exists.
 
 ## Documentation
@@ -258,7 +263,7 @@ No license file is currently included in this repository.
 
 ## Acknowledgements
 
-Parts of TokenUsage's implementation and product flow were informed by the excellent work in
+Parts of TokenFlow's implementation and product flow were informed by the excellent work in
 [cc-switch](https://github.com/farion1231/cc-switch) and
 [vibe-usage](https://github.com/vibe-cafe/vibe-usage). Local-source discovery, token-field mapping,
 and pricing behavior also reference [ccusage](https://github.com/ryoppippi/ccusage). These projects

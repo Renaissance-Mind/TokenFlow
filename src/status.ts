@@ -55,7 +55,7 @@ export interface UnpricedModelStatus {
 
 export function formatStatus(report: StatusReport): string {
   return [
-    "TokenUsage status",
+    "TokenFlow status",
     `Config: ${report.configPath}`,
     `Server: ${report.serverUrl}`,
     `Device: ${report.deviceId || "not linked"}`,

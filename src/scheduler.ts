@@ -14,7 +14,7 @@ export async function installAutoSync(serverUrl: string, home = os.homedir()): P
   const syncCommand = buildSyncCommand(serverUrl);
   if (process.platform === "darwin") return installLaunchAgent(syncCommand, home);
   if (process.platform === "linux") return installSystemdUserTimer(syncCommand, home);
-  return "automatic sync is not installed on this platform; run tokenusage sync manually or add it to your scheduler";
+  return "automatic sync is not installed on this platform; run tokenflow sync manually or add it to your scheduler";
 }
 
 async function installLaunchAgent(syncCommand: string, home: string): Promise<string> {
@@ -26,14 +26,15 @@ async function installLaunchAgent(syncCommand: string, home: string): Promise<st
 
   const launchAgentsDir = path.join(home, "Library", "LaunchAgents");
   await fs.mkdir(launchAgentsDir, { recursive: true });
-  const plistPath = path.join(launchAgentsDir, "dev.tokenusage.sync.plist");
+  const plistPath = path.join(launchAgentsDir, "dev.tokenflow.sync.plist");
+  const legacyPlistPath = path.join(launchAgentsDir, "dev.tokenusage.sync.plist");
   await fs.writeFile(
     plistPath,
     `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>Label</key><string>dev.tokenusage.sync</string>
+  <key>Label</key><string>dev.tokenflow.sync</string>
   <key>ProgramArguments</key>
   <array><string>${escapeXml(scriptPath)}</string></array>
   <key>StartInterval</key><integer>600</integer>
@@ -45,6 +46,8 @@ async function installLaunchAgent(syncCommand: string, home: string): Promise<st
 `,
   );
 
+  spawnSync("launchctl", ["unload", legacyPlistPath], { stdio: "ignore" });
+  await fs.rm(legacyPlistPath, { force: true });
   spawnSync("launchctl", ["unload", plistPath], { stdio: "ignore" });
   execFileSync("launchctl", ["load", plistPath], { stdio: "ignore" });
   return `launchd agent installed: ${plistPath}`;
@@ -53,12 +56,14 @@ async function installLaunchAgent(syncCommand: string, home: string): Promise<st
 async function installSystemdUserTimer(syncCommand: string, home: string): Promise<string> {
   const configDir = path.join(home, ".config", "systemd", "user");
   await fs.mkdir(configDir, { recursive: true });
-  const servicePath = path.join(configDir, "tokenusage-sync.service");
-  const timerPath = path.join(configDir, "tokenusage-sync.timer");
+  const servicePath = path.join(configDir, "tokenflow-sync.service");
+  const timerPath = path.join(configDir, "tokenflow-sync.timer");
+  const legacyServicePath = path.join(configDir, "tokenusage-sync.service");
+  const legacyTimerPath = path.join(configDir, "tokenusage-sync.timer");
   await fs.writeFile(
     servicePath,
     `[Unit]
-Description=TokenUsage sync
+Description=TokenFlow sync
 
 [Service]
 Type=oneshot
@@ -68,7 +73,7 @@ ExecStart=/bin/sh -lc ${shellQuote(syncCommand)}
   await fs.writeFile(
     timerPath,
     `[Unit]
-Description=Run TokenUsage sync every 10 minutes
+Description=Run TokenFlow sync every 10 minutes
 
 [Timer]
 OnBootSec=2min
@@ -79,8 +84,11 @@ Persistent=true
 WantedBy=timers.target
 `,
   );
+  spawnSync("systemctl", ["--user", "disable", "--now", "tokenusage-sync.timer"], { stdio: "ignore" });
+  await fs.rm(legacyServicePath, { force: true });
+  await fs.rm(legacyTimerPath, { force: true });
   execFileSync("systemctl", ["--user", "daemon-reload"], { stdio: "inherit" });
-  execFileSync("systemctl", ["--user", "enable", "--now", "tokenusage-sync.timer"], {
+  execFileSync("systemctl", ["--user", "enable", "--now", "tokenflow-sync.timer"], {
     stdio: "inherit",
   });
   return `systemd user timer installed: ${timerPath}`;
@@ -91,9 +99,14 @@ export function buildSyncCommand(
   options: SyncCommandOptions = {},
 ): string {
   const env = options.env || process.env;
-  const override = env.TOKENUSAGE_AUTO_SYNC_COMMAND?.trim();
-  const command = override || "tokenusage sync --auto";
-  return `PATH=${shellQuote(schedulerPath(env))} TOKENUSAGE_SERVER_URL=${shellQuote(serverUrl)} ${command}`;
+  const override = env.TOKENFLOW_AUTO_SYNC_COMMAND?.trim() || env.TOKENUSAGE_AUTO_SYNC_COMMAND?.trim();
+  const command = override || "tokenflow sync --auto";
+  return [
+    `PATH=${shellQuote(schedulerPath(env))}`,
+    `TOKENFLOW_SERVER_URL=${shellQuote(serverUrl)}`,
+    `TOKENUSAGE_SERVER_URL=${shellQuote(serverUrl)}`,
+    command,
+  ].join(" ");
 }
 
 function schedulerPath(env: Record<string, string | undefined>): string {

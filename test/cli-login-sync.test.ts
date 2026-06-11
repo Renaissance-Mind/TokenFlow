@@ -15,7 +15,7 @@ afterEach(() => {
 
 describe("CLI login initial sync", () => {
   it("syncs local usage immediately after device login succeeds", async () => {
-    const root = await prepareUsageHome("tokenusage-login-sync-");
+    const root = await prepareUsageHome("tokenflow-login-sync-");
     const server = await startLoginServer();
     vi.spyOn(process.stdout, "write").mockImplementation(() => true);
 
@@ -25,7 +25,7 @@ describe("CLI login initial sync", () => {
       await server.close();
     }
 
-    const config = JSON.parse(await fs.readFile(path.join(root, "tokenusage", "config.json"), "utf8")) as {
+    const config = JSON.parse(await fs.readFile(path.join(root, "tokenflow", "config.json"), "utf8")) as {
       deviceToken?: string;
       deviceId?: string;
       lastSyncAt?: string;
@@ -35,11 +35,11 @@ describe("CLI login initial sync", () => {
     expect(config.lastSyncAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(server.ingestCalls).toBe(1);
     expect(server.syncPingCalls).toBe(1);
-    expect(server.uploadedBucketCount).toBe(1);
+    expect(server.uploadedBucketCount).toBe(3);
   });
 
   it("keeps device login link-only when --no-sync is provided", async () => {
-    const root = await prepareUsageHome("tokenusage-login-no-sync-");
+    const root = await prepareUsageHome("tokenflow-login-no-sync-");
     const server = await startLoginServer();
     vi.spyOn(process.stdout, "write").mockImplementation(() => true);
 
@@ -49,7 +49,7 @@ describe("CLI login initial sync", () => {
       await server.close();
     }
 
-    const config = JSON.parse(await fs.readFile(path.join(root, "tokenusage", "config.json"), "utf8")) as {
+    const config = JSON.parse(await fs.readFile(path.join(root, "tokenflow", "config.json"), "utf8")) as {
       deviceToken?: string;
       lastSyncAt?: string;
     };
@@ -60,7 +60,7 @@ describe("CLI login initial sync", () => {
   });
 
   it("syncs local usage immediately after read-write API token login succeeds", async () => {
-    const root = await prepareUsageHome("tokenusage-api-token-login-sync-");
+    const root = await prepareUsageHome("tokenflow-api-token-login-sync-");
     const server = await startLoginServer();
     vi.spyOn(process.stdout, "write").mockImplementation(() => true);
 
@@ -70,7 +70,7 @@ describe("CLI login initial sync", () => {
       await server.close();
     }
 
-    const config = JSON.parse(await fs.readFile(path.join(root, "tokenusage", "config.json"), "utf8")) as {
+    const config = JSON.parse(await fs.readFile(path.join(root, "tokenflow", "config.json"), "utf8")) as {
       apiToken?: string;
       lastSyncAt?: string;
     };
@@ -78,13 +78,13 @@ describe("CLI login initial sync", () => {
     expect(config.lastSyncAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(server.ingestCalls).toBe(1);
     expect(server.syncPingCalls).toBe(1);
-    expect(server.uploadedBucketCount).toBe(1);
+    expect(server.uploadedBucketCount).toBe(3);
   });
 });
 
 async function prepareUsageHome(prefix: string): Promise<string> {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
-  process.env.TOKENUSAGE_HOME = path.join(root, "tokenusage");
+  process.env.TOKENFLOW_HOME = path.join(root, "tokenflow");
   process.env.CODEX_HOME = path.join(root, "codex");
   process.env.CLAUDE_HOME = path.join(root, "claude");
   process.env.GEMINI_HOME = path.join(root, "gemini");
@@ -138,7 +138,7 @@ async function startLoginServer(): Promise<{
       return json(response, {
         device_code: "device_code_test",
         user_code: "TEST-USER",
-        verification_url: "https://tokenusage.example/device",
+        verification_url: "https://tokenflow.example/device",
         expires_at: new Date(Date.now() + 60_000).toISOString(),
         poll_interval_seconds: 0.001,
       });

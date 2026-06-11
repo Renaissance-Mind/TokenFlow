@@ -4,7 +4,7 @@ import { formatStatus } from "../src/status.js";
 describe("status output", () => {
   it("includes remote account and device status when linked", () => {
     const output = formatStatus({
-      configPath: "/home/user/.tokenusage/config.json",
+      configPath: "/home/user/.tokenflow/config.json",
       serverUrl: "https://usage.example.com",
       deviceId: "dev_123",
       hasDeviceToken: true,
@@ -20,7 +20,7 @@ describe("status output", () => {
           events: 3,
         },
       ],
-      home: "/home/user/.tokenusage",
+      home: "/home/user/.tokenflow",
       remote: {
         linked: true,
         server_time: "2026-06-09T03:00:00.000Z",
@@ -47,7 +47,7 @@ describe("status output", () => {
 
   it("keeps local status visible when the remote status check fails", () => {
     const output = formatStatus({
-      configPath: "/home/user/.tokenusage/config.json",
+      configPath: "/home/user/.tokenflow/config.json",
       serverUrl: "https://usage.example.com",
       deviceId: "dev_123",
       hasDeviceToken: true,
@@ -55,7 +55,7 @@ describe("status output", () => {
       localEvents: 7,
       localBuckets: 4,
       sources: [],
-      home: "/home/user/.tokenusage",
+      home: "/home/user/.tokenflow",
       remoteError: "fetch failed",
     });
 
@@ -66,14 +66,14 @@ describe("status output", () => {
 
   it("shows read-write API token upload mode without pretending a device status was checked", () => {
     const output = formatStatus({
-      configPath: "/home/user/.tokenusage/config.json",
+      configPath: "/home/user/.tokenflow/config.json",
       serverUrl: "https://usage.example.com",
       hasDeviceToken: false,
       hasApiToken: true,
       localEvents: 7,
       localBuckets: 4,
       sources: [],
-      home: "/home/user/.tokenusage",
+      home: "/home/user/.tokenflow",
     });
 
     expect(output).toContain("Token: set (read-write API)");
@@ -82,14 +82,14 @@ describe("status output", () => {
 
   it("shows validated API token account and scope when checked", () => {
     const output = formatStatus({
-      configPath: "/home/user/.tokenusage/config.json",
+      configPath: "/home/user/.tokenflow/config.json",
       serverUrl: "https://usage.example.com",
       hasDeviceToken: false,
       hasApiToken: true,
       localEvents: 7,
       localBuckets: 4,
       sources: [],
-      home: "/home/user/.tokenusage",
+      home: "/home/user/.tokenflow",
       remoteApiToken: {
         authenticated: true,
         account: {
@@ -108,14 +108,14 @@ describe("status output", () => {
 
   it("surfaces unpriced local buckets so cost totals are not mistaken for complete billing", () => {
     const output = formatStatus({
-      configPath: "/home/user/.tokenusage/config.json",
+      configPath: "/home/user/.tokenflow/config.json",
       serverUrl: "https://usage.example.com",
       hasDeviceToken: false,
       localEvents: 7,
       localBuckets: 4,
       unpricedBuckets: 2,
       sources: [],
-      home: "/home/user/.tokenusage",
+      home: "/home/user/.tokenflow",
     });
 
     expect(output).toContain("Unpriced buckets: 2");
@@ -123,7 +123,7 @@ describe("status output", () => {
 
   it("lists unpriced models by bucket count and token total", () => {
     const output = formatStatus({
-      configPath: "/home/user/.tokenusage/config.json",
+      configPath: "/home/user/.tokenflow/config.json",
       serverUrl: "https://usage.example.com",
       hasDeviceToken: false,
       localEvents: 7,
@@ -144,7 +144,7 @@ describe("status output", () => {
         },
       ],
       sources: [],
-      home: "/home/user/.tokenusage",
+      home: "/home/user/.tokenflow",
     });
 
     expect(output).toContain("Unpriced models:");

@@ -101,7 +101,7 @@ describe("incremental sync state", () => {
 
   it("forces one complete snapshot upload when upgrading legacy sync state", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "tokenusage-sync-state-"));
-    const stateDir = path.join(root, ".tokenusage");
+    const stateDir = path.join(root, ".tokenflow");
     await fs.mkdir(stateDir, { recursive: true });
     await fs.writeFile(
       path.join(stateDir, "sync-state.json"),

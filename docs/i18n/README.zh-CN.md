@@ -1,27 +1,27 @@
-# TokenUsage
+# TokenFlow
 
 **语言:** [English](../../README.md) | 简体中文 | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Español](README.es.md) | [Türkçe](README.tr.md) | [Русский](README.ru.md)
 
 > 面向真实 AI Agent 工作流的本地优先 token 统计工具。
 
-![npm](https://img.shields.io/npm/v/%40renaissancemind%2Ftokenusage?label=npm)
+![npm](https://img.shields.io/npm/v/tokenflow?label=npm)
 ![Node.js](https://img.shields.io/badge/node-%3E%3D20-339933)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6)
 ![Privacy](https://img.shields.io/badge/privacy-metadata%20only-6A5ACD)
 
 [功能](#功能) - [安装](#安装) - [快速开始](#快速开始) - [命令](#命令) - [配置](#配置) - [开发](#开发)
 
-TokenUsage 是一个可安装的本地采集器，用于统计多设备 AI Agent 的 token 使用量。它会扫描本地 Codex、Claude Code、Gemini CLI、OpenCode 和 cc-switch 使用数据，按 UTC 日期、Agent 和模型聚合 token 数量，计算已知模型成本，并只把使用元数据上传到 TokenUsage 服务器。
+TokenFlow 是一个可安装的本地采集器，用于统计多设备 AI Agent 的 token 使用量。它会扫描本地 Codex、Claude Code、Gemini CLI、OpenCode 和 cc-switch 使用数据，按 UTC 日期、Agent 和模型聚合 token 数量，计算已知模型成本，并只把使用元数据上传到 TokenFlow 服务器。
 
 提示词和回复内容会留在你的机器上。上传的数据只包含计数、模型名、bucket 时间戳、计价状态，以及可选的设备元数据。
 
 ## 预览
 
 ```bash
-$ tokenusage status
-TokenUsage status
-Config: /Users/alice/.tokenusage/config.json
-Server: https://tokenusage.renaissancemind.ai
+$ tokenflow status
+TokenFlow status
+Config: /Users/alice/.tokenflow/config.json
+Server: https://tokenflow.renaissancemind.ai
 Device: dev_...
 Token: set (device)
 Remote: linked
@@ -31,7 +31,7 @@ Source codex: found (219 files) /Users/alice/.codex/sessions
 Source claude: found (64 files) /Users/alice/.claude/projects
 Source gemini: missing (0 files) /Users/alice/.gemini/tmp
 Source opencode: found (1 files) /Users/alice/.local/share/opencode/opencode.db
-Home: /Users/alice/.tokenusage
+Home: /Users/alice/.tokenflow
 ```
 
 ## 功能
@@ -43,7 +43,7 @@ Home: /Users/alice/.tokenusage
 - 🧾 **未计价模型可见** - 未知模型仍然计入 token，并标记为 `unpriced`。
 - 🔁 **自动同步** - 在 macOS `launchd` 或 Linux systemd user timer 中安装 10 分钟同步任务。
 - 🔑 **设备登录或 API key 上传** - 支持浏览器设备授权和 `read_write` API token。
-- 🛠️ **适合自托管** - 可以指向任意兼容的 TokenUsage server URL。
+- 🛠️ **适合自托管** - 可以指向任意兼容的 TokenFlow server URL。
 
 ## 支持的数据源
 
@@ -55,14 +55,14 @@ Home: /Users/alice/.tokenusage
 | OpenCode | `~/.local/share/opencode/opencode.db` | 需要 `PATH` 中存在 `sqlite3`。 |
 | cc-switch | `~/.cc-switch/cc-switch.db` | 默认读取计价表；只有设置 `CC_SWITCH_DB` 时才导入 `proxy_request_logs`。 |
 
-TokenUsage 不会上传源文件路径、session ID、提示词或回复内容。
+TokenFlow 不会上传源文件路径、session ID、提示词或回复内容。
 
 ## 安装
 
-TokenUsage 需要 Node.js 20 或更高版本。
+TokenFlow 需要 Node.js 20 或更高版本。
 
 ```bash
-npm install -g @renaissancemind/tokenusage
+npm install -g tokenflow
 ```
 
 如果需要 OpenCode 或 cc-switch 支持，请确认 `sqlite3` 可用：
@@ -85,21 +85,21 @@ npm install -g .
 ### 1. 关联这台机器
 
 ```bash
-tokenusage login
+tokenflow login
 ```
 
-默认情况下，`login` 使用 `https://tokenusage.renaissancemind.ai`。它会打印 verification URL 和 user code，在可能时打开浏览器，并把授权后的 device token 保存到 `~/.tokenusage/config.json`。
+默认情况下，`login` 使用 `https://tokenflow.renaissancemind.ai`。它会打印 verification URL 和 user code，在可能时打开浏览器，并把授权后的 device token 保存到 `~/.tokenflow/config.json`。
 
 使用自托管服务器：
 
 ```bash
-tokenusage login --server-url http://127.0.0.1:8787
+tokenflow login --server-url http://127.0.0.1:8787
 ```
 
 ### 2. 查看会扫描哪些数据
 
 ```bash
-tokenusage status
+tokenflow status
 ```
 
 `status` 会显示本地 source 路径、解析到的 event 数量、bucket 数量、未计价 bucket 数量、配置文件位置，以及已配置 token 时的远端认证状态。
@@ -107,7 +107,7 @@ tokenusage status
 ### 3. 同步使用量
 
 ```bash
-tokenusage sync
+tokenflow sync
 ```
 
 `sync` 会扫描本地日志、聚合使用量、幂等上传 bucket、记录同步心跳，并报告解析到的 events 和上传的 buckets。
@@ -115,17 +115,17 @@ tokenusage sync
 ### 4. 安装自动同步
 
 ```bash
-tokenusage init
+tokenflow init
 ```
 
-`init` 会写入 `~/.tokenusage/config.json`，在 macOS 或 Linux 上安装每 10 分钟运行一次的自动同步任务，然后在没有 token 时启动浏览器设备授权流程。
+`init` 会写入 `~/.tokenflow/config.json`，在 macOS 或 Linux 上安装每 10 分钟运行一次的自动同步任务，然后在没有 token 时启动浏览器设备授权流程。
 
 ## API Token 模式
 
-浏览器设备授权适合个人机器。对于服务器、类 CI 机器或脚本化安装，可以在 TokenUsage server dashboard 中创建 `read_write` API key：
+浏览器设备授权适合个人机器。对于服务器、类 CI 机器或脚本化安装，可以在 TokenFlow server dashboard 中创建 `read_write` API key：
 
 ```bash
-tokenusage init --server-url https://tokenusage.renaissancemind.ai --api-token tu_api_...
+tokenflow init --server-url https://tokenflow.renaissancemind.ai --api-token tu_api_...
 ```
 
 只有 `read_write` key 可以上传使用量。`read_only` key 用于 dashboard、API 读取和公开 heatmap embed；CLI 会在 `init` 和 `login` 阶段拒绝 read-only key。
@@ -133,13 +133,13 @@ tokenusage init --server-url https://tokenusage.renaissancemind.ai --api-token t
 ## 命令
 
 ```bash
-tokenusage init --server-url https://tokenusage.renaissancemind.ai
-tokenusage login --server-url https://tokenusage.renaissancemind.ai
-tokenusage login --server-url https://tokenusage.renaissancemind.ai --api-token tu_api_...
-tokenusage sync
-tokenusage status
-tokenusage update [--source @renaissancemind/tokenusage@latest|/path/to/TokenUsage]
-tokenusage logout
+tokenflow init --server-url https://tokenflow.renaissancemind.ai
+tokenflow login --server-url https://tokenflow.renaissancemind.ai
+tokenflow login --server-url https://tokenflow.renaissancemind.ai --api-token tu_api_...
+tokenflow sync
+tokenflow status
+tokenflow update [--source tokenflow@latest|/path/to/TokenFlow]
+tokenflow logout
 ```
 
 | 命令 | 作用 |
@@ -153,7 +153,7 @@ tokenusage logout
 
 ## 计价模型
 
-TokenUsage 会在上传前本地计算成本。
+TokenFlow 会在上传前本地计算成本。
 
 - 内置计价覆盖已知 Codex、Claude 和 Gemini 模型 ID。
 - 当 cc-switch 数据库存在时，cc-switch `model_pricing` 可以扩展或覆盖本地计价。
@@ -167,10 +167,10 @@ TokenUsage 会在上传前本地计算成本。
 
 | 变量 | 用途 |
 | --- | --- |
-| `TOKENUSAGE_HOME` | 本地状态目录。默认 `~/.tokenusage`。 |
-| `TOKENUSAGE_SERVER_URL` | 默认服务器 URL。 |
-| `TOKENUSAGE_AUTO_SYNC_COMMAND` | 写入 launchd/systemd 的命令。默认 `npx --yes @renaissancemind/tokenusage@latest sync --auto`。 |
-| `TOKENUSAGE_UPDATE_SOURCE` | `tokenusage update` 未传 `--source` 时使用的 package/source。 |
+| `TOKENFLOW_HOME` | 本地状态目录。默认 `~/.tokenflow`。 |
+| `TOKENFLOW_SERVER_URL` | 默认服务器 URL。 |
+| `TOKENFLOW_AUTO_SYNC_COMMAND` | 写入 launchd/systemd 的命令。默认 `npx --yes tokenflow@latest sync --auto`。 |
+| `TOKENFLOW_UPDATE_SOURCE` | `tokenflow update` 未传 `--source` 时使用的 package/source。 |
 | `CODEX_HOME` | Codex 配置目录。默认 `~/.codex`。 |
 | `CLAUDE_HOME` | Claude 配置目录。默认 `~/.claude`。 |
 | `GEMINI_HOME` | Gemini 配置目录。默认 `~/.gemini`。 |
@@ -184,14 +184,14 @@ TokenUsage 会在上传前本地计算成本。
 npm 发布前，可以让调度器固定运行这个 checkout：
 
 ```bash
-TOKENUSAGE_AUTO_SYNC_COMMAND="node /Users/chunqiu/Documents/workspace/TokenUsage/dist/cli.js sync --auto" \
-  tokenusage init --server-url https://tokenusage.renaissancemind.ai
+TOKENFLOW_AUTO_SYNC_COMMAND="node /Users/chunqiu/Documents/workspace/TokenFlow/dist/cli.js sync --auto" \
+  tokenflow init --server-url https://tokenflow.renaissancemind.ai
 ```
 
 发布后，默认调度命令可以直接使用 npm：
 
 ```bash
-npx --yes @renaissancemind/tokenusage init --server-url https://tokenusage.renaissancemind.ai
+npx --yes tokenflow init --server-url https://tokenflow.renaissancemind.ai
 ```
 
 ## 开发
@@ -217,7 +217,7 @@ node dist/cli.js status
 ## 限制
 
 - OpenCode 和 cc-switch 数据库读取需要 `sqlite3` CLI。
-- 自动同步只在 macOS 和 Linux 上安装；其他平台可以手动运行 `tokenusage sync` 或自行接入调度器。
+- 自动同步只在 macOS 和 Linux 上安装；其他平台可以手动运行 `tokenflow sync` 或自行接入调度器。
 - 除非显式设置 `CC_SWITCH_DB`，否则不会导入 cc-switch request logs，以避免和原生 Codex、Claude、Gemini 日志重复计数。
 - 未知模型 ID 的成本会标记为 `unpriced`，直到存在对应计价规则。
 

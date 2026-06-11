@@ -1,27 +1,27 @@
-# TokenUsage
+# TokenFlow
 
 **Dil:** [English](../../README.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Español](README.es.md) | Türkçe | [Русский](README.ru.md)
 
 > Gerçekten kullandığınız AI agent'lar için local-first token muhasebesi.
 
-![npm](https://img.shields.io/npm/v/%40renaissancemind%2Ftokenusage?label=npm)
+![npm](https://img.shields.io/npm/v/tokenflow?label=npm)
 ![Node.js](https://img.shields.io/badge/node-%3E%3D20-339933)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6)
 ![Privacy](https://img.shields.io/badge/privacy-metadata%20only-6A5ACD)
 
 [Özellikler](#özellikler) - [Kurulum](#kurulum) - [Hızlı başlangıç](#hızlı-başlangıç) - [Komutlar](#komutlar) - [Yapılandırma](#yapılandırma) - [Geliştirme](#geliştirme)
 
-TokenUsage, birden fazla cihazdaki AI agent kullanımını hesaplamak için kurulabilir bir yerel collector'dır. Yerel Codex, Claude Code, Gemini CLI, OpenCode ve cc-switch kullanım verilerini tarar; token sayılarını UTC günlük bucket'larda agent ve modele göre toplar; bilinen maliyetleri hesaplar ve yalnızca kullanım metadatasını TokenUsage sunucusuna yükler.
+TokenFlow, birden fazla cihazdaki AI agent kullanımını hesaplamak için kurulabilir bir yerel collector'dır. Yerel Codex, Claude Code, Gemini CLI, OpenCode ve cc-switch kullanım verilerini tarar; token sayılarını UTC günlük bucket'larda agent ve modele göre toplar; bilinen maliyetleri hesaplar ve yalnızca kullanım metadatasını TokenFlow sunucusuna yükler.
 
 Prompt'lar ve yanıt metinleri makinenizde kalır. Yüklenen payload sadece sayımlar, model adları, bucket zaman damgaları, pricing status ve isteğe bağlı cihaz metadatası içerir.
 
 ## Önizleme
 
 ```bash
-$ tokenusage status
-TokenUsage status
-Config: /Users/alice/.tokenusage/config.json
-Server: https://tokenusage.renaissancemind.ai
+$ tokenflow status
+TokenFlow status
+Config: /Users/alice/.tokenflow/config.json
+Server: https://tokenflow.renaissancemind.ai
 Device: dev_...
 Token: set (device)
 Remote: linked
@@ -31,7 +31,7 @@ Source codex: found (219 files) /Users/alice/.codex/sessions
 Source claude: found (64 files) /Users/alice/.claude/projects
 Source gemini: missing (0 files) /Users/alice/.gemini/tmp
 Source opencode: found (1 files) /Users/alice/.local/share/opencode/opencode.db
-Home: /Users/alice/.tokenusage
+Home: /Users/alice/.tokenflow
 ```
 
 ## Özellikler
@@ -43,7 +43,7 @@ Home: /Users/alice/.tokenusage
 - 🧾 **Fiyatlandırılmamış model görünürlüğü** - bilinmeyen modeller sayılır ve `unpriced` olarak işaretlenir.
 - 🔁 **Otomatik sync** - macOS `launchd` veya Linux systemd user timer ile 10 dakikalık sync job kurar.
 - 🔑 **Cihaz login veya API key upload** - tarayıcı device linking ve `read_write` API token desteği sunar.
-- 🛠️ **Self-host dostu** - uyumlu herhangi bir TokenUsage server URL'ine yönlendirilebilir.
+- 🛠️ **Self-host dostu** - uyumlu herhangi bir TokenFlow server URL'ine yönlendirilebilir.
 
 ## Desteklenen kaynaklar
 
@@ -55,14 +55,14 @@ Home: /Users/alice/.tokenusage
 | OpenCode | `~/.local/share/opencode/opencode.db` | `PATH` üzerinde `sqlite3` gerekir. |
 | cc-switch | `~/.cc-switch/cc-switch.db` | Varsayılan olarak pricing okur; `proxy_request_logs` yalnızca `CC_SWITCH_DB` ayarlıysa import edilir. |
 
-TokenUsage source file path, session ID, prompt veya yanıt metni yüklemez.
+TokenFlow source file path, session ID, prompt veya yanıt metni yüklemez.
 
 ## Kurulum
 
-TokenUsage için Node.js 20 veya üstü gerekir.
+TokenFlow için Node.js 20 veya üstü gerekir.
 
 ```bash
-npm install -g @renaissancemind/tokenusage
+npm install -g tokenflow
 ```
 
 OpenCode veya cc-switch desteği istiyorsanız `sqlite3` kullanılabilir olmalıdır:
@@ -85,21 +85,21 @@ npm install -g .
 ### 1. Bu makineyi bağlayın
 
 ```bash
-tokenusage login
+tokenflow login
 ```
 
-Varsayılan olarak `login`, `https://tokenusage.renaissancemind.ai` kullanır. Bir verification URL ve user code yazdırır, mümkünse tarayıcıyı açar ve onaylanan device token'ı `~/.tokenusage/config.json` içine kaydeder.
+Varsayılan olarak `login`, `https://tokenflow.renaissancemind.ai` kullanır. Bir verification URL ve user code yazdırır, mümkünse tarayıcıyı açar ve onaylanan device token'ı `~/.tokenflow/config.json` içine kaydeder.
 
 Self-hosted sunucu kullanmak için:
 
 ```bash
-tokenusage login --server-url http://127.0.0.1:8787
+tokenflow login --server-url http://127.0.0.1:8787
 ```
 
 ### 2. Nelerin taranacağını kontrol edin
 
 ```bash
-tokenusage status
+tokenflow status
 ```
 
 `status`, yerel source path'leri, parse edilen event sayısını, bucket sayısını, unpriced bucket sayısını, config konumunu ve token ayarlıysa remote auth durumunu gösterir.
@@ -107,7 +107,7 @@ tokenusage status
 ### 3. Kullanımı senkronize edin
 
 ```bash
-tokenusage sync
+tokenflow sync
 ```
 
 `sync`, yerel logları tarar, kullanımı toplar, bucket'ları idempotent biçimde yükler, sync heartbeat kaydeder ve parse edilen events ile yüklenen buckets bilgisini raporlar.
@@ -115,17 +115,17 @@ tokenusage sync
 ### 4. Otomatik sync kurun
 
 ```bash
-tokenusage init
+tokenflow init
 ```
 
-`init`, `~/.tokenusage/config.json` yazar, macOS veya Linux üzerinde her 10 dakikada çalışan otomatik sync kurar ve token yoksa tarayıcı device-link flow başlatır.
+`init`, `~/.tokenflow/config.json` yazar, macOS veya Linux üzerinde her 10 dakikada çalışan otomatik sync kurar ve token yoksa tarayıcı device-link flow başlatır.
 
 ## API Token modu
 
-Tarayıcı device linking kişisel makineler için rahattır. Sunucular, CI benzeri makineler veya script ile kurulumlar için TokenUsage server dashboard üzerinden `read_write` API key oluşturabilirsiniz:
+Tarayıcı device linking kişisel makineler için rahattır. Sunucular, CI benzeri makineler veya script ile kurulumlar için TokenFlow server dashboard üzerinden `read_write` API key oluşturabilirsiniz:
 
 ```bash
-tokenusage init --server-url https://tokenusage.renaissancemind.ai --api-token tu_api_...
+tokenflow init --server-url https://tokenflow.renaissancemind.ai --api-token tu_api_...
 ```
 
 Kullanım yüklemek için yalnızca `read_write` key'ler geçerlidir. `read_only` key'ler dashboard, API read ve public heatmap embed içindir; CLI `init` ve `login` sırasında read-only key'leri reddeder.
@@ -133,13 +133,13 @@ Kullanım yüklemek için yalnızca `read_write` key'ler geçerlidir. `read_only
 ## Komutlar
 
 ```bash
-tokenusage init --server-url https://tokenusage.renaissancemind.ai
-tokenusage login --server-url https://tokenusage.renaissancemind.ai
-tokenusage login --server-url https://tokenusage.renaissancemind.ai --api-token tu_api_...
-tokenusage sync
-tokenusage status
-tokenusage update [--source @renaissancemind/tokenusage@latest|/path/to/TokenUsage]
-tokenusage logout
+tokenflow init --server-url https://tokenflow.renaissancemind.ai
+tokenflow login --server-url https://tokenflow.renaissancemind.ai
+tokenflow login --server-url https://tokenflow.renaissancemind.ai --api-token tu_api_...
+tokenflow sync
+tokenflow status
+tokenflow update [--source tokenflow@latest|/path/to/TokenFlow]
+tokenflow logout
 ```
 
 | Komut | Ne yapar |
@@ -153,7 +153,7 @@ tokenusage logout
 
 ## Pricing modeli
 
-TokenUsage upload öncesinde maliyetleri yerelde hesaplar.
+TokenFlow upload öncesinde maliyetleri yerelde hesaplar.
 
 - Built-in pricing bilinen Codex, Claude ve Gemini model ID'lerini kapsar.
 - cc-switch database varsa cc-switch `model_pricing` yerel pricing'i genişletebilir veya override edebilir.
@@ -167,10 +167,10 @@ Ortam değişkeni override'ları:
 
 | Değişken | Amaç |
 | --- | --- |
-| `TOKENUSAGE_HOME` | Yerel state dizini. Varsayılan `~/.tokenusage`. |
-| `TOKENUSAGE_SERVER_URL` | Varsayılan server URL. |
-| `TOKENUSAGE_AUTO_SYNC_COMMAND` | launchd/systemd içine yazılan komut. Varsayılan `npx --yes @renaissancemind/tokenusage@latest sync --auto`. |
-| `TOKENUSAGE_UPDATE_SOURCE` | `tokenusage update` sırasında `--source` yoksa kullanılacak package/source. |
+| `TOKENFLOW_HOME` | Yerel state dizini. Varsayılan `~/.tokenflow`. |
+| `TOKENFLOW_SERVER_URL` | Varsayılan server URL. |
+| `TOKENFLOW_AUTO_SYNC_COMMAND` | launchd/systemd içine yazılan komut. Varsayılan `npx --yes tokenflow@latest sync --auto`. |
+| `TOKENFLOW_UPDATE_SOURCE` | `tokenflow update` sırasında `--source` yoksa kullanılacak package/source. |
 | `CODEX_HOME` | Codex config home. Varsayılan `~/.codex`. |
 | `CLAUDE_HOME` | Claude config home. Varsayılan `~/.claude`. |
 | `GEMINI_HOME` | Gemini config home. Varsayılan `~/.gemini`. |
@@ -184,14 +184,14 @@ Ortam değişkeni override'ları:
 npm yayını öncesinde scheduler'ı bu checkout'a sabitleyebilirsiniz:
 
 ```bash
-TOKENUSAGE_AUTO_SYNC_COMMAND="node /Users/chunqiu/Documents/workspace/TokenUsage/dist/cli.js sync --auto" \
-  tokenusage init --server-url https://tokenusage.renaissancemind.ai
+TOKENFLOW_AUTO_SYNC_COMMAND="node /Users/chunqiu/Documents/workspace/TokenFlow/dist/cli.js sync --auto" \
+  tokenflow init --server-url https://tokenflow.renaissancemind.ai
 ```
 
 Yayından sonra varsayılan scheduler komutu npm kullanabilir:
 
 ```bash
-npx --yes @renaissancemind/tokenusage init --server-url https://tokenusage.renaissancemind.ai
+npx --yes tokenflow init --server-url https://tokenflow.renaissancemind.ai
 ```
 
 ## Geliştirme
@@ -217,7 +217,7 @@ Kaynak kod küçük bir TypeScript CLI'dır:
 ## Sınırlamalar
 
 - OpenCode ve cc-switch database okumaları için `sqlite3` CLI gerekir.
-- Otomatik sync yalnızca macOS ve Linux üzerinde kurulur; diğer platformlarda `tokenusage sync` manuel çalıştırılabilir veya kendi scheduler'ınıza bağlanabilir.
+- Otomatik sync yalnızca macOS ve Linux üzerinde kurulur; diğer platformlarda `tokenflow sync` manuel çalıştırılabilir veya kendi scheduler'ınıza bağlanabilir.
 - cc-switch request logs, `CC_SWITCH_DB` açıkça ayarlanmadıkça import edilmez; bu, native Codex, Claude ve Gemini loglarıyla double-counting önler.
 - Bilinmeyen model ID maliyetleri, pricing rule eklenene kadar `unpriced` olarak işaretlenir.
 

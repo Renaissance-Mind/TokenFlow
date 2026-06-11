@@ -1,9 +1,10 @@
 {
-  "name": "@renaissancemind/tokenusage",
-  "version": "0.1.9",
+  "name": "tokenflow",
+  "version": "0.2.0",
   "description": "Local token usage collector for multi-device AI agent accounting.",
   "type": "module",
   "bin": {
+    "tokenflow": "dist/cli.js",
     "tokenusage": "dist/cli.js"
   },
   "scripts": {
