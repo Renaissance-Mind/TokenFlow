@@ -1,6 +1,4 @@
-# TokenFlow
-
-## One-command setup
+[![TokenFlow teaser](docs/assets/teaser_en.png)](https://tokenflow.renaissancemind.ai/)
 
 ```bash
 npm install -g @renaissancemind/tokenflow && tokenflow init
@@ -8,10 +6,6 @@ npm install -g @renaissancemind/tokenflow && tokenflow init
 
 Existing `tokenusage` installs keep working: the package still exposes a `tokenusage` command, reads existing
 `~/.tokenusage/config.json` files, and accepts the old `TOKENUSAGE_*` environment variables as fallbacks.
-
-Dashboard: https://tokenflow.renaissancemind.ai/
-
-![TokenFlow dashboard](docs/assets/dashboard.png)
 
 **Language:** English | [简体中文](docs/i18n/README.zh-CN.md) | [繁體中文](docs/i18n/README.zh-TW.md) | [日本語](docs/i18n/README.ja.md) | [한국어](docs/i18n/README.ko.md) | [Español](docs/i18n/README.es.md) | [Türkçe](docs/i18n/README.tr.md) | [Русский](docs/i18n/README.ru.md)
 

@@ -20,6 +20,8 @@
     "dist",
     "README.md",
     "THIRD_PARTY_NOTICES.md",
+    "docs/assets/teaser_en.png",
+    "docs/assets/teaser_zh.png",
     "docs/i18n"
   ],
   "publishConfig": {

@@ -1,4 +1,4 @@
-# TokenFlow
+[![TokenFlow teaser](../assets/teaser_zh.png)](https://tokenflow.renaissancemind.ai/)
 
 **语言:** [English](../../README.md) | 简体中文 | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Español](README.es.md) | [Türkçe](README.tr.md) | [Русский](README.ru.md)
 
