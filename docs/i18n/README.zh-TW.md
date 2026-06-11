@@ -4,7 +4,7 @@
 
 > 面向真實 AI Agent 工作流的本地優先 token 統計工具。
 
-![npm](https://img.shields.io/npm/v/tokenflow?label=npm)
+![npm](https://img.shields.io/npm/v/%40renaissancemind%2Ftokenflow?label=npm)
 ![Node.js](https://img.shields.io/badge/node-%3E%3D20-339933)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6)
 ![Privacy](https://img.shields.io/badge/privacy-metadata%20only-6A5ACD)
@@ -62,7 +62,7 @@ TokenFlow 不會上傳來源檔案路徑、session ID、提示詞或回覆內容
 TokenFlow 需要 Node.js 20 或更高版本。
 
 ```bash
-npm install -g tokenflow
+npm install -g @renaissancemind/tokenflow
 ```
 
 如果需要 OpenCode 或 cc-switch 支援，請確認 `sqlite3` 可用：
@@ -138,7 +138,7 @@ tokenflow login --server-url https://tokenflow.renaissancemind.ai
 tokenflow login --server-url https://tokenflow.renaissancemind.ai --api-token tu_api_...
 tokenflow sync
 tokenflow status
-tokenflow update [--source tokenflow@latest|/path/to/TokenFlow]
+tokenflow update [--source @renaissancemind/tokenflow@latest|/path/to/TokenFlow]
 tokenflow logout
 ```
 
@@ -169,7 +169,7 @@ TokenFlow 會在上傳前本地計算成本。
 | --- | --- |
 | `TOKENFLOW_HOME` | 本地狀態目錄。預設 `~/.tokenflow`。 |
 | `TOKENFLOW_SERVER_URL` | 預設伺服器 URL。 |
-| `TOKENFLOW_AUTO_SYNC_COMMAND` | 寫入 launchd/systemd 的命令。預設 `npx --yes tokenflow@latest sync --auto`。 |
+| `TOKENFLOW_AUTO_SYNC_COMMAND` | 寫入 launchd/systemd 的命令。預設 `npx --yes @renaissancemind/tokenflow@latest sync --auto`。 |
 | `TOKENFLOW_UPDATE_SOURCE` | `tokenflow update` 未傳 `--source` 時使用的 package/source。 |
 | `CODEX_HOME` | Codex 設定目錄。預設 `~/.codex`。 |
 | `CLAUDE_HOME` | Claude 設定目錄。預設 `~/.claude`。 |
@@ -191,7 +191,7 @@ TOKENFLOW_AUTO_SYNC_COMMAND="node /Users/chunqiu/Documents/workspace/TokenFlow/d
 發布後，預設排程命令可以直接使用 npm：
 
 ```bash
-npx --yes tokenflow init --server-url https://tokenflow.renaissancemind.ai
+npx --yes @renaissancemind/tokenflow init --server-url https://tokenflow.renaissancemind.ai
 ```
 
 ## 開發

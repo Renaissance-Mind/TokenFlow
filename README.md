@@ -3,7 +3,7 @@
 ## One-command setup
 
 ```bash
-npm install -g tokenflow && tokenflow init
+npm install -g @renaissancemind/tokenflow && tokenflow init
 ```
 
 Existing `tokenusage` installs keep working: the package still exposes a `tokenusage` command, reads existing
@@ -17,7 +17,7 @@ Dashboard: https://tokenflow.renaissancemind.ai/
 
 > Private, local-first token accounting for the AI agents you actually use.
 
-![npm](https://img.shields.io/npm/v/tokenflow?label=npm)
+![npm](https://img.shields.io/npm/v/%40renaissancemind%2Ftokenflow?label=npm)
 ![Node.js](https://img.shields.io/badge/node-%3E%3D20-339933)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6)
 ![Privacy](https://img.shields.io/badge/privacy-metadata%20only-6A5ACD)
@@ -76,7 +76,7 @@ TokenFlow intentionally does not upload source file paths, session IDs, prompts,
 TokenFlow requires Node.js 20 or newer.
 
 ```bash
-npm install -g tokenflow
+npm install -g @renaissancemind/tokenflow
 ```
 
 If you want OpenCode support, make sure `sqlite3` is available:
@@ -158,7 +158,7 @@ tokenflow login --server-url https://tokenflow.renaissancemind.ai
 tokenflow login --server-url https://tokenflow.renaissancemind.ai --api-token tu_api_...
 tokenflow sync
 tokenflow status
-tokenflow update [--source tokenflow@latest|/path/to/TokenFlow]
+tokenflow update [--source @renaissancemind/tokenflow@latest|/path/to/TokenFlow]
 tokenflow logout
 ```
 
@@ -219,7 +219,7 @@ TOKENFLOW_AUTO_SYNC_COMMAND="node /Users/chunqiu/Documents/workspace/TokenFlow/d
 After publishing, the default scheduler command can use npm:
 
 ```bash
-npx --yes tokenflow init --server-url https://tokenflow.renaissancemind.ai
+npx --yes @renaissancemind/tokenflow init --server-url https://tokenflow.renaissancemind.ai
 ```
 
 ## Development

@@ -4,7 +4,7 @@
 
 > Gerçekten kullandığınız AI agent'lar için local-first token muhasebesi.
 
-![npm](https://img.shields.io/npm/v/tokenflow?label=npm)
+![npm](https://img.shields.io/npm/v/%40renaissancemind%2Ftokenflow?label=npm)
 ![Node.js](https://img.shields.io/badge/node-%3E%3D20-339933)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6)
 ![Privacy](https://img.shields.io/badge/privacy-metadata%20only-6A5ACD)
@@ -62,7 +62,7 @@ TokenFlow source file path, session ID, prompt veya yanıt metni yüklemez.
 TokenFlow için Node.js 20 veya üstü gerekir.
 
 ```bash
-npm install -g tokenflow
+npm install -g @renaissancemind/tokenflow
 ```
 
 OpenCode veya cc-switch desteği istiyorsanız `sqlite3` kullanılabilir olmalıdır:
@@ -138,7 +138,7 @@ tokenflow login --server-url https://tokenflow.renaissancemind.ai
 tokenflow login --server-url https://tokenflow.renaissancemind.ai --api-token tu_api_...
 tokenflow sync
 tokenflow status
-tokenflow update [--source tokenflow@latest|/path/to/TokenFlow]
+tokenflow update [--source @renaissancemind/tokenflow@latest|/path/to/TokenFlow]
 tokenflow logout
 ```
 
@@ -169,7 +169,7 @@ Ortam değişkeni override'ları:
 | --- | --- |
 | `TOKENFLOW_HOME` | Yerel state dizini. Varsayılan `~/.tokenflow`. |
 | `TOKENFLOW_SERVER_URL` | Varsayılan server URL. |
-| `TOKENFLOW_AUTO_SYNC_COMMAND` | launchd/systemd içine yazılan komut. Varsayılan `npx --yes tokenflow@latest sync --auto`. |
+| `TOKENFLOW_AUTO_SYNC_COMMAND` | launchd/systemd içine yazılan komut. Varsayılan `npx --yes @renaissancemind/tokenflow@latest sync --auto`. |
 | `TOKENFLOW_UPDATE_SOURCE` | `tokenflow update` sırasında `--source` yoksa kullanılacak package/source. |
 | `CODEX_HOME` | Codex config home. Varsayılan `~/.codex`. |
 | `CLAUDE_HOME` | Claude config home. Varsayılan `~/.claude`. |
@@ -191,7 +191,7 @@ TOKENFLOW_AUTO_SYNC_COMMAND="node /Users/chunqiu/Documents/workspace/TokenFlow/d
 Yayından sonra varsayılan scheduler komutu npm kullanabilir:
 
 ```bash
-npx --yes tokenflow init --server-url https://tokenflow.renaissancemind.ai
+npx --yes @renaissancemind/tokenflow init --server-url https://tokenflow.renaissancemind.ai
 ```
 
 ## Geliştirme

@@ -294,7 +294,7 @@ function printHelp(): void {
       "  tokenflow login --server-url https://tokenflow.renaissancemind.ai --api-token tu_api_...",
       "  tokenflow sync",
       "  tokenflow status",
-      "  tokenflow update [--source tokenflow@latest|/path/to/TokenFlow]",
+      "  tokenflow update [--source @renaissancemind/tokenflow@latest|/path/to/TokenFlow]",
       "  tokenflow logout",
       "",
       "Compatibility: the old tokenusage command still works.",
