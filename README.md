@@ -1,5 +1,13 @@
 # TokenUsage
 
+## One-command setup
+
+```bash
+npm install -g @renaissancemind/tokenusage && tokenusage init
+```
+
+Dashboard: https://tokenusage.renaissancemind.ai/
+
 **Language:** English | [简体中文](docs/i18n/README.zh-CN.md) | [繁體中文](docs/i18n/README.zh-TW.md) | [日本語](docs/i18n/README.ja.md) | [한국어](docs/i18n/README.ko.md) | [Español](docs/i18n/README.es.md) | [Türkçe](docs/i18n/README.tr.md) | [Русский](docs/i18n/README.ru.md)
 
 > Private, local-first token accounting for the AI agents you actually use.
