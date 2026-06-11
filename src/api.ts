@@ -141,6 +141,18 @@ export async function syncPing(
   );
 }
 
+export async function renameDevice(
+  serverUrl: string,
+  deviceToken: string,
+  deviceName: string,
+): Promise<{ deviceId: string; deviceName: string }> {
+  const data = await patchJson(`${serverUrl}/api/device`, { device_name: deviceName }, deviceToken);
+  return {
+    deviceId: assertString(data.device_id, "device_id"),
+    deviceName: assertString(data.device_name, "device_name"),
+  };
+}
+
 export async function getDeviceStatus(serverUrl: string, deviceToken: string): Promise<RemoteDeviceStatus> {
   const data = await getJson(`${serverUrl}/api/device/status`, deviceToken);
   return data as unknown as RemoteDeviceStatus;
@@ -177,9 +189,13 @@ async function postJson(url: string, body: unknown, bearerToken?: string): Promi
   return requestJson(url, "POST", body, bearerToken);
 }
 
+async function patchJson(url: string, body: unknown, bearerToken?: string): Promise<Record<string, unknown>> {
+  return requestJson(url, "PATCH", body, bearerToken);
+}
+
 async function requestJson(
   url: string,
-  method: "GET" | "POST",
+  method: "GET" | "POST" | "PATCH",
   body?: unknown,
   bearerToken?: string,
 ): Promise<Record<string, unknown>> {
@@ -195,7 +211,7 @@ async function requestJson(
 
 async function requestJsonOnce(
   url: string,
-  method: "GET" | "POST",
+  method: "GET" | "POST" | "PATCH",
   body?: unknown,
   bearerToken?: string,
 ): Promise<Record<string, unknown>> {

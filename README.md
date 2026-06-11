@@ -103,6 +103,11 @@ tokenflow login
 ```
 
 By default, `login` uses `https://tokenflow.renaissancemind.ai`. It prints a verification URL and user code, opens the browser when possible, stores the approved device token in `~/.tokenflow/config.json`, then runs one initial `sync`.
+Use `--device-name` to avoid uploading your real hostname:
+
+```bash
+tokenflow login --device-name "Private Mac"
+```
 
 To use a self-hosted server:
 
@@ -139,6 +144,11 @@ tokenflow init
 ```
 
 `init` writes `~/.tokenflow/config.json`, installs automatic sync every 10 minutes on macOS or Linux, then starts the browser device-link flow unless a token already exists.
+It also accepts `--device-name`:
+
+```bash
+tokenflow init --device-name "Private Mac"
+```
 
 ## API Token Mode
 
@@ -156,6 +166,9 @@ Only `read_write` keys can upload usage. `read_only` keys are for dashboards, AP
 tokenflow init --server-url https://tokenflow.renaissancemind.ai
 tokenflow login --server-url https://tokenflow.renaissancemind.ai
 tokenflow login --server-url https://tokenflow.renaissancemind.ai --api-token tu_api_...
+tokenflow device-name "Private Mac"
+tokenflow device-name "Private Mac" --remote
+tokenflow device-name "Private Mac" --local-only
 tokenflow sync
 tokenflow status
 tokenflow update [--source @renaissancemind/tokenflow@latest|/path/to/TokenFlow]
@@ -166,6 +179,7 @@ tokenflow logout
 | --- | --- |
 | `init` | Writes config, installs auto-sync, and optionally starts login. |
 | `login` | Links a browser-approved device token or stores a validated upload API token, then runs an initial sync unless `--no-sync` is set. |
+| `device-name` | Updates the local device name used by future uploads. In an interactive terminal it asks once whether to update the current server device too; use `--remote` or `--local-only` for scripts. |
 | `sync` | Parses local usage, builds UTC half-hour buckets, uploads new or changed buckets, and updates `lastSyncAt`. |
 | `status` | Prints local config, source availability, bucket counts, auth status, and unpriced models. |
 | `update` | Reinstalls the global package and refreshes the auto-sync scheduler. |

@@ -35,7 +35,7 @@ describe("CLI login initial sync", () => {
     expect(config.lastSyncAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(server.ingestCalls).toBe(1);
     expect(server.syncPingCalls).toBe(1);
-    expect(server.uploadedBucketCount).toBe(3);
+    expect(server.uploadedBucketCount).toBe(1);
   });
 
   it("keeps device login link-only when --no-sync is provided", async () => {
@@ -78,7 +78,7 @@ describe("CLI login initial sync", () => {
     expect(config.lastSyncAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(server.ingestCalls).toBe(1);
     expect(server.syncPingCalls).toBe(1);
-    expect(server.uploadedBucketCount).toBe(3);
+    expect(server.uploadedBucketCount).toBe(1);
   });
 });
 
@@ -89,11 +89,15 @@ async function prepareUsageHome(prefix: string): Promise<string> {
   process.env.CLAUDE_HOME = path.join(root, "claude");
   process.env.GEMINI_HOME = path.join(root, "gemini");
   process.env.OPENCODE_HOME = path.join(root, "opencode");
+  process.env.KIMI_DATA_DIR = path.join(root, "kimi");
+  process.env.QWEN_DATA_DIR = path.join(root, "qwen");
 
   await fs.mkdir(path.join(root, "codex", "sessions", "2026", "06", "09"), { recursive: true });
   await fs.mkdir(path.join(root, "claude", "projects"), { recursive: true });
   await fs.mkdir(path.join(root, "gemini", "tmp"), { recursive: true });
   await fs.mkdir(path.join(root, "opencode"), { recursive: true });
+  await fs.mkdir(path.join(root, "kimi"), { recursive: true });
+  await fs.mkdir(path.join(root, "qwen"), { recursive: true });
 
   await fs.writeFile(
     path.join(root, "codex", "sessions", "2026", "06", "09", "rollout-2026-06-09T01-00-00-test.jsonl"),

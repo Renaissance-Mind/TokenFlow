@@ -2,6 +2,7 @@
 import { execFileSync } from "node:child_process";
 import { realpathSync } from "node:fs";
 import os from "node:os";
+import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -10,6 +11,7 @@ import {
   getUploadApiTokenStatus,
   ingestUsageSnapshot,
   pollDeviceFlow,
+  renameDevice,
   startDeviceFlow,
   syncPing,
 } from "./api.js";
@@ -35,7 +37,7 @@ import type { UsageBucket } from "./types.js";
 import { resolveUpdatePackageSpec } from "./update.js";
 import { aggregateEvents } from "./usage-buckets.js";
 
-type Command = "init" | "login" | "sync" | "status" | "update" | "logout" | "help";
+type Command = "init" | "login" | "sync" | "status" | "device-name" | "update" | "logout" | "help";
 
 export async function main(argv: string[]): Promise<void> {
   const [rawCommand = "help", ...rest] = argv;
@@ -49,6 +51,7 @@ export async function main(argv: string[]): Promise<void> {
   if (command === "login") return cmdLogin(rest);
   if (command === "sync") return cmdSync(rest);
   if (command === "status") return cmdStatus();
+  if (command === "device-name") return cmdDeviceName(rest);
   if (command === "update") return cmdUpdate(rest);
   if (command === "logout") return cmdLogout();
 }
@@ -59,12 +62,13 @@ async function cmdInit(argv: string[]): Promise<void> {
   const existing = await readConfig();
   const apiToken = optionString(options, "api-token");
   if (apiToken) await getUploadApiTokenStatus(serverUrl, apiToken);
+  const deviceName = normalizeDeviceName(optionString(options, "device-name") || existing?.deviceName || os.hostname());
   const next = {
     serverUrl,
     deviceToken: existing?.deviceToken,
     deviceId: existing?.deviceId,
     apiToken: apiToken || existing?.apiToken,
-    deviceName: existing?.deviceName || os.hostname(),
+    deviceName,
     installedAt: existing?.installedAt || new Date().toISOString(),
     lastSyncAt: existing?.lastSyncAt,
   };
@@ -73,7 +77,13 @@ async function cmdInit(argv: string[]): Promise<void> {
   process.stdout.write(`TokenFlow configured at ${configPath()}\n`);
   process.stdout.write(`${schedulerStatus}\n`);
   if (!next.deviceToken && !next.apiToken && !options["no-login"]) {
-    await cmdLogin(["--server-url", serverUrl, ...(options["no-sync"] ? ["--no-sync"] : [])]);
+    await cmdLogin([
+      "--server-url",
+      serverUrl,
+      "--device-name",
+      deviceName,
+      ...(options["no-sync"] ? ["--no-sync"] : []),
+    ]);
   }
 }
 
@@ -81,7 +91,7 @@ async function cmdLogin(argv: string[]): Promise<void> {
   const options = parseOptions(argv);
   const existing = await readConfig();
   const serverUrl = normalizeServerUrl(optionString(options, "server-url") || existing?.serverUrl);
-  const deviceName = optionString(options, "device-name") || existing?.deviceName || os.hostname();
+  const deviceName = normalizeDeviceName(optionString(options, "device-name") || existing?.deviceName || os.hostname());
   const apiToken = optionString(options, "api-token");
   if (apiToken) {
     await getUploadApiTokenStatus(serverUrl, apiToken);
@@ -126,6 +136,32 @@ async function cmdLogin(argv: string[]): Promise<void> {
     }
   }
   throw new Error("Login timed out before the device was approved");
+}
+
+async function cmdDeviceName(argv: string[]): Promise<void> {
+  const options = parseOptions(argv);
+  const config = await readConfig();
+  if (!config) throw new Error("Not configured. Run tokenflow init first.");
+  const deviceName = normalizeDeviceName(positionalArgs(argv).join(" ") || optionString(options, "name"));
+  const serverUrl = normalizeServerUrl(optionString(options, "server-url") || config.serverUrl);
+  const wantsRemote = await shouldRenameRemote(options, config);
+
+  if (wantsRemote) {
+    if (!config.deviceToken) {
+      throw new Error("Remote device rename requires a device login token. Run tokenflow login or omit --remote.");
+    }
+    await renameDevice(serverUrl, config.deviceToken, deviceName);
+  }
+
+  await writeConfig({ ...config, serverUrl, deviceName });
+  process.stdout.write(
+    wantsRemote
+      ? `Device name updated locally and on the server: ${deviceName}\n`
+      : `Device name updated locally: ${deviceName}\n`,
+  );
+  if (!wantsRemote && config.apiToken && !config.deviceToken) {
+    process.stdout.write("API-token uploads will use this name on future syncs; existing remote API upload devices are unchanged.\n");
+  }
 }
 
 async function runInitialSync(serverUrl: string): Promise<void> {
@@ -222,7 +258,7 @@ async function cmdLogout(): Promise<void> {
 }
 
 function normalizeCommand(command: string): Command {
-  if (["init", "login", "sync", "status", "update", "logout"].includes(command)) {
+  if (["init", "login", "sync", "status", "device-name", "update", "logout"].includes(command)) {
     return command as Command;
   }
   return "help";
@@ -248,6 +284,44 @@ function parseOptions(argv: string[]): Record<string, string | boolean> {
 function optionString(options: Record<string, string | boolean>, key: string): string | undefined {
   const value = options[key];
   return typeof value === "string" ? value : undefined;
+}
+
+function positionalArgs(argv: string[]): string[] {
+  const args: string[] = [];
+  for (let index = 0; index < argv.length; index += 1) {
+    const item = argv[index];
+    if (item.startsWith("--")) {
+      const next = argv[index + 1];
+      if (next && !next.startsWith("--")) index += 1;
+      continue;
+    }
+    args.push(item);
+  }
+  return args;
+}
+
+function normalizeDeviceName(value: string | undefined): string {
+  const name = value?.trim();
+  if (!name) throw new Error("Device name is required");
+  if (name.length > 120) throw new Error("Device name must be 120 characters or fewer");
+  return name;
+}
+
+async function shouldRenameRemote(options: Record<string, string | boolean>, config: { deviceToken?: string }): Promise<boolean> {
+  if (options.remote) return true;
+  if (options["local-only"]) return false;
+  if (!config.deviceToken || !process.stdin.isTTY) return false;
+  const answer = await promptText("Update this device name on the TokenFlow server too? [y/N] ");
+  return answer.trim().toLowerCase() === "y" || answer.trim().toLowerCase() === "yes";
+}
+
+async function promptText(question: string): Promise<string> {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    return await rl.question(question);
+  } finally {
+    rl.close();
+  }
 }
 
 async function getRemoteStatusForReport(
@@ -292,6 +366,7 @@ function printHelp(): void {
       "  tokenflow login --server-url https://tokenflow.renaissancemind.ai",
       "  tokenflow login --no-sync",
       "  tokenflow login --server-url https://tokenflow.renaissancemind.ai --api-token tu_api_...",
+      "  tokenflow device-name \"Private Mac\"",
       "  tokenflow sync",
       "  tokenflow status",
       "  tokenflow update [--source @renaissancemind/tokenflow@latest|/path/to/TokenFlow]",
