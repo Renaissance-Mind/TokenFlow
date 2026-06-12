@@ -144,6 +144,65 @@ describe("usage buckets", () => {
     });
   });
 
+  it("keeps Claude fast and standard usage in separate displayed buckets", () => {
+    const buckets = aggregateEvents(
+      [
+        {
+          agent: "claude",
+          model: "claude-opus-4-7",
+          sessionId: "s1",
+          sourcePath: "/claude.jsonl",
+          timestamp: "2026-06-09T01:05:00.000Z",
+          bucketStart: "2026-06-09T01:00:00.000Z",
+          inputTokens: 1_000_000,
+          cachedInputTokens: 0,
+          outputTokens: 0,
+          reasoningOutputTokens: 0,
+          cacheCreationTokens: 0,
+          totalTokens: 1_000_000,
+        },
+        {
+          agent: "claude",
+          model: "claude-opus-4-7-fast",
+          pricingModel: "claude-opus-4-7",
+          costMultiplier: "6",
+          sessionId: "s1",
+          sourcePath: "/claude.jsonl",
+          timestamp: "2026-06-09T01:10:00.000Z",
+          bucketStart: "2026-06-09T01:00:00.000Z",
+          inputTokens: 1_000_000,
+          cachedInputTokens: 0,
+          outputTokens: 0,
+          reasoningOutputTokens: 0,
+          cacheCreationTokens: 0,
+          totalTokens: 1_000_000,
+        },
+      ],
+      [
+        {
+          modelId: "claude-opus-4-7",
+          displayName: "Claude Opus 4.7",
+          inputUsdPerMillion: "5",
+          outputUsdPerMillion: "25",
+          cacheReadUsdPerMillion: "0.5",
+          cacheCreationUsdPerMillion: "6.25",
+        },
+      ],
+    );
+
+    expect(buckets).toHaveLength(2);
+    expect(buckets[0]).toMatchObject({
+      model: "claude-opus-4-7",
+      cost: { inputUsd: "5.000000", totalUsd: "5.000000" },
+    });
+    expect(buckets[1]).toMatchObject({
+      model: "claude-opus-4-7-fast",
+      pricingModel: "claude-opus-4-7",
+      costMultiplier: "6",
+      cost: { inputUsd: "30.000000", totalUsd: "30.000000" },
+    });
+  });
+
   it("uses recorded costs when a source provides authoritative billing totals", () => {
     const buckets = aggregateEvents([
       {

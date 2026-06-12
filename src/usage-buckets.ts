@@ -21,6 +21,7 @@ export function aggregateEvents(events: UsageEvent[], pricingProfiles: PricingPr
         agent: event.agent,
         model: event.model,
         pricingModel: event.pricingModel,
+        costMultiplier: event.costMultiplier,
         bucketStart,
         inputTokens: 0,
         cachedInputTokens: 0,
@@ -37,6 +38,7 @@ export function aggregateEvents(events: UsageEvent[], pricingProfiles: PricingPr
 
     addTotals(bucket, event);
     bucket.pricingModel ||= event.pricingModel;
+    bucket.costMultiplier ||= event.costMultiplier;
     bucket.recordedCostUsd = addUsdStrings(bucket.recordedCostUsd, event.recordedCostUsd);
     const pricing = calculateBucketCost(bucket, pricingProfiles);
     bucket.cost = pricing.cost;
@@ -67,7 +69,7 @@ function calculateBucketCost(
   }
   const pricing = resolvePricing(bucket.pricingModel || bucket.model, pricingProfiles);
   if (!pricing) return { cost: ZERO_COST, status: "unpriced" };
-  return { cost: calculateCost(bucket.agent, bucket, pricing, pricing.fastMultiplier), status: "priced" };
+  return { cost: calculateCost(bucket.agent, bucket, pricing, bucket.costMultiplier || "1"), status: "priced" };
 }
 
 function addTotals(target: UsageTotals, delta: UsageTotals): void {

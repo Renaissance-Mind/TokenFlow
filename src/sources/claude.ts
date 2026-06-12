@@ -50,9 +50,17 @@ export function createClaudeJsonlParser(options: ParseOptions): JsonlUsageParser
       if (isZero(totals)) return;
 
       if (dedupeId) seen.add(dedupeId);
+      const speed = speedField(usage, "speed");
+      const model = normalizeClaudeModelForUsage(
+        normalizeAgentModel("claude", stringField(message, "model") || stringField(row, "model")),
+        speed,
+      );
+      const fastMultiplier = model.pricingModel ? claudeFastMultiplier(model.pricingModel) : null;
       events.push({
         agent: "claude",
-        model: normalizeAgentModel("claude", stringField(message, "model") || stringField(row, "model")),
+        model: model.displayModel,
+        ...(model.pricingModel ? { pricingModel: model.pricingModel } : {}),
+        ...(fastMultiplier ? { costMultiplier: fastMultiplier } : {}),
         sessionId: stringField(row, "sessionId") || stringField(row, "session_id"),
         sourcePath: options.sourcePath,
         timestamp,
@@ -65,6 +73,28 @@ export function createClaudeJsonlParser(options: ParseOptions): JsonlUsageParser
       return events;
     },
   };
+}
+
+function normalizeClaudeModelForUsage(
+  model: string,
+  speed: "standard" | "fast" | null,
+): { displayModel: string; pricingModel?: string } {
+  const fastBaseModel = stripFastSuffix(model);
+  if (speed === "fast" || fastBaseModel) {
+    const pricingModel = fastBaseModel || model;
+    return { displayModel: `${pricingModel}-fast`, pricingModel };
+  }
+  return { displayModel: model };
+}
+
+function claudeFastMultiplier(model: string): string | null {
+  if (model === "claude-opus-4-6" || model === "claude-opus-4-7") return "6";
+  if (model === "claude-opus-4-8") return "2";
+  return null;
+}
+
+function stripFastSuffix(model: string): string | null {
+  return model.endsWith("-fast") ? model.slice(0, -"-fast".length) : null;
 }
 
 function normalizeClaudeUsage(usage: Record<string, unknown>): UsageTotals {
@@ -113,4 +143,9 @@ function recordField(value: Record<string, unknown> | null | undefined, key: str
 function stringField(value: Record<string, unknown> | null | undefined, key: string): string | null {
   const field = value?.[key];
   return typeof field === "string" && field.trim() ? field.trim() : null;
+}
+
+function speedField(value: Record<string, unknown>, key: string): "standard" | "fast" | null {
+  const field = value[key];
+  return field === "standard" || field === "fast" ? field : null;
 }

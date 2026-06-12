@@ -35,4 +35,60 @@ describe("Claude Code parser", () => {
       totalTokens: 3_400,
     });
   });
+
+  it("labels fast usage with a display model suffix while keeping base pricing", () => {
+    const jsonl = JSON.stringify({
+      timestamp: "2026-06-09T02:12:00.000Z",
+      requestId: "req-fast",
+      message: {
+        id: "msg-fast",
+        model: "claude-opus-4-7",
+        usage: {
+          input_tokens: 1_000,
+          cache_read_input_tokens: 2_000,
+          output_tokens: 300,
+          speed: "fast",
+        },
+      },
+    });
+
+    const events = parseClaudeJsonl(jsonl, { sourcePath: "/tmp/claude.jsonl" });
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      agent: "claude",
+      model: "claude-opus-4-7-fast",
+      pricingModel: "claude-opus-4-7",
+      costMultiplier: "6",
+      bucketStart: "2026-06-09T02:00:00.000Z",
+      inputTokens: 1_000,
+      cachedInputTokens: 2_000,
+      outputTokens: 300,
+      totalTokens: 3_300,
+    });
+  });
+
+  it("prices already-suffixed fast model names through the base model", () => {
+    const jsonl = JSON.stringify({
+      timestamp: "2026-06-09T02:12:00.000Z",
+      requestId: "req-fast-model",
+      message: {
+        id: "msg-fast-model",
+        model: "claude-opus-4-8-fast",
+        usage: {
+          input_tokens: 1_000,
+          output_tokens: 300,
+        },
+      },
+    });
+
+    const events = parseClaudeJsonl(jsonl, { sourcePath: "/tmp/claude.jsonl" });
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      model: "claude-opus-4-8-fast",
+      pricingModel: "claude-opus-4-8",
+      costMultiplier: "2",
+    });
+  });
 });

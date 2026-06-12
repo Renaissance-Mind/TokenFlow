@@ -16,6 +16,7 @@ export interface UsageEvent extends UsageTotals {
   agent: AgentSource;
   model: string;
   pricingModel?: string;
+  costMultiplier?: string;
   sessionId: string | null;
   sourcePath: string;
   timestamp: string;
@@ -52,6 +53,7 @@ export interface UsageBucket extends UsageTotals {
   agent: AgentSource;
   model: string;
   pricingModel?: string;
+  costMultiplier?: string;
   bucketStart: string;
   cost: CostBreakdown;
   pricingStatus: "priced" | "unpriced";
