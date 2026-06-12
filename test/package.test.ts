@@ -13,14 +13,13 @@ describe("npm package", () => {
       version?: string;
     };
 
-    expect(pkg.name).toBe("tokenflow");
-    expect(pkg.version).toBe("0.2.5");
+    expect(pkg.name).toBe("@renaissancemind/tokenflow");
+    expect(pkg.version).toBe("0.2.4");
     expect(pkg.bin?.tokenflow).toBe("dist/cli.js");
     expect(pkg.bin?.tokenusage).toBe("dist/cli.js");
     expect(pkg.files).toContain("dist");
     expect(pkg.files).toContain("docs/i18n");
     expect(pkg.publishConfig?.access).toBe("public");
     expect(pkg.scripts?.prepare).toBe("npm run build");
-    expect(pkg.scripts?.["publish:npm"]).toBe("node scripts/publish-dual-npm.mjs");
   });
 });

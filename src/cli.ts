@@ -369,7 +369,7 @@ function printHelp(): void {
       "  tokenflow device-name \"Private Mac\"",
       "  tokenflow sync",
       "  tokenflow status",
-      "  tokenflow update [--source tokenflow@latest|/path/to/TokenFlow]",
+      "  tokenflow update [--source @renaissancemind/tokenflow@latest|/path/to/TokenFlow]",
       "  tokenflow logout",
       "",
       "Compatibility: the old tokenusage command still works.",

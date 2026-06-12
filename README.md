@@ -1,19 +1,17 @@
 [![TokenFlow teaser](docs/assets/teaser_en.png)](https://tokenflow.renaissancemind.ai/)
 
 ```bash
-npm install -g tokenflow && tokenflow init
+npm install -g @renaissancemind/tokenflow && tokenflow init
 ```
 
 Existing `tokenusage` installs keep working: the package still exposes a `tokenusage` command, reads existing
 `~/.tokenusage/config.json` files, and accepts the old `TOKENUSAGE_*` environment variables as fallbacks.
-The unscoped `tokenflow` npm package is the primary distribution; `@renaissancemind/tokenflow` is published
-in sync as a scoped compatibility package.
 
 **Language:** English | [简体中文](docs/i18n/README.zh-CN.md) | [繁體中文](docs/i18n/README.zh-TW.md) | [日本語](docs/i18n/README.ja.md) | [한국어](docs/i18n/README.ko.md) | [Español](docs/i18n/README.es.md) | [Türkçe](docs/i18n/README.tr.md) | [Русский](docs/i18n/README.ru.md)
 
 > Private, local-first token accounting for the AI agents you actually use.
 
-![npm](https://img.shields.io/npm/v/tokenflow?label=npm)
+![npm](https://img.shields.io/npm/v/%40renaissancemind%2Ftokenflow?label=npm)
 ![Node.js](https://img.shields.io/badge/node-%3E%3D20-339933)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6)
 ![Privacy](https://img.shields.io/badge/privacy-metadata%20only-6A5ACD)
@@ -72,7 +70,7 @@ TokenFlow intentionally does not upload source file paths, session IDs, prompts,
 TokenFlow requires Node.js 20 or newer.
 
 ```bash
-npm install -g tokenflow
+npm install -g @renaissancemind/tokenflow
 ```
 
 If you want OpenCode support, make sure `sqlite3` is available:
@@ -167,7 +165,7 @@ tokenflow device-name "Private Mac" --remote
 tokenflow device-name "Private Mac" --local-only
 tokenflow sync
 tokenflow status
-tokenflow update [--source tokenflow@latest|@renaissancemind/tokenflow@latest|/path/to/TokenFlow]
+tokenflow update [--source @renaissancemind/tokenflow@latest|/path/to/TokenFlow]
 tokenflow logout
 ```
 
@@ -229,7 +227,7 @@ TOKENFLOW_AUTO_SYNC_COMMAND="node /Users/chunqiu/Documents/workspace/TokenFlow/d
 After publishing, the default scheduler command can use npm:
 
 ```bash
-npx --yes tokenflow init --server-url https://tokenflow.renaissancemind.ai
+npx --yes @renaissancemind/tokenflow init --server-url https://tokenflow.renaissancemind.ai
 ```
 
 ## Development

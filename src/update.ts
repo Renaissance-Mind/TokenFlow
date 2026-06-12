@@ -4,5 +4,5 @@ export function resolveUpdatePackageSpec(
 ): string {
   const source =
     explicitSource?.trim() || env.TOKENFLOW_UPDATE_SOURCE?.trim() || env.TOKENUSAGE_UPDATE_SOURCE?.trim();
-  return source || "tokenflow@latest";
+  return source || "@renaissancemind/tokenflow@latest";
 }

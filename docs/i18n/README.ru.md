@@ -4,7 +4,7 @@
 
 > Local-first учет token usage для AI agents, которыми вы действительно пользуетесь.
 
-![npm](https://img.shields.io/npm/v/tokenflow?label=npm)
+![npm](https://img.shields.io/npm/v/%40renaissancemind%2Ftokenflow?label=npm)
 ![Node.js](https://img.shields.io/badge/node-%3E%3D20-339933)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6)
 ![Privacy](https://img.shields.io/badge/privacy-metadata%20only-6A5ACD)
@@ -62,7 +62,7 @@ TokenFlow не загружает source file paths, session IDs, prompts или
 TokenFlow требует Node.js 20 или новее.
 
 ```bash
-npm install -g tokenflow
+npm install -g @renaissancemind/tokenflow
 ```
 
 Если нужен support для OpenCode или cc-switch, убедитесь, что доступен `sqlite3`:
@@ -138,7 +138,7 @@ tokenflow login --server-url https://tokenflow.renaissancemind.ai
 tokenflow login --server-url https://tokenflow.renaissancemind.ai --api-token tu_api_...
 tokenflow sync
 tokenflow status
-tokenflow update [--source tokenflow@latest|/path/to/TokenFlow]
+tokenflow update [--source @renaissancemind/tokenflow@latest|/path/to/TokenFlow]
 tokenflow logout
 ```
 
@@ -169,7 +169,7 @@ TokenFlow рассчитывает costs локально перед upload.
 | --- | --- |
 | `TOKENFLOW_HOME` | Локальный state directory. По умолчанию `~/.tokenflow`. |
 | `TOKENFLOW_SERVER_URL` | Default server URL. |
-| `TOKENFLOW_AUTO_SYNC_COMMAND` | Команда, записываемая в launchd/systemd. По умолчанию `npx --yes tokenflow@latest sync --auto`. |
+| `TOKENFLOW_AUTO_SYNC_COMMAND` | Команда, записываемая в launchd/systemd. По умолчанию `npx --yes @renaissancemind/tokenflow@latest sync --auto`. |
 | `TOKENFLOW_UPDATE_SOURCE` | Package/source для `tokenflow update`, если `--source` не указан. |
 | `CODEX_HOME` | Codex config home. По умолчанию `~/.codex`. |
 | `CLAUDE_HOME` | Claude config home. По умолчанию `~/.claude`. |
@@ -191,7 +191,7 @@ TOKENFLOW_AUTO_SYNC_COMMAND="node /Users/chunqiu/Documents/workspace/TokenFlow/d
 После публикации default scheduler command может использовать npm:
 
 ```bash
-npx --yes tokenflow init --server-url https://tokenflow.renaissancemind.ai
+npx --yes @renaissancemind/tokenflow init --server-url https://tokenflow.renaissancemind.ai
 ```
 
 ## Разработка
