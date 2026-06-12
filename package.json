@@ -1,6 +1,6 @@
 {
   "name": "@renaissancemind/tokenflow",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Local token usage collector for multi-device AI agent accounting.",
   "type": "module",
   "bin": {
@@ -20,6 +20,7 @@
     "dist",
     "README.md",
     "THIRD_PARTY_NOTICES.md",
+    "docs/ccusage-parity.md",
     "docs/assets/teaser_en.png",
     "docs/assets/teaser_zh.png",
     "docs/i18n"
