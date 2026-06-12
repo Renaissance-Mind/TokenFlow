@@ -99,6 +99,71 @@ describe("pricing", () => {
     });
   });
 
+  it("resolves ccusage Claude short aliases and legacy Claude 3 pricing", () => {
+    const aliases = [
+      ["claude-opus-4", "15", "75", "1.50", "18.75"],
+      ["claude-sonnet-4", "3", "15", "0.30", "3.75"],
+      ["claude-opus-4-5", "5", "25", "0.50", "6.25"],
+      ["claude-opus-4-6", "5", "25", "0.50", "6.25"],
+      ["claude-sonnet-4-6", "3", "15", "0.30", "3.75"],
+      ["claude-haiku-4-5", "1", "5", "0.10", "1.25"],
+      ["claude-3-opus", "15", "75", "1.50", "18.75"],
+      ["claude-3-sonnet", "3", "15", "0.30", "3.75"],
+      ["claude-3-haiku", "0.25", "1.25", "0.03", "0.30"],
+    ];
+
+    for (const [modelId, input, output, cacheRead, cacheCreation] of aliases) {
+      expect(resolvePricing(modelId)).toMatchObject({
+        modelId,
+        inputUsdPerMillion: input,
+        outputUsdPerMillion: output,
+        cacheReadUsdPerMillion: cacheRead,
+        cacheCreationUsdPerMillion: cacheCreation,
+      });
+    }
+
+    expect(resolvePricing("claude-sonnet-4")).toMatchObject({
+      inputAbove200kUsdPerMillion: "6",
+      outputAbove200kUsdPerMillion: "22.5",
+      cacheReadAbove200kUsdPerMillion: "0.6",
+      cacheCreationAbove200kUsdPerMillion: "7.5",
+    });
+  });
+
+  it("resolves ccusage supplemental Grok and Z.ai pricing entries", () => {
+    expect(resolvePricing("grok-4.3")).toMatchObject({
+      modelId: "grok-4.3",
+      inputUsdPerMillion: "1.25",
+      outputUsdPerMillion: "2.50",
+      cacheReadUsdPerMillion: "0.125",
+      cacheCreationUsdPerMillion: "1.25",
+    });
+    expect(resolvePricing("zai/glm-4.5-airx")).toMatchObject({
+      modelId: "glm-4.5-airx",
+      inputUsdPerMillion: "1.10",
+      outputUsdPerMillion: "4.50",
+      cacheReadUsdPerMillion: "0.22",
+    });
+    expect(resolvePricing("glm-5-turbo")).toMatchObject({
+      modelId: "glm-5-turbo",
+      inputUsdPerMillion: "1.20",
+      outputUsdPerMillion: "4.00",
+      cacheReadUsdPerMillion: "0.24",
+    });
+    expect(resolvePricing("glm-4.7")).toMatchObject({
+      modelId: "glm-4.7",
+      inputUsdPerMillion: "0.60",
+      outputUsdPerMillion: "2.20",
+      cacheReadUsdPerMillion: "0.11",
+    });
+    expect(resolvePricing("glm-4.6")).toMatchObject({
+      modelId: "glm-4.6",
+      inputUsdPerMillion: "0.60",
+      outputUsdPerMillion: "2.20",
+      cacheReadUsdPerMillion: "0.11",
+    });
+  });
+
   it("does not invent per-token pricing for Kimi For Coding plan quotas", () => {
     expect(resolvePricing("kimi-for-coding")).toBeNull();
   });
