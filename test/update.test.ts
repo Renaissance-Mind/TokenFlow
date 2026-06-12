@@ -3,7 +3,7 @@ import { resolveUpdatePackageSpec } from "../src/update.js";
 
 describe("update package source", () => {
   it("uses the npm package by default", () => {
-    expect(resolveUpdatePackageSpec()).toBe("@renaissancemind/tokenflow@latest");
+    expect(resolveUpdatePackageSpec()).toBe("tokenflow@latest");
   });
 
   it("allows an explicit package source for local repository updates", () => {

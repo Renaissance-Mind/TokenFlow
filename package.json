@@ -1,6 +1,6 @@
 {
-  "name": "@renaissancemind/tokenflow",
-  "version": "0.2.4",
+  "name": "tokenflow",
+  "version": "0.2.5",
   "description": "Local token usage collector for multi-device AI agent accounting.",
   "type": "module",
   "bin": {
@@ -11,7 +11,8 @@
     "build": "tsc -p tsconfig.json",
     "prepare": "npm run build",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "publish:npm": "node scripts/publish-dual-npm.mjs"
   },
   "engines": {
     "node": ">=20"

@@ -4,7 +4,7 @@
 
 > Contabilidad de tokens local-first para los AI agents que realmente usas.
 
-![npm](https://img.shields.io/npm/v/%40renaissancemind%2Ftokenflow?label=npm)
+![npm](https://img.shields.io/npm/v/tokenflow?label=npm)
 ![Node.js](https://img.shields.io/badge/node-%3E%3D20-339933)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6)
 ![Privacy](https://img.shields.io/badge/privacy-metadata%20only-6A5ACD)
@@ -62,7 +62,7 @@ TokenFlow no sube rutas de archivos fuente, session IDs, prompts ni respuestas.
 TokenFlow requiere Node.js 20 o superior.
 
 ```bash
-npm install -g @renaissancemind/tokenflow
+npm install -g tokenflow
 ```
 
 Si quieres soporte para OpenCode o cc-switch, asegúrate de tener `sqlite3` disponible:
@@ -138,7 +138,7 @@ tokenflow login --server-url https://tokenflow.renaissancemind.ai
 tokenflow login --server-url https://tokenflow.renaissancemind.ai --api-token tu_api_...
 tokenflow sync
 tokenflow status
-tokenflow update [--source @renaissancemind/tokenflow@latest|/path/to/TokenFlow]
+tokenflow update [--source tokenflow@latest|/path/to/TokenFlow]
 tokenflow logout
 ```
 
@@ -169,7 +169,7 @@ Overrides por variables de entorno:
 | --- | --- |
 | `TOKENFLOW_HOME` | Directorio de estado local. Por defecto `~/.tokenflow`. |
 | `TOKENFLOW_SERVER_URL` | URL del servidor por defecto. |
-| `TOKENFLOW_AUTO_SYNC_COMMAND` | Comando escrito en launchd/systemd. Por defecto `npx --yes @renaissancemind/tokenflow@latest sync --auto`. |
+| `TOKENFLOW_AUTO_SYNC_COMMAND` | Comando escrito en launchd/systemd. Por defecto `npx --yes tokenflow@latest sync --auto`. |
 | `TOKENFLOW_UPDATE_SOURCE` | Package/source usado por `tokenflow update` cuando se omite `--source`. |
 | `CODEX_HOME` | Home de configuración de Codex. Por defecto `~/.codex`. |
 | `CLAUDE_HOME` | Home de configuración de Claude. Por defecto `~/.claude`. |
@@ -191,7 +191,7 @@ TOKENFLOW_AUTO_SYNC_COMMAND="node /Users/chunqiu/Documents/workspace/TokenFlow/d
 Después de publicar, el comando por defecto del scheduler puede usar npm:
 
 ```bash
-npx --yes @renaissancemind/tokenflow init --server-url https://tokenflow.renaissancemind.ai
+npx --yes tokenflow init --server-url https://tokenflow.renaissancemind.ai
 ```
 
 ## Desarrollo
