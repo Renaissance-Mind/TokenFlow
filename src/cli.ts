@@ -373,7 +373,7 @@ function printHelp(): void {
       "  tokenflow logout",
       "",
       "Compatibility: the old tokenusage command still works.",
-      "Supported local agents: Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, and Qwen Code.",
+      "Supported local agents: Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, and Pi.",
       "Default server URL: https://tokenflow.renaissancemind.ai",
       "For local development, pass --server-url http://127.0.0.1:8787",
       "",

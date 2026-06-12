@@ -91,6 +91,14 @@ async function prepareUsageHome(prefix: string): Promise<string> {
   process.env.OPENCODE_HOME = path.join(root, "opencode");
   process.env.KIMI_DATA_DIR = path.join(root, "kimi");
   process.env.QWEN_DATA_DIR = path.join(root, "qwen");
+  process.env.AMP_DATA_DIR = path.join(root, "amp");
+  process.env.CODEBUFF_DATA_DIR = path.join(root, "codebuff");
+  process.env.DROID_SESSIONS_DIR = path.join(root, "droid");
+  process.env.GOOSE_PATH_ROOT = path.join(root, "goose");
+  process.env.HERMES_HOME = path.join(root, "hermes");
+  process.env.KILO_DATA_DIR = path.join(root, "kilo");
+  process.env.OPENCLAW_DIR = path.join(root, "openclaw");
+  process.env.PI_AGENT_DIR = path.join(root, "pi");
 
   await fs.mkdir(path.join(root, "codex", "sessions", "2026", "06", "09"), { recursive: true });
   await fs.mkdir(path.join(root, "claude", "projects"), { recursive: true });
@@ -98,6 +106,14 @@ async function prepareUsageHome(prefix: string): Promise<string> {
   await fs.mkdir(path.join(root, "opencode"), { recursive: true });
   await fs.mkdir(path.join(root, "kimi"), { recursive: true });
   await fs.mkdir(path.join(root, "qwen"), { recursive: true });
+  await fs.mkdir(path.join(root, "amp"), { recursive: true });
+  await fs.mkdir(path.join(root, "codebuff"), { recursive: true });
+  await fs.mkdir(path.join(root, "droid"), { recursive: true });
+  await fs.mkdir(path.join(root, "goose"), { recursive: true });
+  await fs.mkdir(path.join(root, "hermes"), { recursive: true });
+  await fs.mkdir(path.join(root, "kilo"), { recursive: true });
+  await fs.mkdir(path.join(root, "openclaw"), { recursive: true });
+  await fs.mkdir(path.join(root, "pi"), { recursive: true });
 
   await fs.writeFile(
     path.join(root, "codex", "sessions", "2026", "06", "09", "rollout-2026-06-09T01-00-00-test.jsonl"),
