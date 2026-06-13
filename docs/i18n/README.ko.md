@@ -11,7 +11,7 @@
 
 [기능](#기능) - [설치](#설치) - [빠른 시작](#빠른-시작) - [명령어](#명령어) - [설정](#설정) - [개발](#개발)
 
-TokenFlow는 여러 기기에서 사용하는 AI Agent의 사용량을 집계하는 설치형 로컬 collector입니다. 로컬의 Codex, Claude Code, Gemini CLI, OpenCode, cc-switch 사용 데이터를 스캔하고, UTC 날짜, Agent, 모델별로 token 수를 집계하며, 알려진 모델의 비용을 계산한 뒤 사용 메타데이터만 TokenFlow 서버로 업로드합니다.
+TokenFlow는 여러 기기에서 사용하는 AI Agent의 사용량을 집계하는 설치형 로컬 collector입니다. 로컬의 Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, and Pi 사용 데이터를 스캔하고, UTC 30분 bucket, Agent, 모델별로 token 수를 집계하며, 알려진 모델의 비용을 계산한 뒤 사용 메타데이터만 TokenFlow 서버로 업로드합니다.
 
 프롬프트와 응답 본문은 사용자의 머신에 남습니다. 업로드되는 payload에는 count, 모델명, bucket timestamp, pricing status, 선택적인 device metadata만 포함됩니다.
 
@@ -37,8 +37,8 @@ Home: /Users/alice/.tokenflow
 ## 기능
 
 - 🔐 **로컬 우선 수집** - Agent 로그를 로컬에서 읽고 메타데이터만 업로드합니다.
-- 🤖 **다중 Agent 지원** - Codex, Claude Code, Gemini CLI, OpenCode, cc-switch를 지원합니다.
-- 📊 **UTC 일 단위 bucket** - 날짜, Agent, 모델별로 집계해 대시보드 표시와 동기화를 안정적으로 만듭니다.
+- 🤖 **다중 Agent 지원** - Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, and Pi.
+- 📊 **UTC 30분 bucket** - 로컬 사용 상세를 유지하면서 dashboard에서는 일별 요약도 가능합니다.
 - 💸 **비용 인식 집계** - fresh input, cached input, cache creation, output, reasoning output tokens를 분리합니다.
 - 🧾 **미가격 모델 가시화** - 알 수 없는 모델도 token으로 집계하고 `unpriced`로 표시합니다.
 - 🔁 **자동 동기화** - macOS `launchd` 또는 Linux systemd user timer에 10분 간격 동기화를 설치합니다.
@@ -49,11 +49,20 @@ Home: /Users/alice/.tokenflow
 
 | 소스 | 읽는 로컬 데이터 | 참고 |
 | --- | --- | --- |
-| Codex | `~/.codex/sessions/**/rollout-*.jsonl` 및 archived session JSONL | 로컬 rollout token event를 파싱합니다. |
-| Claude Code | `~/.claude/projects/**/*.jsonl` | 프로젝트 JSONL 사용 데이터를 파싱합니다. |
-| Gemini CLI | `~/.gemini/tmp/**/chats/session-*.json` | Gemini session JSON 파일을 파싱합니다. |
-| OpenCode | `~/.local/share/opencode/opencode.db` | `PATH`에 `sqlite3`가 필요합니다. |
-| cc-switch | `~/.cc-switch/cc-switch.db` | 기본적으로 pricing table을 읽습니다. `proxy_request_logs`는 `CC_SWITCH_DB`를 설정한 경우에만 가져옵니다. |
+| Codex | `~/.codex/sessions/**/rollout-*.jsonl` and archived session JSONL | Parses local rollout token events. |
+| Claude Code | `~/.claude/projects/**/*.jsonl` | Parses project JSONL usage data. |
+| Gemini CLI | `~/.gemini/tmp/**/chats/session-*.json` | Parses Gemini session JSON files. |
+| OpenCode | `~/.local/share/opencode/opencode.db` | Requires `sqlite3` on `PATH`. |
+| Kimi CLI | `~/.kimi/sessions/*/*/wire.jsonl` | Reads `StatusUpdate.token_usage` rows and `~/.kimi/config.json` model metadata. |
+| Qwen Code | `~/.qwen/projects/*/chats/*.jsonl` | Reads assistant `usageMetadata` rows. |
+| Amp | `~/.local/share/amp/threads/*.json` | Reads `usageLedger.events[]` or assistant `messages[].usage`. |
+| Codebuff | `~/.config/manicode*/projects/**/chat-messages.json` | Reads assistant metadata usage and run-state provider usage. |
+| Droid | `~/.factory/sessions/**/*.settings.json` | Reads session token snapshots and keeps the latest snapshot per session. |
+| Goose | `~/.local/share/goose/sessions/sessions.db`, macOS Application Support, or Block Goose data | Requires `sqlite3` on `PATH`. |
+| Hermes | `~/.hermes/state.db` | Requires `sqlite3` on `PATH`. |
+| Kilo | `~/.local/share/kilo/kilo.db` | Requires `sqlite3` on `PATH`. |
+| OpenClaw | `~/.openclaw`, `~/.clawdbot`, `~/.moltbot`, and `~/.moldbot` JSONL sessions | Tracks model-change rows for following assistant usage. |
+| Pi | `~/.pi/agent/sessions/**/*.jsonl` | Reads assistant message usage rows. |
 
 TokenFlow는 source file path, session ID, prompt, response 본문을 업로드하지 않습니다.
 
@@ -65,7 +74,7 @@ TokenFlow는 Node.js 20 이상이 필요합니다.
 npm install -g @renaissancemind/tokenflow
 ```
 
-OpenCode 또는 cc-switch 지원이 필요하다면 `sqlite3`를 사용할 수 있는지 확인하세요.
+OpenCode, Goose, Hermes 또는 Kilo 지원이 필요하다면 `sqlite3`를 사용할 수 있는지 확인하세요.
 
 ```bash
 sqlite3 --version
@@ -146,7 +155,7 @@ tokenflow logout
 | --- | --- |
 | `init` | config를 작성하고 자동 동기화를 설치하며, 필요하면 login을 시작합니다. |
 | `login` | 브라우저 승인 device token을 연결하거나 검증된 upload API token을 저장합니다. |
-| `sync` | 로컬 사용량을 파싱하고 UTC 일 단위 bucket을 만들고 업로드한 뒤 `lastSyncAt`을 갱신합니다. |
+| `sync` | 로컬 사용량을 파싱하고 UTC 30분 bucket을 만들고 업로드한 뒤 `lastSyncAt`을 갱신합니다. |
 | `status` | 로컬 config, source 사용 가능 여부, bucket 수, auth 상태, unpriced models를 출력합니다. |
 | `update` | 전역 package를 다시 설치하고 자동 동기화 scheduler를 갱신합니다. |
 | `logout` | 로컬 upload token을 제거하고 non-secret config는 유지합니다. |
@@ -155,29 +164,41 @@ tokenflow logout
 
 TokenFlow는 업로드 전에 로컬에서 비용을 계산합니다.
 
-- 내장 pricing은 알려진 Codex, Claude, Gemini model ID를 포함합니다.
-- cc-switch database가 있으면 cc-switch `model_pricing`으로 로컬 pricing을 확장하거나 덮어쓸 수 있습니다.
-- 알 수 없는 모델도 집계되고 `pricing_status: "unpriced"`로 업로드됩니다.
-- unpriced bucket의 비용은 `$0.000000`으로 기록되어 token total은 정확하게 유지되고 비용 누락도 보입니다.
-- Codex와 Gemini에서는 cached input이 reported input의 일부로 처리되며, 비용 계산 전에 분리되어 중복 계산을 피합니다.
+- Built-in pricing covers known Codex, Claude, Gemini, OpenCode, and cc-switch-inspired third-party coding/provider model IDs including DeepSeek, Kimi K2, MiniMax, GLM, Qwen, Doubao, StepFun, MiMo, Grok, Mistral, and Cohere.
+- Unknown models are still counted and uploaded with `pricing_status: "unpriced"`.
+- Unpriced buckets record cost as `$0.000000` so token totals remain accurate and cost gaps stay visible.
+- Cost calculation follows ccusage-style token accounting: fresh input, output, cache read, cache creation, optional 200k+ pricing tiers, and 1-hour cache creation at 2x input price when a source reports cache creation duration.
+- For Codex and Gemini, cached input can be included in reported input and is separated before cost calculation to avoid double-counting.
+- Kimi CLI keeps `kimi-for-coding` as the displayed model, while pricing resolves to K2.5 before `2026-04-20T15:28:10.072Z` and K2.6 after that cutoff, matching ccusage's documented mapping.
 
 ## 설정
 
 환경 변수 override:
 
-| 변수 | 용도 |
+| Variable | Purpose |
 | --- | --- |
-| `TOKENFLOW_HOME` | 로컬 상태 디렉터리. 기본값은 `~/.tokenflow`. |
-| `TOKENFLOW_SERVER_URL` | 기본 서버 URL. |
-| `TOKENFLOW_AUTO_SYNC_COMMAND` | launchd/systemd에 기록되는 명령. 기본값은 `npx --yes @renaissancemind/tokenflow@latest sync --auto`. |
-| `TOKENFLOW_UPDATE_SOURCE` | `tokenflow update`에서 `--source`를 생략했을 때 사용할 package/source. |
-| `CODEX_HOME` | Codex config home. 기본값은 `~/.codex`. |
-| `CLAUDE_HOME` | Claude config home. 기본값은 `~/.claude`. |
-| `GEMINI_HOME` | Gemini config home. 기본값은 `~/.gemini`. |
-| `OPENCODE_DB` | 명시적인 OpenCode SQLite database path. |
-| `OPENCODE_HOME` | OpenCode data home. 기본값은 `~/.local/share/opencode`. |
-| `XDG_DATA_HOME` | `OPENCODE_DB`와 `OPENCODE_HOME`이 없을 때 OpenCode data를 찾는 데 사용됩니다. |
-| `CC_SWITCH_DB` | 명시적인 cc-switch SQLite path. `proxy_request_logs` import와 pricing read를 활성화합니다. |
+| `TOKENFLOW_HOME` | Local state directory. Defaults to `~/.tokenflow`. |
+| `TOKENFLOW_SERVER_URL` | Default server URL. |
+| `TOKENFLOW_AUTO_SYNC_COMMAND` | Command written into launchd/systemd. Defaults to `tokenflow sync --auto`. |
+| `TOKENFLOW_SYNC_MAX_BUCKETS` | Maximum changed buckets uploaded per sync. Defaults to `60` to keep first-time backfills Cloudflare-friendly. |
+| `TOKENFLOW_REQUEST_TIMEOUT_MS` | HTTP request timeout for TokenFlow server calls. Defaults to `30000`. |
+| `TOKENFLOW_UPDATE_SOURCE` | Package/source used by `tokenflow update` when `--source` is omitted. |
+| `CODEX_HOME` | Codex config home. Defaults to `~/.codex`. |
+| `CLAUDE_HOME` | Claude config home. Defaults to `~/.claude`. |
+| `GEMINI_HOME` | Gemini config home. Defaults to `~/.gemini`. |
+| `OPENCODE_DB` | Explicit OpenCode SQLite database path. |
+| `OPENCODE_HOME` | OpenCode data home. Defaults to `~/.local/share/opencode`. |
+| `KIMI_DATA_DIR` | Kimi data root, or comma-separated roots. Defaults to `~/.kimi`. |
+| `QWEN_DATA_DIR` | Qwen data root, or comma-separated roots. Defaults to `~/.qwen`. |
+| `AMP_DATA_DIR` | Amp data root, or comma-separated roots. Defaults to `~/.local/share/amp`. |
+| `CODEBUFF_DATA_DIR` | Codebuff/Manicode data root or `projects` root, comma-separated. Defaults to `~/.config/manicode`, `~/.config/manicode-dev`, and `~/.config/manicode-staging`. |
+| `DROID_SESSIONS_DIR` | Droid sessions root, or comma-separated roots. Defaults to `~/.factory/sessions`. |
+| `GOOSE_PATH_ROOT` | Goose root used to resolve `data/sessions/sessions.db`. |
+| `HERMES_HOME` | Hermes home, or comma-separated homes. Defaults to `~/.hermes`. |
+| `KILO_DATA_DIR` | Kilo data root, or comma-separated roots. Defaults to `~/.local/share/kilo`. |
+| `OPENCLAW_DIR` | OpenClaw-compatible roots, comma-separated. Defaults to `~/.openclaw`, `~/.clawdbot`, `~/.moltbot`, and `~/.moldbot`. |
+| `PI_AGENT_DIR` | Pi agent sessions root, or comma-separated roots. Defaults to `~/.pi/agent/sessions`. |
+| `XDG_DATA_HOME` | Used to resolve OpenCode data when `OPENCODE_DB` and `OPENCODE_HOME` are unset. |
 
 ### 자동 동기화에서 로컬 checkout 사용
 
@@ -216,9 +237,9 @@ node dist/cli.js status
 
 ## 제한 사항
 
-- OpenCode와 cc-switch database read에는 `sqlite3` CLI가 필요합니다.
+- OpenCode, Goose, Hermes, and Kilo database reads require the `sqlite3` CLI.
+- Qoder is not currently treated as a token source because ccusage has no Qoder adapter and public Qoder APIs expose credits/usage events rather than local input/output/cache token logs.
 - 자동 동기화 설치는 macOS와 Linux에서만 지원됩니다. 다른 플랫폼에서는 `tokenflow sync`를 수동으로 실행하거나 직접 scheduler에 연결하세요.
-- cc-switch request logs는 `CC_SWITCH_DB`를 명시한 경우에만 import됩니다. 이는 native Codex, Claude, Gemini logs와의 중복 집계를 피하기 위함입니다.
 - 알 수 없는 model ID의 비용은 pricing rule이 생길 때까지 `unpriced`로 표시됩니다.
 
 ## 문서

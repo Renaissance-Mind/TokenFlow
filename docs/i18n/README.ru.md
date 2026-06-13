@@ -11,7 +11,7 @@
 
 [Возможности](#возможности) - [Установка](#установка) - [Быстрый старт](#быстрый-старт) - [Команды](#команды) - [Конфигурация](#конфигурация) - [Разработка](#разработка)
 
-TokenFlow — устанавливаемый локальный collector для учета использования AI agents на нескольких устройствах. Он сканирует локальные данные Codex, Claude Code, Gemini CLI, OpenCode и cc-switch, агрегирует token counts в дневные UTC buckets по agent и модели, рассчитывает известные costs и загружает на сервер TokenFlow только usage metadata.
+TokenFlow — устанавливаемый локальный collector для учета usage AI agents на нескольких устройствах. Он сканирует локальные данные Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, and Pi, агрегирует token counts в UTC half-hour buckets по agent и model, рассчитывает известные costs и загружает на TokenFlow server только usage metadata.
 
 Prompts и ответы остаются на вашей машине. Загружаемый payload содержит только счетчики, имена моделей, timestamps buckets, pricing status и необязательные device metadata.
 
@@ -37,8 +37,8 @@ Home: /Users/alice/.tokenflow
 ## Возможности
 
 - 🔐 **Local-first сбор** - читает agent logs локально и загружает только metadata.
-- 🤖 **Поддержка нескольких agents** - Codex, Claude Code, Gemini CLI, OpenCode и cc-switch.
-- 📊 **Дневные UTC buckets** - агрегирует usage по дню, agent и модели для стабильных dashboards.
+- 🤖 **Поддержка нескольких agents** - Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, and Pi.
+- 📊 **UTC half-hour buckets** - сохраняет локальную детализацию, а dashboards могут суммировать usage по дням.
 - 💸 **Cost-aware учет** - разделяет fresh input, cached input, cache creation, output и reasoning output tokens.
 - 🧾 **Видимость моделей без цены** - неизвестные модели учитываются и помечаются как `unpriced`.
 - 🔁 **Автоматическая синхронизация** - устанавливает 10-минутный job через macOS `launchd` или Linux systemd user timers.
@@ -49,13 +49,22 @@ Home: /Users/alice/.tokenflow
 
 | Источник | Локальные данные | Примечания |
 | --- | --- | --- |
-| Codex | `~/.codex/sessions/**/rollout-*.jsonl` и archived session JSONL | Парсит локальные rollout token events. |
-| Claude Code | `~/.claude/projects/**/*.jsonl` | Парсит project JSONL usage data. |
-| Gemini CLI | `~/.gemini/tmp/**/chats/session-*.json` | Парсит Gemini session JSON files. |
-| OpenCode | `~/.local/share/opencode/opencode.db` | Требует `sqlite3` в `PATH`. |
-| cc-switch | `~/.cc-switch/cc-switch.db` | По умолчанию читает pricing; импортирует `proxy_request_logs` только если задан `CC_SWITCH_DB`. |
+| Codex | `~/.codex/sessions/**/rollout-*.jsonl` and archived session JSONL | Parses local rollout token events. |
+| Claude Code | `~/.claude/projects/**/*.jsonl` | Parses project JSONL usage data. |
+| Gemini CLI | `~/.gemini/tmp/**/chats/session-*.json` | Parses Gemini session JSON files. |
+| OpenCode | `~/.local/share/opencode/opencode.db` | Requires `sqlite3` on `PATH`. |
+| Kimi CLI | `~/.kimi/sessions/*/*/wire.jsonl` | Reads `StatusUpdate.token_usage` rows and `~/.kimi/config.json` model metadata. |
+| Qwen Code | `~/.qwen/projects/*/chats/*.jsonl` | Reads assistant `usageMetadata` rows. |
+| Amp | `~/.local/share/amp/threads/*.json` | Reads `usageLedger.events[]` or assistant `messages[].usage`. |
+| Codebuff | `~/.config/manicode*/projects/**/chat-messages.json` | Reads assistant metadata usage and run-state provider usage. |
+| Droid | `~/.factory/sessions/**/*.settings.json` | Reads session token snapshots and keeps the latest snapshot per session. |
+| Goose | `~/.local/share/goose/sessions/sessions.db`, macOS Application Support, or Block Goose data | Requires `sqlite3` on `PATH`. |
+| Hermes | `~/.hermes/state.db` | Requires `sqlite3` on `PATH`. |
+| Kilo | `~/.local/share/kilo/kilo.db` | Requires `sqlite3` on `PATH`. |
+| OpenClaw | `~/.openclaw`, `~/.clawdbot`, `~/.moltbot`, and `~/.moldbot` JSONL sessions | Tracks model-change rows for following assistant usage. |
+| Pi | `~/.pi/agent/sessions/**/*.jsonl` | Reads assistant message usage rows. |
 
-TokenFlow не загружает source file paths, session IDs, prompts или тексты ответов.
+TokenFlow не загружает source file paths, session IDs, prompts или responses.
 
 ## Установка
 
@@ -65,7 +74,7 @@ TokenFlow требует Node.js 20 или новее.
 npm install -g @renaissancemind/tokenflow
 ```
 
-Если нужен support для OpenCode или cc-switch, убедитесь, что доступен `sqlite3`:
+Если нужен support для OpenCode, Goose, Hermes или Kilo, убедитесь, что доступен `sqlite3`:
 
 ```bash
 sqlite3 --version
@@ -146,38 +155,50 @@ tokenflow logout
 | --- | --- |
 | `init` | Записывает config, устанавливает auto-sync и при необходимости запускает login. |
 | `login` | Привязывает browser-approved device token или сохраняет validated upload API token. |
-| `sync` | Парсит local usage, строит UTC daily buckets, загружает их и обновляет `lastSyncAt`. |
+| `sync` | Парсит local usage, строит UTC half-hour buckets, загружает их и обновляет `lastSyncAt`. |
 | `status` | Печатает local config, source availability, bucket counts, auth status и unpriced models. |
 | `update` | Переустанавливает global package и обновляет auto-sync scheduler. |
 | `logout` | Удаляет local upload tokens, сохраняя non-secret config. |
 
 ## Pricing model
 
-TokenFlow рассчитывает costs локально перед upload.
+TokenFlow рассчитывает costs локально перед загрузкой.
 
-- Built-in pricing покрывает известные Codex, Claude и Gemini model IDs.
-- cc-switch `model_pricing` может расширять или переопределять local pricing, если база данных существует.
-- Неизвестные модели все равно учитываются и загружаются с `pricing_status: "unpriced"`.
-- Unpriced buckets записывают cost как `$0.000000`, поэтому token totals остаются корректными, а cost gaps остаются видимыми.
-- Для Codex и Gemini cached input считается частью reported input и отделяется перед cost calculation, чтобы избежать double-counting.
+- Built-in pricing covers known Codex, Claude, Gemini, OpenCode, and cc-switch-inspired third-party coding/provider model IDs including DeepSeek, Kimi K2, MiniMax, GLM, Qwen, Doubao, StepFun, MiMo, Grok, Mistral, and Cohere.
+- Unknown models are still counted and uploaded with `pricing_status: "unpriced"`.
+- Unpriced buckets record cost as `$0.000000` so token totals remain accurate and cost gaps stay visible.
+- Cost calculation follows ccusage-style token accounting: fresh input, output, cache read, cache creation, optional 200k+ pricing tiers, and 1-hour cache creation at 2x input price when a source reports cache creation duration.
+- For Codex and Gemini, cached input can be included in reported input and is separated before cost calculation to avoid double-counting.
+- Kimi CLI keeps `kimi-for-coding` as the displayed model, while pricing resolves to K2.5 before `2026-04-20T15:28:10.072Z` and K2.6 after that cutoff, matching ccusage's documented mapping.
 
 ## Конфигурация
 
-Переопределение через environment variables:
+Environment overrides:
 
-| Переменная | Назначение |
+| Variable | Purpose |
 | --- | --- |
-| `TOKENFLOW_HOME` | Локальный state directory. По умолчанию `~/.tokenflow`. |
+| `TOKENFLOW_HOME` | Local state directory. Defaults to `~/.tokenflow`. |
 | `TOKENFLOW_SERVER_URL` | Default server URL. |
-| `TOKENFLOW_AUTO_SYNC_COMMAND` | Команда, записываемая в launchd/systemd. По умолчанию `npx --yes @renaissancemind/tokenflow@latest sync --auto`. |
-| `TOKENFLOW_UPDATE_SOURCE` | Package/source для `tokenflow update`, если `--source` не указан. |
-| `CODEX_HOME` | Codex config home. По умолчанию `~/.codex`. |
-| `CLAUDE_HOME` | Claude config home. По умолчанию `~/.claude`. |
-| `GEMINI_HOME` | Gemini config home. По умолчанию `~/.gemini`. |
-| `OPENCODE_DB` | Явный OpenCode SQLite database path. |
-| `OPENCODE_HOME` | OpenCode data home. По умолчанию `~/.local/share/opencode`. |
-| `XDG_DATA_HOME` | Используется для OpenCode data, если `OPENCODE_DB` и `OPENCODE_HOME` не заданы. |
-| `CC_SWITCH_DB` | Явный cc-switch SQLite path. Включает импорт `proxy_request_logs` и чтение pricing. |
+| `TOKENFLOW_AUTO_SYNC_COMMAND` | Command written into launchd/systemd. Defaults to `tokenflow sync --auto`. |
+| `TOKENFLOW_SYNC_MAX_BUCKETS` | Maximum changed buckets uploaded per sync. Defaults to `60` to keep first-time backfills Cloudflare-friendly. |
+| `TOKENFLOW_REQUEST_TIMEOUT_MS` | HTTP request timeout for TokenFlow server calls. Defaults to `30000`. |
+| `TOKENFLOW_UPDATE_SOURCE` | Package/source used by `tokenflow update` when `--source` is omitted. |
+| `CODEX_HOME` | Codex config home. Defaults to `~/.codex`. |
+| `CLAUDE_HOME` | Claude config home. Defaults to `~/.claude`. |
+| `GEMINI_HOME` | Gemini config home. Defaults to `~/.gemini`. |
+| `OPENCODE_DB` | Explicit OpenCode SQLite database path. |
+| `OPENCODE_HOME` | OpenCode data home. Defaults to `~/.local/share/opencode`. |
+| `KIMI_DATA_DIR` | Kimi data root, or comma-separated roots. Defaults to `~/.kimi`. |
+| `QWEN_DATA_DIR` | Qwen data root, or comma-separated roots. Defaults to `~/.qwen`. |
+| `AMP_DATA_DIR` | Amp data root, or comma-separated roots. Defaults to `~/.local/share/amp`. |
+| `CODEBUFF_DATA_DIR` | Codebuff/Manicode data root or `projects` root, comma-separated. Defaults to `~/.config/manicode`, `~/.config/manicode-dev`, and `~/.config/manicode-staging`. |
+| `DROID_SESSIONS_DIR` | Droid sessions root, or comma-separated roots. Defaults to `~/.factory/sessions`. |
+| `GOOSE_PATH_ROOT` | Goose root used to resolve `data/sessions/sessions.db`. |
+| `HERMES_HOME` | Hermes home, or comma-separated homes. Defaults to `~/.hermes`. |
+| `KILO_DATA_DIR` | Kilo data root, or comma-separated roots. Defaults to `~/.local/share/kilo`. |
+| `OPENCLAW_DIR` | OpenClaw-compatible roots, comma-separated. Defaults to `~/.openclaw`, `~/.clawdbot`, `~/.moltbot`, and `~/.moldbot`. |
+| `PI_AGENT_DIR` | Pi agent sessions root, or comma-separated roots. Defaults to `~/.pi/agent/sessions`. |
+| `XDG_DATA_HOME` | Used to resolve OpenCode data when `OPENCODE_DB` and `OPENCODE_HOME` are unset. |
 
 ### Локальный checkout для auto-sync
 
@@ -216,10 +237,10 @@ Source code — небольшой TypeScript CLI:
 
 ## Ограничения
 
-- Для чтения баз OpenCode и cc-switch нужен `sqlite3` CLI.
+- OpenCode, Goose, Hermes, and Kilo database reads require the `sqlite3` CLI.
+- Qoder is not currently treated as a token source because ccusage has no Qoder adapter and public Qoder APIs expose credits/usage events rather than local input/output/cache token logs.
 - Автоматическая синхронизация устанавливается только на macOS и Linux; на других платформах можно запускать `tokenflow sync` вручную или подключить свой scheduler.
-- cc-switch request logs не импортируются, если `CC_SWITCH_DB` не задан явно. Это предотвращает double-counting вместе с native Codex, Claude и Gemini logs.
-- Costs для неизвестных model IDs помечаются как `unpriced`, пока не появится pricing rule.
+- Стоимость неизвестных model IDs помечается как `unpriced`, пока не появится pricing rule.
 
 ## Документация
 
