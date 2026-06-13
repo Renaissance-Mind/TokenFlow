@@ -1,14 +1,16 @@
 # ccusage Parity Status
 
-Last checked: 2026-06-12
+Last checked: 2026-06-13
 
-Reference ccusage commit: `bfd28e0 fix(codex): date fallback review model pricing (#1303)`
+Reference ccusage commit: `7a550ca build(rust): update toolchain to 1.96.0 (#1307)`
 
 ## Summary
 
 TokenFlow now supports every ccusage local source adapter that can be consumed without requiring a new user-side telemetry setup, except GitHub Copilot CLI OpenTelemetry export.
 
 TokenFlow intentionally stores agent and model separately, so adapter display prefixes used by ccusage, such as `[pi]` or `[openclaw]`, are not copied into `model`. This keeps pricing resolution shared across agents and lets the dashboard distinguish sources by the `agent` field.
+
+The 2026-06-13 parity pass found no new ccusage adapter, loader path, environment-variable, parser, or model-normalization behavior that needed a TokenFlow collector change. The only directly migratable delta was ccusage's refreshed pricing snapshot for Claude model variants; TokenFlow now includes matching built-in prices for `claude-3-7-sonnet-20250219` and `claude-sonnet-4-5-20250929-thinking`.
 
 ## Source Adapter Matrix
 
