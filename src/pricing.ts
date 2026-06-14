@@ -94,7 +94,7 @@ export function resolvePricing(model: string, extraProfiles: PricingProfile[] = 
 }
 
 export function normalizeModelForPricing(model: string): string {
-  let cleaned = cleanModelId(model);
+  let cleaned = cleanAndResolveConfiguredAlias(model);
   cleaned = stripKnownNamespace(cleaned) || cleaned;
   cleaned = stripBedrockVersionSuffix(cleaned) || cleaned;
   cleaned = stripModelDateSuffix(cleaned) || cleaned;
@@ -108,7 +108,7 @@ export function normalizeAgentModel(agent: AgentSource, model: string | null | u
 }
 
 function pricingCandidates(model: string): string[] {
-  const cleaned = cleanModelId(model);
+  const cleaned = cleanAndResolveConfiguredAlias(model);
   if (!cleaned || cleaned === "unknown" || cleaned === "null" || cleaned === "none") return [];
 
   const out: string[] = [];
@@ -129,6 +129,8 @@ function pricingCandidates(model: string): string[] {
     if (dateStripped) queue.push(dateStripped);
     const effortStripped = stripReasoningEffortSuffix(candidate);
     if (effortStripped) queue.push(effortStripped);
+    const fastStripped = stripFastSuffix(candidate);
+    if (fastStripped) queue.push(fastStripped);
     if (candidate.startsWith("claude-") && candidate.includes(".")) {
       queue.push(candidate.replaceAll(".", "-"));
     }
@@ -141,6 +143,60 @@ function cleanModelId(model: string): string {
   const afterSlash = model.includes("/") ? model.slice(model.lastIndexOf("/") + 1) : model;
   const beforeColon = afterSlash.split(":")[0] || afterSlash;
   return beforeColon.trim().replace(/\[1m\]$/i, "").replaceAll("@", "-").toLowerCase();
+}
+
+function cleanAndResolveConfiguredAlias(model: string): string {
+  const cleaned = cleanModelId(model);
+  return cleanModelId(resolveConfiguredModelAlias(cleaned));
+}
+
+function resolveConfiguredModelAlias(model: string): string {
+  const aliases = parseConfiguredModelAliases(process.env.CCUSAGE_MODEL_ALIASES || "");
+  const exact = aliases.get(model);
+  if (exact) return exact;
+
+  const fastBaseModel = stripFastSuffix(model);
+  if (fastBaseModel) {
+    const baseAlias = aliases.get(fastBaseModel);
+    if (baseAlias) return `${baseAlias}-fast`;
+  }
+  return model;
+}
+
+function parseConfiguredModelAliases(raw: string): Map<string, string> {
+  const aliases = new Map<string, string>();
+  const trimmed = raw.trim();
+  if (!trimmed) return aliases;
+
+  const jsonAliases = trimmed.startsWith("{") ? parseJsonModelAliases(trimmed) : null;
+  if (jsonAliases) return jsonAliases;
+
+  const stripped = trimmed.startsWith("{") && trimmed.endsWith("}") ? trimmed.slice(1, -1) : trimmed;
+  for (const pair of stripped.split(/[,;\n]/)) {
+    const [from, ...toParts] = pair.split("=");
+    const to = toParts.join("=").trim();
+    const normalizedFrom = cleanModelId(from || "");
+    const normalizedTo = cleanModelId(to);
+    if (normalizedFrom && normalizedTo) aliases.set(normalizedFrom, normalizedTo);
+  }
+  return aliases;
+}
+
+function parseJsonModelAliases(raw: string): Map<string, string> | null {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    const aliases = new Map<string, string>();
+    for (const [from, to] of Object.entries(parsed)) {
+      if (typeof to !== "string") continue;
+      const normalizedFrom = cleanModelId(from);
+      const normalizedTo = cleanModelId(to);
+      if (normalizedFrom && normalizedTo) aliases.set(normalizedFrom, normalizedTo);
+    }
+    return aliases;
+  } catch {
+    return null;
+  }
 }
 
 function stripKnownNamespace(model: string): string | null {
@@ -177,6 +233,10 @@ function stripModelDateSuffix(model: string): string | null {
 function stripReasoningEffortSuffix(model: string): string | null {
   const effort = model.match(/^(.*)-(minimal|low|medium|high|xhigh)$/);
   return effort?.[1] || null;
+}
+
+function stripFastSuffix(model: string): string | null {
+  return model.endsWith("-fast") ? model.slice(0, -"-fast".length) : null;
 }
 
 function shouldTryPricingPrefixMatch(model: string): boolean {

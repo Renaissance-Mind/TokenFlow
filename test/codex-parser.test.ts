@@ -117,6 +117,38 @@ describe("Codex JSONL parser", () => {
     });
   });
 
+  it("resolves ccusage model aliases before emitting Codex usage events", () => {
+    withCcusageModelAliases("private-codex-alpha=gpt-5.5", () => {
+      const lines = [
+        JSON.stringify({ type: "session_meta", payload: { session_id: "s1" } }),
+        JSON.stringify({ type: "turn_context", payload: { model: "private-codex-alpha" } }),
+        JSON.stringify({
+          type: "event_msg",
+          timestamp: "2026-06-09T01:05:00.000Z",
+          payload: {
+            type: "token_count",
+            info: {
+              total_token_usage: {
+                input_tokens: 100,
+                output_tokens: 50,
+              },
+            },
+          },
+        }),
+      ].join("\n");
+
+      const events = parseCodexJsonl(lines, { sourcePath: "/tmp/rollout.jsonl" });
+
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        model: "gpt-5.5",
+        inputTokens: 100,
+        outputTokens: 50,
+        totalTokens: 150,
+      });
+    });
+  });
+
   it("keeps early unknown token counts when a session contains multiple real models", () => {
     const lines = [
       JSON.stringify({ type: "session_meta", payload: { session_id: "s1", model_provider: "openai" } }),
@@ -146,3 +178,14 @@ describe("Codex JSONL parser", () => {
     });
   });
 });
+
+function withCcusageModelAliases<T>(value: string, callback: () => T): T {
+  const previous = process.env.CCUSAGE_MODEL_ALIASES;
+  process.env.CCUSAGE_MODEL_ALIASES = value;
+  try {
+    return callback();
+  } finally {
+    if (previous === undefined) delete process.env.CCUSAGE_MODEL_ALIASES;
+    else process.env.CCUSAGE_MODEL_ALIASES = previous;
+  }
+}

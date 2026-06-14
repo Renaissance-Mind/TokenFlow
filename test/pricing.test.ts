@@ -58,6 +58,26 @@ describe("pricing", () => {
     );
   });
 
+  it("honors ccusage model aliases for normalized model names and pricing", () => {
+    withCcusageModelAliases("private-alpha=gpt-5.5;private-beta=claude-sonnet-4", () => {
+      expect(normalizeModelForPricing("private-alpha")).toBe("gpt-5.5");
+      expect(resolvePricing("private-beta")).toMatchObject({
+        modelId: "claude-sonnet-4",
+        inputUsdPerMillion: "3",
+        outputUsdPerMillion: "15",
+      });
+    });
+  });
+
+  it("applies ccusage model aliases to fast-suffixed model names", () => {
+    withCcusageModelAliases('{"private-alpha":"gpt-5.5"}', () => {
+      expect(normalizeModelForPricing("private-alpha-fast")).toBe("gpt-5.5-fast");
+      expect(resolvePricing("private-alpha-fast")).toMatchObject({
+        modelId: "gpt-5.5",
+      });
+    });
+  });
+
   it("resolves cc-switch seed pricing for third-party coding models", () => {
     expect(resolvePricing("moonshotai/kimi-k2-0905:exa")).toMatchObject({
       modelId: "kimi-k2-0905",
@@ -201,3 +221,14 @@ describe("pricing", () => {
     expect(cost.totalUsd).toBe("0.220105");
   });
 });
+
+function withCcusageModelAliases<T>(value: string, callback: () => T): T {
+  const previous = process.env.CCUSAGE_MODEL_ALIASES;
+  process.env.CCUSAGE_MODEL_ALIASES = value;
+  try {
+    return callback();
+  } finally {
+    if (previous === undefined) delete process.env.CCUSAGE_MODEL_ALIASES;
+    else process.env.CCUSAGE_MODEL_ALIASES = previous;
+  }
+}

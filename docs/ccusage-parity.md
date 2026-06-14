@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-06-13
+Last checked: 2026-06-14
 
-Reference ccusage commit: `7a550ca build(rust): update toolchain to 1.96.0 (#1307)`
+Reference ccusage commit: `43836bc feat(model): support internal model aliases (#1313)`
 
 ## Summary
 
@@ -10,7 +10,7 @@ TokenFlow now supports every ccusage local source adapter that can be consumed w
 
 TokenFlow intentionally stores agent and model separately, so adapter display prefixes used by ccusage, such as `[pi]` or `[openclaw]`, are not copied into `model`. This keeps pricing resolution shared across agents and lets the dashboard distinguish sources by the `agent` field.
 
-The 2026-06-13 parity pass found no new ccusage adapter, loader path, environment-variable, parser, or model-normalization behavior that needed a TokenFlow collector change. The only directly migratable delta was ccusage's refreshed pricing snapshot for Claude model variants; TokenFlow now includes matching built-in prices for `claude-3-7-sonnet-20250219` and `claude-sonnet-4-5-20250929-thinking`.
+The 2026-06-14 parity pass found no new ccusage adapter, loader path, parser, or pricing snapshot behavior that needed a TokenFlow collector change. The directly migratable delta was ccusage's `CCUSAGE_MODEL_ALIASES` model-normalization behavior. TokenFlow now honors the same environment variable for local model normalization and pricing lookup, including ccusage-compatible `-fast` alias suffix handling, so private/internal model labels can resolve to canonical priced models before bucket aggregation.
 
 ## Source Adapter Matrix
 
@@ -40,6 +40,7 @@ The 2026-06-13 parity pass found no new ccusage adapter, loader path, environmen
 | Upload privacy | TokenFlow does not upload source file paths, session IDs, prompts, or responses. It uploads aggregated bucket metadata. |
 | Aggregation grain | TokenFlow aggregates to UTC half-hour buckets by `agent` and `model`; ccusage reports daily/monthly/session tables locally. |
 | Adapter model prefixes | TokenFlow keeps raw normalized model IDs and uses the separate `agent` field instead of ccusage display prefixes. |
+| Model aliases | TokenFlow honors `CCUSAGE_MODEL_ALIASES` for ccusage-compatible private/internal model aliases. Supported formats are JSON objects such as `{"private-alpha":"gpt-5.5"}` and delimited pairs such as `private-alpha=gpt-5.5;other=claude-sonnet-4`. |
 | Recorded costs | Positive recorded costs are trusted. Hermes recorded zero cost is ignored so pricing can fall back to token counts, matching ccusage's subscription-included behavior. |
 | SQLite dependency | OpenCode, Goose, Hermes, and Kilo require the `sqlite3` CLI on `PATH`. |
 
