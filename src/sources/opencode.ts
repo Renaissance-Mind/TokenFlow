@@ -1,4 +1,4 @@
-import { normalizeAgentModel } from "../pricing.js";
+import { normalizeAgentModelForUsage } from "../pricing.js";
 import { toUtcHalfHourStart } from "../time.js";
 import type { UsageEvent } from "../types.js";
 
@@ -34,11 +34,15 @@ export function parseOpenCodeMessageRow(row: OpenCodeMessageRow, sourcePath = "o
   const timestamp = new Date(timestampMs || Date.now()).toISOString();
   const bucketStart = toUtcHalfHourStart(timestamp);
   if (!bucketStart) return null;
-  const model = normalizeAgentModel("opencode", stringField(value.modelID) || stringField(value.model) || "unknown");
+  const model = normalizeAgentModelForUsage(
+    "opencode",
+    stringField(value.modelID) || stringField(value.model) || "unknown",
+  );
 
   return {
     agent: "opencode",
-    model,
+    model: model.model,
+    ...(model.pricingModel ? { pricingModel: model.pricingModel } : {}),
     sessionId: row.session_id || null,
     sourcePath,
     timestamp,

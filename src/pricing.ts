@@ -94,7 +94,15 @@ export function resolvePricing(model: string, extraProfiles: PricingProfile[] = 
 }
 
 export function normalizeModelForPricing(model: string): string {
-  let cleaned = cleanAndResolveConfiguredAlias(model);
+  return normalizeModelId(model, { resolveConfiguredAlias: true });
+}
+
+function normalizeModelWithoutConfiguredAlias(model: string): string {
+  return normalizeModelId(model, { resolveConfiguredAlias: false });
+}
+
+function normalizeModelId(model: string, options: { resolveConfiguredAlias: boolean }): string {
+  let cleaned = options.resolveConfiguredAlias ? cleanAndResolveConfiguredAlias(model) : cleanModelId(model);
   cleaned = stripKnownNamespace(cleaned) || cleaned;
   cleaned = stripBedrockVersionSuffix(cleaned) || cleaned;
   cleaned = stripModelDateSuffix(cleaned) || cleaned;
@@ -107,8 +115,40 @@ export function normalizeAgentModel(agent: AgentSource, model: string | null | u
   return cleaned || "unknown";
 }
 
+export interface UsageModelNormalization {
+  model: string;
+  originalModel: string;
+  pricingModel?: string;
+}
+
+export function normalizeAgentModelForUsage(
+  agent: AgentSource,
+  model: string | null | undefined,
+): UsageModelNormalization {
+  const raw = model || "unknown";
+  const displayModel = normalizeAgentModel(agent, raw);
+  let originalModel = normalizeModelWithoutConfiguredAlias(raw);
+  if (agent === "codex") originalModel = stripModelDateSuffix(originalModel) || originalModel;
+  originalModel ||= "unknown";
+
+  const useOriginalPricing =
+    displayModel !== originalModel && originalModel !== "unknown" && resolvePricing(originalModel) !== null;
+  return {
+    model: displayModel,
+    originalModel,
+    ...(useOriginalPricing ? { pricingModel: originalModel } : {}),
+  };
+}
+
 function pricingCandidates(model: string): string[] {
-  const cleaned = cleanAndResolveConfiguredAlias(model);
+  const candidates = [
+    ...pricingCandidatesForCleanedModel(cleanModelId(model)),
+    ...pricingCandidatesForCleanedModel(cleanAndResolveConfiguredAlias(model)),
+  ];
+  return [...new Set(candidates)];
+}
+
+function pricingCandidatesForCleanedModel(cleaned: string): string[] {
   if (!cleaned || cleaned === "unknown" || cleaned === "null" || cleaned === "none") return [];
 
   const out: string[] = [];

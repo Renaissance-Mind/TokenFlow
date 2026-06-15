@@ -1,4 +1,4 @@
-import { normalizeAgentModel } from "../pricing.js";
+import { normalizeAgentModelForUsage, type UsageModelNormalization } from "../pricing.js";
 import { toUtcHalfHourStart } from "../time.js";
 import type { UsageEvent, UsageTotals } from "../types.js";
 
@@ -52,7 +52,7 @@ export function createClaudeJsonlParser(options: ParseOptions): JsonlUsageParser
       if (dedupeId) seen.add(dedupeId);
       const speed = speedField(usage, "speed");
       const model = normalizeClaudeModelForUsage(
-        normalizeAgentModel("claude", stringField(message, "model") || stringField(row, "model")),
+        normalizeAgentModelForUsage("claude", stringField(message, "model") || stringField(row, "model")),
         speed,
       );
       const fastMultiplier = model.pricingModel ? claudeFastMultiplier(model.pricingModel) : null;
@@ -76,15 +76,20 @@ export function createClaudeJsonlParser(options: ParseOptions): JsonlUsageParser
 }
 
 function normalizeClaudeModelForUsage(
-  model: string,
+  model: UsageModelNormalization,
   speed: "standard" | "fast" | null,
 ): { displayModel: string; pricingModel?: string } {
-  const fastBaseModel = stripFastSuffix(model);
-  if (speed === "fast" || fastBaseModel) {
-    const pricingModel = fastBaseModel || model;
-    return { displayModel: `${pricingModel}-fast`, pricingModel };
+  const fastBaseDisplayModel = stripFastSuffix(model.model);
+  const fastBaseOriginalModel = stripFastSuffix(model.pricingModel || model.originalModel);
+  if (speed === "fast" || fastBaseDisplayModel || fastBaseOriginalModel) {
+    const displayModel = fastBaseDisplayModel || model.model;
+    const pricingModel = fastBaseOriginalModel || model.pricingModel || model.originalModel || displayModel;
+    return { displayModel: `${displayModel}-fast`, pricingModel };
   }
-  return { displayModel: model };
+  return {
+    displayModel: model.model,
+    ...(model.pricingModel ? { pricingModel: model.pricingModel } : {}),
+  };
 }
 
 function claudeFastMultiplier(model: string): string | null {

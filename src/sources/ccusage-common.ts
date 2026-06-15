@@ -1,4 +1,4 @@
-import { normalizeAgentModel } from "../pricing.js";
+import { normalizeAgentModelForUsage } from "../pricing.js";
 import { toUtcHalfHourStart } from "../time.js";
 import { applyTotalTokenFallback, isZeroUsage, nonNegativeInt } from "../token-totals.js";
 import type { AgentSource, UsageEvent, UsageTotals } from "../types.js";
@@ -52,9 +52,12 @@ export function makeUsageEvent(parts: UsageEventParts): UsageEvent | null {
   );
   if (isZeroUsage(totals)) return null;
 
+  const normalizedModel = normalizeAgentModelForUsage(parts.agent, parts.model || "unknown");
+
   return {
     agent: parts.agent,
-    model: normalizeAgentModel(parts.agent, parts.model || "unknown"),
+    model: normalizedModel.model,
+    ...(normalizedModel.pricingModel ? { pricingModel: normalizedModel.pricingModel } : {}),
     sessionId: parts.sessionId,
     sourcePath: parts.sourcePath,
     timestamp: parts.timestamp,

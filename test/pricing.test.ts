@@ -78,6 +78,17 @@ describe("pricing", () => {
     });
   });
 
+  it("prefers priced original models before display aliases", () => {
+    withCcusageModelAliases("claude-opus-4-8=mythos-5", () => {
+      expect(normalizeModelForPricing("claude-opus-4-8")).toBe("mythos-5");
+      expect(resolvePricing("claude-opus-4-8")).toMatchObject({
+        modelId: "claude-opus-4-8",
+        inputUsdPerMillion: "5",
+        outputUsdPerMillion: "25",
+      });
+    });
+  });
+
   it("resolves cc-switch seed pricing for third-party coding models", () => {
     expect(resolvePricing("moonshotai/kimi-k2-0905:exa")).toMatchObject({
       modelId: "kimi-k2-0905",

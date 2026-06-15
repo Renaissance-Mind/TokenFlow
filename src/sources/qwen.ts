@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import { normalizeAgentModel } from "../pricing.js";
+import { normalizeAgentModelForUsage } from "../pricing.js";
 import { toUtcHalfHourStart } from "../time.js";
 import { applyTotalTokenFallback, isZeroUsage, nonNegativeInt } from "../token-totals.js";
 import type { UsageEvent } from "../types.js";
@@ -35,7 +35,7 @@ export function createQwenChatJsonlParser(options: ParseOptions): JsonlUsagePars
       const bucketStart = timestamp ? toUtcHalfHourStart(timestamp) : null;
       if (!timestamp || !bucketStart) return;
 
-      const model = normalizeAgentModel("qwen", stringField(parsed, "model") || "unknown");
+      const model = normalizeAgentModelForUsage("qwen", stringField(parsed, "model") || "unknown");
       const totals = applyTotalTokenFallback(
         {
           inputTokens: nonNegativeInt(usage.promptTokenCount),
@@ -51,8 +51,8 @@ export function createQwenChatJsonlParser(options: ParseOptions): JsonlUsagePars
 
       events.push({
         agent: "qwen",
-        model,
-        pricingModel: model,
+        model: model.model,
+        pricingModel: model.pricingModel || model.model,
         sessionId: stringField(parsed, "sessionId") || sessionIdFromChatPath(options.sourcePath),
         sourcePath: options.sourcePath,
         timestamp,

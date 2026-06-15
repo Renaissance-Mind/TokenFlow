@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { aggregateEvents } from "../src/usage-buckets.js";
 import { parseCodexJsonl } from "../src/sources/codex.js";
 
 describe("Codex JSONL parser", () => {
@@ -145,6 +146,42 @@ describe("Codex JSONL parser", () => {
         inputTokens: 100,
         outputTokens: 50,
         totalTokens: 150,
+      });
+    });
+  });
+
+  it("keeps original pricing for known Codex models with display aliases", () => {
+    withCcusageModelAliases("gpt-5.5=mythos-5", () => {
+      const lines = [
+        JSON.stringify({ type: "session_meta", payload: { session_id: "s1" } }),
+        JSON.stringify({ type: "turn_context", payload: { model: "gpt-5.5" } }),
+        JSON.stringify({
+          type: "event_msg",
+          timestamp: "2026-06-09T01:05:00.000Z",
+          payload: {
+            type: "token_count",
+            info: {
+              total_token_usage: {
+                input_tokens: 100,
+                output_tokens: 50,
+              },
+            },
+          },
+        }),
+      ].join("\n");
+
+      const events = parseCodexJsonl(lines, { sourcePath: "/tmp/rollout.jsonl" });
+      const buckets = aggregateEvents(events);
+
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        model: "mythos-5",
+        pricingModel: "gpt-5.5",
+      });
+      expect(buckets[0]).toMatchObject({
+        model: "mythos-5",
+        pricingModel: "gpt-5.5",
+        pricingStatus: "priced",
       });
     });
   });

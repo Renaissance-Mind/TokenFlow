@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import { normalizeAgentModel } from "../pricing.js";
+import { normalizeAgentModelForUsage, type UsageModelNormalization } from "../pricing.js";
 import { toUtcHalfHourStart } from "../time.js";
 import { applyTotalTokenFallback, isZeroUsage, nonNegativeInt } from "../token-totals.js";
 import type { UsageEvent, UsageTotals } from "../types.js";
@@ -60,8 +60,8 @@ export function createKimiWireJsonlParser(options: ParseOptions): JsonlUsagePars
 
       events.push({
         agent: "kimi",
-        model,
-        pricingModel: kimiPricingModel(model, timestamp),
+        model: model.model,
+        pricingModel: model.pricingModel || kimiPricingModel(model.originalModel, timestamp) || model.model,
         sessionId,
         sourcePath: options.sourcePath,
         timestamp,
@@ -76,8 +76,8 @@ export function createKimiWireJsonlParser(options: ParseOptions): JsonlUsagePars
   };
 }
 
-function normalizeKimiModel(model: string | null | undefined): string {
-  return normalizeAgentModel("kimi", model || DEFAULT_MODEL);
+function normalizeKimiModel(model: string | null | undefined): UsageModelNormalization {
+  return normalizeAgentModelForUsage("kimi", model || DEFAULT_MODEL);
 }
 
 function kimiPricingModel(model: string, timestamp: string): string | undefined {

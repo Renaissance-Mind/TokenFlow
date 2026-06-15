@@ -1,4 +1,4 @@
-import { normalizeAgentModel } from "../pricing.js";
+import { normalizeAgentModelForUsage, type UsageModelNormalization } from "../pricing.js";
 import { toUtcHalfHourStart } from "../time.js";
 import type { UsageEvent, UsageTotals } from "../types.js";
 
@@ -30,15 +30,15 @@ export function parseCodexJsonl(jsonl: string, options: ParseOptions): UsageEven
 
 export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser {
   const events: UsageEvent[] = [];
-  const seenModels = new Set<string>();
+  const seenModels = new Map<string, UsageModelNormalization>();
   let sessionId: string | null = null;
-  let currentModel = "unknown";
+  let currentModel: UsageModelNormalization = { model: "unknown", originalModel: "unknown" };
   let previousTotal: CumulativeUsage | null = null;
 
   function setCurrentModel(model: string): void {
-    const normalized = normalizeAgentModel("codex", model);
+    const normalized = normalizeAgentModelForUsage("codex", model);
     currentModel = normalized;
-    if (normalized !== "unknown") seenModels.add(normalized);
+    if (normalized.model !== "unknown") seenModels.set(normalized.model, normalized);
   }
 
   return {
@@ -89,7 +89,8 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
 
       events.push({
         agent: "codex",
-        model: currentModel,
+        model: currentModel.model,
+        ...(currentModel.pricingModel ? { pricingModel: currentModel.pricingModel } : {}),
         sessionId,
         sourcePath: options.sourcePath,
         timestamp,
@@ -100,8 +101,16 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
 
     finish(): UsageEvent[] {
       if (seenModels.size === 1) {
-        const [model] = [...seenModels];
-        return events.map((event) => (event.model === "unknown" ? { ...event, model } : event));
+        const [model] = [...seenModels.values()];
+        return events.map((event) =>
+          event.model === "unknown"
+            ? {
+                ...event,
+                model: model.model,
+                ...(model.pricingModel ? { pricingModel: model.pricingModel } : {}),
+              }
+            : event,
+        );
       }
       return events;
     },

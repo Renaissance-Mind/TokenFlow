@@ -91,4 +91,42 @@ describe("Claude Code parser", () => {
       costMultiplier: "2",
     });
   });
+
+  it("keeps fast pricing for known Claude models with display aliases", () => {
+    withCcusageModelAliases("claude-opus-4-8=mythos-5", () => {
+      const jsonl = JSON.stringify({
+        timestamp: "2026-06-09T02:12:00.000Z",
+        requestId: "req-fast-alias",
+        message: {
+          id: "msg-fast-alias",
+          model: "claude-opus-4-8",
+          usage: {
+            input_tokens: 1_000,
+            output_tokens: 300,
+            speed: "fast",
+          },
+        },
+      });
+
+      const events = parseClaudeJsonl(jsonl, { sourcePath: "/tmp/claude.jsonl" });
+
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        model: "mythos-5-fast",
+        pricingModel: "claude-opus-4-8",
+        costMultiplier: "2",
+      });
+    });
+  });
 });
+
+function withCcusageModelAliases<T>(value: string, callback: () => T): T {
+  const previous = process.env.CCUSAGE_MODEL_ALIASES;
+  process.env.CCUSAGE_MODEL_ALIASES = value;
+  try {
+    return callback();
+  } finally {
+    if (previous === undefined) delete process.env.CCUSAGE_MODEL_ALIASES;
+    else process.env.CCUSAGE_MODEL_ALIASES = previous;
+  }
+}

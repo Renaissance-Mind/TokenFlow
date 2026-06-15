@@ -1,4 +1,4 @@
-import { normalizeAgentModel } from "../pricing.js";
+import { normalizeAgentModelForUsage, type UsageModelNormalization } from "../pricing.js";
 import { toUtcHalfHourStart } from "../time.js";
 import type { UsageEvent, UsageTotals } from "../types.js";
 
@@ -12,12 +12,12 @@ export function parseGeminiSession(rawJson: string, options: ParseOptions): Usag
 
   const events: UsageEvent[] = [];
   let previousTotals: UsageTotals | null = null;
-  let currentModel = "unknown";
+  let currentModel: UsageModelNormalization = { model: "unknown", originalModel: "unknown" };
 
   for (const message of parsed.messages) {
     if (!isRecord(message)) continue;
     const model = stringField(message, "model");
-    if (model) currentModel = normalizeAgentModel("gemini", model);
+    if (model) currentModel = normalizeAgentModelForUsage("gemini", model);
 
     const timestamp = stringField(message, "timestamp");
     const bucketStart = timestamp ? toUtcHalfHourStart(timestamp) : null;
@@ -33,7 +33,8 @@ export function parseGeminiSession(rawJson: string, options: ParseOptions): Usag
 
     events.push({
       agent: "gemini",
-      model: currentModel,
+      model: currentModel.model,
+      ...(currentModel.pricingModel ? { pricingModel: currentModel.pricingModel } : {}),
       sessionId: stringField(message, "sessionId") || null,
       sourcePath: options.sourcePath,
       timestamp,
