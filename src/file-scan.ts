@@ -46,7 +46,8 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
   const codexHome = process.env.CODEX_HOME || path.join(home, ".codex");
   const claudeHome = process.env.CLAUDE_HOME || path.join(home, ".claude");
   const geminiHome = process.env.GEMINI_HOME || path.join(home, ".gemini");
-  const opencodeDbPath = resolveOpenCodeDbPath(home);
+  const opencodeDataDirs = await existingDirs(resolveOpenCodeDataDirs(home));
+  const opencodeDbPaths = await discoverOpenCodeDbPaths(home, opencodeDataDirs);
   const kimiRoots = await existingDirs(resolveDataDirs("KIMI_DATA_DIR", home, ".kimi"));
   const qwenRoots = await existingDirs(resolveDataDirs("QWEN_DATA_DIR", home, ".qwen"));
   const ampRoots = await existingDirs(resolveDataDirs("AMP_DATA_DIR", home, ".local/share/amp"));
@@ -80,6 +81,10 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
   const kiloDbPaths = await existingFiles(kiloRoots.map((root) => path.join(root, "kilo.db")));
   const openclawFiles = await listFilesForRoots(openclawRoots, isOpenClawSessionFile);
   const piFiles = await listFilesForRoots(piRoots, (file) => file.endsWith(".jsonl"));
+  const opencodeMessageFiles = await listFilesForRoots(
+    opencodeDataDirs.map((root) => path.join(root, "storage", "message")),
+    (file) => file.endsWith(".json"),
+  );
 
   const events: UsageEvent[] = [];
   for (const file of codexFiles) {
@@ -134,10 +139,8 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
   for (const file of piFiles) {
     events.push(...(await readJsonlEvents(file, createPiJsonlParser)));
   }
-  const opencodeDbExists = await exists(opencodeDbPath);
-  if (opencodeDbExists) {
-    events.push(...(await readOpenCodeEvents(opencodeDbPath)));
-  }
+  const opencodeEvents = await readOpenCodeEvents(opencodeDbPaths, opencodeMessageFiles);
+  events.push(...opencodeEvents.events);
 
   return {
     events,
@@ -163,9 +166,9 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
       },
       {
         agent: "opencode",
-        path: opencodeDbPath,
-        files: opencodeDbExists ? 1 : 0,
-        exists: opencodeDbExists,
+        path: sourcePathLabel(opencodeEvents.sourcePaths, resolveOpenCodeDataDirs(home)),
+        files: opencodeEvents.sourcePaths.length,
+        exists: opencodeEvents.sourcePaths.length > 0,
       },
       {
         agent: "kimi",
@@ -277,21 +280,62 @@ function stripTrailingCarriageReturn(line: string): string {
   return line.endsWith("\r") ? line.slice(0, -1) : line;
 }
 
-function resolveOpenCodeDbPath(home: string): string {
+function resolveExplicitOpenCodeDbPath(home: string): string | null {
   const explicitDb = process.env.OPENCODE_DB?.trim();
   if (explicitDb) {
     if (path.isAbsolute(explicitDb)) return explicitDb;
-    return path.join(resolveOpenCodeDataDir(home), explicitDb);
+    return path.join(resolveOpenCodeDataDirs(home)[0], explicitDb);
   }
-  return path.join(resolveOpenCodeDataDir(home), "opencode.db");
+  return null;
 }
 
-function resolveOpenCodeDataDir(home: string): string {
+function resolveOpenCodeDataDirs(home: string): string[] {
+  const explicitCcusage = process.env.OPENCODE_DATA_DIR?.trim();
+  if (explicitCcusage) {
+    return explicitCcusage
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
   const explicitHome = process.env.OPENCODE_HOME?.trim();
-  if (explicitHome) return explicitHome;
+  if (explicitHome) {
+    return explicitHome
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
   const xdgDataHome = process.env.XDG_DATA_HOME?.trim();
-  if (xdgDataHome) return path.join(xdgDataHome, "opencode");
-  return path.join(home, ".local", "share", "opencode");
+  if (xdgDataHome) return [path.join(xdgDataHome, "opencode")];
+  return [path.join(home, ".local", "share", "opencode")];
+}
+
+async function discoverOpenCodeDbPaths(home: string, dataDirs: string[]): Promise<string[]> {
+  const explicitDb = resolveExplicitOpenCodeDbPath(home);
+  if (explicitDb) return existingFiles([explicitDb]);
+
+  const candidates: string[] = [];
+  for (const dataDir of dataDirs) {
+    candidates.push(path.join(dataDir, "opencode.db"));
+    const entries = await fs.readdir(dataDir, { withFileTypes: true }).catch((error: unknown) => {
+      if (isNodeError(error) && error.code === "ENOENT") return [];
+      throw error;
+    });
+    for (const entry of entries) {
+      if (entry.isFile() && isOpenCodeChannelDbName(entry.name)) {
+        candidates.push(path.join(dataDir, entry.name));
+      }
+    }
+  }
+
+  const existing = await existingFiles(candidates);
+  existing.sort((a, b) => a.localeCompare(b));
+  return [...new Set(existing)];
+}
+
+function isOpenCodeChannelDbName(name: string): boolean {
+  if (!name.startsWith("opencode-") || !name.endsWith(".db")) return false;
+  const channel = name.slice("opencode-".length, -".db".length);
+  return Boolean(channel) && /^[A-Za-z0-9_-]+$/.test(channel);
 }
 
 function resolveCodebuffProjectRoots(home: string): string[] {
@@ -330,19 +374,70 @@ function resolveOpenClawRoots(home: string): string[] {
   return [".openclaw", ".clawdbot", ".moltbot", ".moldbot"].map((name) => path.join(home, name));
 }
 
-async function readOpenCodeEvents(dbPath: string): Promise<UsageEvent[]> {
+interface OpenCodeCollection {
+  events: UsageEvent[];
+  sourcePaths: string[];
+}
+
+async function readOpenCodeEvents(dbPaths: string[], messageFiles: string[]): Promise<OpenCodeCollection> {
+  const events: UsageEvent[] = [];
+  const sourcePaths = new Set<string>();
+  const seenIds = new Set<string>();
+
+  for (const dbPath of dbPaths) {
+    for (const row of await readOpenCodeDbRows(dbPath)) {
+      const event = parseOpenCodeMessageRow(row, dbPath);
+      if (!event) continue;
+      if (row.id && seenIds.has(row.id)) continue;
+      if (row.id) seenIds.add(row.id);
+      events.push(event);
+      sourcePaths.add(dbPath);
+    }
+  }
+
+  for (const file of messageFiles) {
+    const fileStem = path.basename(file, ".json");
+    if (fileStem && seenIds.has(fileStem)) continue;
+    const row = await readOpenCodeMessageFile(file);
+    if (!row) continue;
+    const event = parseOpenCodeMessageRow(row, file);
+    if (!event) continue;
+    if (row.id && seenIds.has(row.id)) continue;
+    if (row.id) seenIds.add(row.id);
+    events.push(event);
+    sourcePaths.add(file);
+  }
+
+  events.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  return { events, sourcePaths: [...sourcePaths].sort((a, b) => a.localeCompare(b)) };
+}
+
+async function readOpenCodeDbRows(dbPath: string): Promise<OpenCodeMessageRow[]> {
   const { stdout } = await execFileAsync("sqlite3", ["-readonly", dbPath, openCodeMessageQuery()], {
     maxBuffer: 64 * 1024 * 1024,
   });
-  const events: UsageEvent[] = [];
+  const rows: OpenCodeMessageRow[] = [];
   for (const line of String(stdout).split(/\r?\n/)) {
     const trimmed = line.trim();
     if (!trimmed) continue;
-    const row = JSON.parse(trimmed) as OpenCodeMessageRow;
-    const event = parseOpenCodeMessageRow(row, dbPath);
-    if (event) events.push(event);
+    rows.push(JSON.parse(trimmed) as OpenCodeMessageRow);
   }
-  return events;
+  return rows;
+}
+
+async function readOpenCodeMessageFile(filePath: string): Promise<OpenCodeMessageRow | null> {
+  const data = await fs.readFile(filePath, "utf8");
+  const value = JSON.parse(data) as unknown;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  return {
+    id: typeof record.id === "string" && record.id.trim() ? record.id : path.basename(filePath, ".json"),
+    session_id:
+      typeof record.sessionID === "string" && record.sessionID.trim()
+        ? record.sessionID
+        : path.basename(path.dirname(filePath)),
+    data,
+  };
 }
 
 async function readGooseEvents(dbPath: string): Promise<UsageEvent[]> {

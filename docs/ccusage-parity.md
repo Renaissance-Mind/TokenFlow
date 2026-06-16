@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-06-15
+Last checked: 2026-06-16
 
-Reference ccusage commit: `10e3730 chore: release v20.0.13`
+Reference ccusage commit: `a7726bb chore: release v20.0.14`
 
 ## Summary
 
@@ -10,7 +10,7 @@ TokenFlow now supports every ccusage local source adapter that can be consumed w
 
 TokenFlow intentionally stores agent and model separately, so adapter display prefixes used by ccusage, such as `[pi]` or `[openclaw]`, are not copied into `model`. This keeps pricing resolution shared across agents and lets the dashboard distinguish sources by the `agent` field.
 
-The 2026-06-15 parity pass found no new ccusage adapter, loader path, parser, pricing snapshot, or privacy-surface behavior that needed a TokenFlow collector change. The directly migratable delta was ccusage's pricing fix for `CCUSAGE_MODEL_ALIASES`: pricing now tries the known original model before falling back to the configured alias. TokenFlow mirrors that behavior and also preserves the original priced model in bucket `pricingModel` when a configured alias is only a display label, including Claude fast buckets.
+The 2026-06-16 parity pass found ccusage main had moved to `v20.0.14`. The new ccusage commits mostly parallelize local adapter reads and refactor JSONL parsing through typed structs and shared byte prefilters without adding a new adapter, env var, pricing snapshot, model-normalization rule, or privacy surface. The directly migratable collector behavior was OpenCode parity: TokenFlow now reads `OPENCODE_DATA_DIR`, `opencode.db`, `opencode-*.db`, and `storage/message/**/*.json`, counts OpenCode messages from `time.created` even when `time.completed` is absent, and keeps DB rows ahead of duplicate message files by message id.
 
 ## Source Adapter Matrix
 
@@ -19,7 +19,7 @@ The 2026-06-15 parity pass found no new ccusage adapter, loader path, parser, pr
 | `claude` | Supported | Claude Code project JSONL usage. Includes fast/regular split when Claude Code exposes it. |
 | `codex` | Supported | Codex rollout JSONL token counts. Codex fast behavior remains unchanged from TokenFlow's existing Codex handling. |
 | `gemini` | Supported | Gemini CLI session JSON files. |
-| `opencode` | Supported | OpenCode SQLite `message` rows. Requires `sqlite3`. |
+| `opencode` | Supported | OpenCode SQLite `message` rows from `opencode.db` and `opencode-*.db`, plus standalone `storage/message/**/*.json` files. Requires `sqlite3` for DB rows. |
 | `kimi` | Supported | Kimi wire JSONL plus config model metadata and K2.5/K2.6 pricing cutoff. |
 | `qwen` | Supported | Qwen Code assistant `usageMetadata` rows. |
 | `amp` | Supported | Amp thread JSON, both `usageLedger.events[]` and direct assistant `messages[].usage`. |

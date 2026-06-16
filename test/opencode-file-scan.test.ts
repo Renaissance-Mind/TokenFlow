@@ -63,4 +63,96 @@ describe("OpenCode file scan", () => {
       totalTokens: 162,
     });
   });
+
+  it("reads ccusage-compatible OpenCode channel DBs and message JSON files", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "tokenusage-opencode-ccusage-"));
+    const opencodeHome = path.join(root, "opencode");
+    await fs.mkdir(path.join(opencodeHome, "storage", "message", "sess_file"), { recursive: true });
+    await fs.mkdir(path.join(root, "codex", "sessions"), { recursive: true });
+    await fs.mkdir(path.join(root, "claude", "projects"), { recursive: true });
+    await fs.mkdir(path.join(root, "gemini", "tmp"), { recursive: true });
+
+    createOpenCodeDb(path.join(opencodeHome, "opencode-beta.db"), [
+      {
+        id: "msg_db",
+        sessionId: "sess_db",
+        created: 1780974000000,
+        input: 10,
+        output: 5,
+      },
+      {
+        id: "msg_dupe",
+        sessionId: "sess_db",
+        created: 1780974060000,
+        input: 20,
+        output: 5,
+      },
+    ]);
+
+    await fs.writeFile(
+      path.join(opencodeHome, "storage", "message", "sess_file", "msg_file.json"),
+      JSON.stringify({
+        id: "msg_file",
+        sessionID: "sess_file",
+        providerID: "anthropic",
+        modelID: "claude-sonnet-4-20250514",
+        time: { created: 1780974120000 },
+        tokens: { input: 30, output: 5 },
+      }),
+    );
+    await fs.writeFile(
+      path.join(opencodeHome, "storage", "message", "sess_file", "msg_dupe.json"),
+      JSON.stringify({
+        id: "msg_dupe",
+        sessionID: "sess_file",
+        providerID: "anthropic",
+        modelID: "claude-sonnet-4-20250514",
+        time: { created: 1780974180000 },
+        tokens: { input: 999, output: 999 },
+      }),
+    );
+
+    process.env.CODEX_HOME = path.join(root, "codex");
+    process.env.CLAUDE_HOME = path.join(root, "claude");
+    process.env.GEMINI_HOME = path.join(root, "gemini");
+    process.env.OPENCODE_DATA_DIR = opencodeHome;
+
+    const result = await collectLocalUsage(root);
+    const opencodeEvents = result.events.filter((event) => event.agent === "opencode");
+
+    expect(result.sources.find((source) => source.agent === "opencode")).toMatchObject({
+      files: 2,
+      exists: true,
+    });
+    expect(opencodeEvents.map((event) => [event.sessionId, event.inputTokens])).toEqual([
+      ["sess_db", 10],
+      ["sess_db", 20],
+      ["sess_file", 30],
+    ]);
+  });
 });
+
+function createOpenCodeDb(
+  dbPath: string,
+  rows: Array<{ id: string; sessionId: string; created: number; input: number; output: number }>,
+): void {
+  const inserts = rows
+    .map((row) => {
+      const data = JSON.stringify({
+        providerID: "anthropic",
+        modelID: "claude-sonnet-4-20250514",
+        time: { created: row.created },
+        tokens: { input: row.input, output: row.output },
+      }).replaceAll("'", "''");
+      return `INSERT INTO message VALUES ('${row.id}', '${row.sessionId}', ${row.created}, ${row.created}, '${data}');`;
+    })
+    .join("\n");
+
+  execFileSync("sqlite3", [
+    dbPath,
+    `
+    CREATE TABLE message (id TEXT PRIMARY KEY, session_id TEXT, time_created INTEGER, time_updated INTEGER, data TEXT);
+    ${inserts}
+    `,
+  ]);
+}

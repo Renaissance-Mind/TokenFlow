@@ -11,11 +11,8 @@ export interface OpenCodeMessageRow {
 
 export function parseOpenCodeMessageRow(row: OpenCodeMessageRow, sourcePath = "opencode.db"): UsageEvent | null {
   const value = JSON.parse(row.data) as Record<string, unknown>;
-  if (value.role !== "assistant") return null;
 
   const time = objectField(value, "time");
-  if (!time || typeof time.completed !== "number") return null;
-
   const tokens = objectField(value, "tokens");
   if (!tokens) return null;
 
@@ -30,8 +27,8 @@ export function parseOpenCodeMessageRow(row: OpenCodeMessageRow, sourcePath = "o
   if (totalTokens === 0) return null;
 
   const timestampMs =
-    typeof time.created === "number" ? time.created : typeof row.time_created === "number" ? row.time_created : 0;
-  const timestamp = new Date(timestampMs || Date.now()).toISOString();
+    typeof time?.created === "number" ? time.created : typeof row.time_created === "number" ? row.time_created : 0;
+  const timestamp = new Date(timestampMs).toISOString();
   const bucketStart = toUtcHalfHourStart(timestamp);
   if (!bucketStart) return null;
   const model = normalizeAgentModelForUsage(
@@ -43,7 +40,7 @@ export function parseOpenCodeMessageRow(row: OpenCodeMessageRow, sourcePath = "o
     agent: "opencode",
     model: model.model,
     ...(model.pricingModel ? { pricingModel: model.pricingModel } : {}),
-    sessionId: row.session_id || null,
+    sessionId: row.session_id || stringField(value.sessionID) || null,
     sourcePath,
     timestamp,
     bucketStart,
