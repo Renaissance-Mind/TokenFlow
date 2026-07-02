@@ -78,6 +78,24 @@ describe("pricing", () => {
     });
   });
 
+  it("exposes ccusage Codex fast pricing multipliers on explicit override models", () => {
+    expect(resolvePricing("gpt-5.5-high")).toMatchObject({
+      modelId: "gpt-5.5-high",
+      fastMultiplier: "2.5",
+    });
+    expect(resolvePricing("gpt-5.4")).toMatchObject({
+      modelId: "gpt-5.4",
+      fastMultiplier: "2",
+    });
+    expect(resolvePricing("gpt-5.3-codex-high")).toMatchObject({
+      modelId: "gpt-5.3-codex-high",
+      fastMultiplier: "2",
+    });
+    expect(resolvePricing("gpt-5.2-codex")).not.toMatchObject({
+      fastMultiplier: expect.any(String),
+    });
+  });
+
   it("prefers priced original models before display aliases", () => {
     withCcusageModelAliases("claude-opus-4-8=mythos-5", () => {
       expect(normalizeModelForPricing("claude-opus-4-8")).toBe("mythos-5");

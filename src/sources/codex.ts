@@ -1,9 +1,10 @@
-import { normalizeAgentModelForUsage, type UsageModelNormalization } from "../pricing.js";
+import { normalizeAgentModelForUsage, resolvePricing, type UsageModelNormalization } from "../pricing.js";
 import { toUtcHalfHourStart } from "../time.js";
 import type { UsageEvent, UsageTotals } from "../types.js";
 
 interface ParseOptions {
   sourcePath: string;
+  serviceTier?: "standard" | "fast" | "priority";
 }
 
 interface JsonlUsageParser {
@@ -91,6 +92,9 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
         agent: "codex",
         model: currentModel.model,
         ...(currentModel.pricingModel ? { pricingModel: currentModel.pricingModel } : {}),
+        ...(options.serviceTier === "fast" || options.serviceTier === "priority"
+          ? { costMultiplier: codexFastMultiplier(currentModel) }
+          : {}),
         sessionId,
         sourcePath: options.sourcePath,
         timestamp,
@@ -108,6 +112,9 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
                 ...event,
                 model: model.model,
                 ...(model.pricingModel ? { pricingModel: model.pricingModel } : {}),
+                ...(options.serviceTier === "fast" || options.serviceTier === "priority"
+                  ? { costMultiplier: codexFastMultiplier(model) }
+                  : {}),
               }
             : event,
         );
@@ -115,6 +122,11 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
       return events;
     },
   };
+}
+
+function codexFastMultiplier(model: UsageModelNormalization): string {
+  const pricingModel = model.pricingModel || model.originalModel || model.model;
+  return resolvePricing(pricingModel)?.fastMultiplier || "2";
 }
 
 function modelFromContextPayload(payload: Record<string, unknown>): string | null {

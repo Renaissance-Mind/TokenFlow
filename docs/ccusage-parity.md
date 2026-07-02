@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-06-16
+Last checked: 2026-07-02
 
-Reference ccusage commit: `a7726bb chore: release v20.0.14`
+Reference ccusage commit: `cdda182 ci: add tirith security scan and fail-fast preflight gate (#1383)`
 
 ## Summary
 
@@ -10,14 +10,16 @@ TokenFlow now supports every ccusage local source adapter that can be consumed w
 
 TokenFlow intentionally stores agent and model separately, so adapter display prefixes used by ccusage, such as `[pi]` or `[openclaw]`, are not copied into `model`. This keeps pricing resolution shared across agents and lets the dashboard distinguish sources by the `agent` field.
 
-The 2026-06-16 parity pass found ccusage main had moved to `v20.0.14`. The new ccusage commits mostly parallelize local adapter reads and refactor JSONL parsing through typed structs and shared byte prefilters without adding a new adapter, env var, pricing snapshot, model-normalization rule, or privacy surface. The directly migratable collector behavior was OpenCode parity: TokenFlow now reads `OPENCODE_DATA_DIR`, `opencode.db`, `opencode-*.db`, and `storage/message/**/*.json`, counts OpenCode messages from `time.created` even when `time.completed` is absent, and keeps DB rows ahead of duplicate message files by message id.
+The 2026-07-02 parity pass found ccusage main was still packaged as `v20.0.14` but had added Codex fast/priority pricing behavior after the last TokenFlow sync. TokenFlow now reads existing `CODEX_HOME/config.toml` when present and, if `service_tier` is `fast` or `priority`, applies ccusage-compatible Codex price multipliers: `gpt-5.5` variants use `2.5x`, `gpt-5.4` and `gpt-5.3-codex` variants use `2x`, and other fast Codex models use ccusage's `2x` fallback. This is a local config read only; it does not require new telemetry, permissions, or user setup.
+
+The same ccusage pass also showed non-pricing drift in Rust-native loaders, parser prefilters, reporting, statusline cache behavior, CI/security scan setup, and an embedded models.dev fallback snapshot with many provider-qualified Claude aliases. TokenFlow's existing normalization already prices the directly observed canonical local collector model IDs that overlap with its source parsers, so those changes were not copied into TokenFlow as code or docs beyond this parity note.
 
 ## Source Adapter Matrix
 
 | ccusage adapter | TokenFlow status | Notes |
 | --- | --- | --- |
 | `claude` | Supported | Claude Code project JSONL usage. Includes fast/regular split when Claude Code exposes it. |
-| `codex` | Supported | Codex rollout JSONL token counts. Codex fast behavior remains unchanged from TokenFlow's existing Codex handling. |
+| `codex` | Supported | Codex rollout JSONL token counts. Reads existing `CODEX_HOME/config.toml` to mirror ccusage fast/priority pricing multipliers. |
 | `gemini` | Supported | Gemini CLI session JSON files. |
 | `opencode` | Supported | OpenCode SQLite `message` rows from `opencode.db` and `opencode-*.db`, plus standalone `storage/message/**/*.json` files. Requires `sqlite3` for DB rows. |
 | `kimi` | Supported | Kimi wire JSONL plus config model metadata and K2.5/K2.6 pricing cutoff. |

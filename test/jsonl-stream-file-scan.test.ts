@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { collectLocalUsage } from "../src/file-scan.js";
+import { aggregateEvents } from "../src/usage-buckets.js";
 
 const originalEnv = { ...process.env };
 
@@ -66,6 +67,58 @@ describe("JSONL file scan", () => {
       sessionId: "codex-session",
       model: "gpt-5.2-codex-high",
       totalTokens: 155,
+    });
+  });
+
+  it("applies Codex fast service tier pricing from CODEX_HOME config", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "tokenusage-codex-fast-"));
+    const codexHome = path.join(root, "codex");
+    await fs.mkdir(path.join(codexHome, "sessions", "2026", "06", "09"), { recursive: true });
+    await fs.mkdir(path.join(root, "claude", "projects"), { recursive: true });
+    await fs.mkdir(path.join(root, "gemini", "tmp"), { recursive: true });
+    await fs.mkdir(path.join(root, "opencode"), { recursive: true });
+    await fs.writeFile(path.join(codexHome, "config.toml"), 'service_tier = "priority"\n');
+
+    await fs.writeFile(
+      path.join(codexHome, "sessions", "2026", "06", "09", "rollout-2026-06-09T01-00-00-test.jsonl"),
+      [
+        JSON.stringify({ type: "session_meta", payload: { session_id: "codex-session" } }),
+        JSON.stringify({ type: "turn_context", payload: { model: "OpenAI/GPT-5.4" } }),
+        JSON.stringify({
+          type: "event_msg",
+          timestamp: "2026-06-09T01:05:00.000Z",
+          payload: {
+            type: "token_count",
+            info: {
+              total_token_usage: {
+                input_tokens: 1_000_000,
+                output_tokens: 0,
+              },
+            },
+          },
+        }),
+      ].join("\n"),
+    );
+
+    process.env.CODEX_HOME = codexHome;
+    process.env.CLAUDE_HOME = path.join(root, "claude");
+    process.env.GEMINI_HOME = path.join(root, "gemini");
+    process.env.OPENCODE_HOME = path.join(root, "opencode");
+
+    const result = await collectLocalUsage(root);
+    const buckets = aggregateEvents(result.events);
+
+    expect(result.events[0]).toMatchObject({
+      agent: "codex",
+      model: "gpt-5.4",
+      costMultiplier: "2",
+    });
+    expect(buckets[0]).toMatchObject({
+      model: "gpt-5.4",
+      cost: {
+        inputUsd: "5.000000",
+        totalUsd: "5.000000",
+      },
     });
   });
 

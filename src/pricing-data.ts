@@ -18,6 +18,9 @@ const p = (
   ...extra,
 });
 
+const codexFast25 = { fastMultiplier: "2.5" };
+const codexFast2 = { fastMultiplier: "2" };
+
 export const BUILTIN_PRICING: PricingProfile[] = [
   p("claude-fable-5", "Claude Fable 5", "10", "50", "1", "12.50"),
   p("claude-opus-4-8", "Claude Opus 4.8", "5", "25", "0.50", "6.25"),
@@ -49,13 +52,13 @@ export const BUILTIN_PRICING: PricingProfile[] = [
   p("claude-3-opus", "Claude 3 Opus", "15", "75", "1.50", "18.75"),
   p("claude-3-sonnet", "Claude 3 Sonnet", "3", "15", "0.30", "3.75"),
   p("claude-3-haiku", "Claude 3 Haiku", "0.25", "1.25", "0.03", "0.30"),
-  p("gpt-5.5", "GPT-5.5", "5", "30", "0.50", "0"),
-  p("gpt-5.5-low", "GPT-5.5", "5", "30", "0.50", "0"),
-  p("gpt-5.5-medium", "GPT-5.5", "5", "30", "0.50", "0"),
-  p("gpt-5.5-high", "GPT-5.5", "5", "30", "0.50", "0"),
-  p("gpt-5.5-xhigh", "GPT-5.5", "5", "30", "0.50", "0"),
-  p("gpt-5.5-minimal", "GPT-5.5", "5", "30", "0.50", "0"),
-  p("gpt-5.4", "GPT-5.4", "2.50", "15", "0.25", "0"),
+  p("gpt-5.5", "GPT-5.5", "5", "30", "0.50", "0", codexFast25),
+  p("gpt-5.5-low", "GPT-5.5", "5", "30", "0.50", "0", codexFast25),
+  p("gpt-5.5-medium", "GPT-5.5", "5", "30", "0.50", "0", codexFast25),
+  p("gpt-5.5-high", "GPT-5.5", "5", "30", "0.50", "0", codexFast25),
+  p("gpt-5.5-xhigh", "GPT-5.5", "5", "30", "0.50", "0", codexFast25),
+  p("gpt-5.5-minimal", "GPT-5.5", "5", "30", "0.50", "0", codexFast25),
+  p("gpt-5.4", "GPT-5.4", "2.50", "15", "0.25", "0", codexFast2),
   p("gpt-5.4-mini", "GPT-5.4 Mini", "0.75", "4.50", "0.075", "0"),
   p("gpt-5.4-nano", "GPT-5.4 Nano", "0.20", "1.25", "0.02", "0"),
   p("gpt-5.2", "GPT-5.2", "1.75", "14", "0.175", "0"),
@@ -68,12 +71,12 @@ export const BUILTIN_PRICING: PricingProfile[] = [
   p("gpt-5.2-codex-medium", "GPT-5.2 Codex", "1.75", "14", "0.175", "0"),
   p("gpt-5.2-codex-high", "GPT-5.2 Codex", "1.75", "14", "0.175", "0"),
   p("gpt-5.2-codex-xhigh", "GPT-5.2 Codex", "1.75", "14", "0.175", "0"),
-  p("gpt-5.3-codex", "GPT-5.3 Codex", "1.75", "14", "0.175", "0"),
+  p("gpt-5.3-codex", "GPT-5.3 Codex", "1.75", "14", "0.175", "0", codexFast2),
   p("gpt-5.3-codex-spark", "GPT-5.3 Codex Spark", "1.75", "14", "0.175", "0"),
-  p("gpt-5.3-codex-low", "GPT-5.3 Codex", "1.75", "14", "0.175", "0"),
-  p("gpt-5.3-codex-medium", "GPT-5.3 Codex", "1.75", "14", "0.175", "0"),
-  p("gpt-5.3-codex-high", "GPT-5.3 Codex", "1.75", "14", "0.175", "0"),
-  p("gpt-5.3-codex-xhigh", "GPT-5.3 Codex", "1.75", "14", "0.175", "0"),
+  p("gpt-5.3-codex-low", "GPT-5.3 Codex", "1.75", "14", "0.175", "0", codexFast2),
+  p("gpt-5.3-codex-medium", "GPT-5.3 Codex", "1.75", "14", "0.175", "0", codexFast2),
+  p("gpt-5.3-codex-high", "GPT-5.3 Codex", "1.75", "14", "0.175", "0", codexFast2),
+  p("gpt-5.3-codex-xhigh", "GPT-5.3 Codex", "1.75", "14", "0.175", "0", codexFast2),
   p("gpt-5.1", "GPT-5.1", "1.25", "10", "0.125", "0"),
   p("gpt-5.1-low", "GPT-5.1", "1.25", "10", "0.125", "0"),
   p("gpt-5.1-medium", "GPT-5.1", "1.25", "10", "0.125", "0"),

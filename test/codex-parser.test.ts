@@ -186,6 +186,72 @@ describe("Codex JSONL parser", () => {
     });
   });
 
+  it("applies ccusage Codex fast pricing multipliers without changing the displayed model", () => {
+    const lines = [
+      JSON.stringify({ type: "session_meta", payload: { session_id: "s1" } }),
+      JSON.stringify({ type: "turn_context", payload: { model: "OpenAI/GPT-5.5" } }),
+      JSON.stringify({
+        type: "event_msg",
+        timestamp: "2026-06-09T01:05:00.000Z",
+        payload: {
+          type: "token_count",
+          info: {
+            total_token_usage: {
+              input_tokens: 1_000_000,
+              cached_input_tokens: 0,
+              output_tokens: 0,
+            },
+          },
+        },
+      }),
+    ].join("\n");
+
+    const events = parseCodexJsonl(lines, { sourcePath: "/tmp/rollout.jsonl", serviceTier: "fast" });
+    const buckets = aggregateEvents(events);
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      model: "gpt-5.5",
+      costMultiplier: "2.5",
+    });
+    expect(buckets[0]).toMatchObject({
+      model: "gpt-5.5",
+      costMultiplier: "2.5",
+      cost: {
+        inputUsd: "12.500000",
+        totalUsd: "12.500000",
+      },
+    });
+  });
+
+  it("uses ccusage's default Codex fast multiplier for models without explicit overrides", () => {
+    const lines = [
+      JSON.stringify({ type: "session_meta", payload: { session_id: "s1" } }),
+      JSON.stringify({ type: "turn_context", payload: { model: "OpenAI/GPT-5.2-Codex" } }),
+      JSON.stringify({
+        type: "event_msg",
+        timestamp: "2026-06-09T01:05:00.000Z",
+        payload: {
+          type: "token_count",
+          info: {
+            total_token_usage: {
+              input_tokens: 1_000_000,
+              cached_input_tokens: 0,
+              output_tokens: 0,
+            },
+          },
+        },
+      }),
+    ].join("\n");
+
+    const events = parseCodexJsonl(lines, { sourcePath: "/tmp/rollout.jsonl", serviceTier: "priority" });
+
+    expect(events[0]).toMatchObject({
+      model: "gpt-5.2-codex",
+      costMultiplier: "2",
+    });
+  });
+
   it("keeps early unknown token counts when a session contains multiple real models", () => {
     const lines = [
       JSON.stringify({ type: "session_meta", payload: { session_id: "s1", model_provider: "openai" } }),

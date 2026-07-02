@@ -58,6 +58,7 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
   const kiloRoots = await existingDirs(resolveDataDirs("KILO_DATA_DIR", home, ".local/share/kilo"));
   const openclawRoots = await existingDirs(resolveOpenClawRoots(home));
   const piRoots = await existingDirs(resolveDataDirs("PI_AGENT_DIR", home, ".pi/agent/sessions"));
+  const codexServiceTier = await readCodexServiceTier(codexHome);
 
   const codexFiles = [
     ...(await listFiles(path.join(codexHome, "sessions"), (file) =>
@@ -88,7 +89,7 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
 
   const events: UsageEvent[] = [];
   for (const file of codexFiles) {
-    events.push(...(await readJsonlEvents(file, createCodexJsonlParser)));
+    events.push(...(await readJsonlEvents(file, (options) => createCodexJsonlParser({ ...options, serviceTier: codexServiceTier }))));
   }
   for (const file of claudeFiles) {
     events.push(...(await readJsonlEvents(file, createClaudeJsonlParser)));
@@ -232,6 +233,25 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
       },
     ],
   };
+}
+
+async function readCodexServiceTier(codexHome: string): Promise<"standard" | "fast" | "priority"> {
+  const configPath = path.join(codexHome, "config.toml");
+  const config = await fs.readFile(configPath, "utf8").catch(() => "");
+  const tier = codexServiceTierFromConfig(config);
+  return tier || "standard";
+}
+
+function codexServiceTierFromConfig(config: string): "fast" | "priority" | null {
+  for (const line of config.split(/\r?\n/)) {
+    const setting = line.split("#")[0]?.trim();
+    if (!setting) continue;
+    const [key, ...valueParts] = setting.split("=");
+    if (key?.trim() !== "service_tier") continue;
+    const value = valueParts.join("=").trim().replace(/^["']|["']$/g, "");
+    if (value === "fast" || value === "priority") return value;
+  }
+  return null;
 }
 
 async function readJsonlEvents(
