@@ -218,8 +218,8 @@ describe("Codex JSONL parser", () => {
       model: "gpt-5.5",
       costMultiplier: "2.5",
       cost: {
-        inputUsd: "12.500000",
-        totalUsd: "12.500000",
+        inputUsd: "25.000000",
+        totalUsd: "25.000000",
       },
     });
   });

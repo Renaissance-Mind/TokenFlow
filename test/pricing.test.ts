@@ -148,6 +148,76 @@ describe("pricing", () => {
     });
   });
 
+  it("resolves ccusage GPT-5.6 pricing with OpenAI long-context tiers", () => {
+    expect(resolvePricing("openai/gpt-5.6-sol")).toMatchObject({
+      modelId: "gpt-5.6-sol",
+      inputUsdPerMillion: "5",
+      outputUsdPerMillion: "30",
+      cacheCreationUsdPerMillion: "6.25",
+      cacheReadUsdPerMillion: "0.50",
+      inputAbove200kUsdPerMillion: "10",
+      outputAbove200kUsdPerMillion: "45",
+      cacheCreationAbove200kUsdPerMillion: "12.50",
+      cacheReadAbove200kUsdPerMillion: "1",
+      longContextThresholdTokens: 272_000,
+    });
+    expect(resolvePricing("gpt-5.6-terra")).toMatchObject({
+      modelId: "gpt-5.6-terra",
+      inputUsdPerMillion: "2.50",
+      outputAbove200kUsdPerMillion: "22.5",
+      longContextThresholdTokens: 272_000,
+    });
+    expect(resolvePricing("gpt-5.5")).toMatchObject({
+      inputAbove200kUsdPerMillion: "10",
+      outputAbove200kUsdPerMillion: "45",
+      cacheReadAbove200kUsdPerMillion: "1",
+      longContextThresholdTokens: 272_000,
+    });
+  });
+
+  it("prices OpenAI two-stage models as a whole request at the selected tier", () => {
+    const pricing = resolvePricing("gpt-5.6-sol");
+    expect(pricing).not.toBeNull();
+
+    const long = calculateCost(
+      "codex",
+      {
+        inputTokens: 300_000,
+        cachedInputTokens: 100,
+        outputTokens: 1_000,
+        reasoningOutputTokens: 0,
+        cacheCreationTokens: 0,
+        totalTokens: 301_000,
+      },
+      pricing!,
+    );
+    expect(long).toMatchObject({
+      inputUsd: "2.999000",
+      cacheReadUsd: "0.000100",
+      outputUsd: "0.045000",
+      totalUsd: "3.044100",
+    });
+
+    const short = calculateCost(
+      "codex",
+      {
+        inputTokens: 100_000,
+        cachedInputTokens: 100,
+        outputTokens: 1_000,
+        reasoningOutputTokens: 0,
+        cacheCreationTokens: 0,
+        totalTokens: 101_000,
+      },
+      pricing!,
+    );
+    expect(short).toMatchObject({
+      inputUsd: "0.499500",
+      cacheReadUsd: "0.000050",
+      outputUsd: "0.030000",
+      totalUsd: "0.529550",
+    });
+  });
+
   it("resolves ccusage Claude short aliases and legacy Claude 3 pricing", () => {
     const aliases = [
       ["claude-opus-4", "15", "75", "1.50", "18.75"],

@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-07-02
+Last checked: 2026-07-10
 
-Reference ccusage commit: `cdda182 ci: add tirith security scan and fail-fast preflight gate (#1383)`
+Reference ccusage commit: `654d80f docs: update Lineman affiliate links to CCUsage landing page (#1417)`
 
 ## Summary
 
@@ -10,9 +10,11 @@ TokenFlow now supports every ccusage local source adapter that can be consumed w
 
 TokenFlow intentionally stores agent and model separately, so adapter display prefixes used by ccusage, such as `[pi]` or `[openclaw]`, are not copied into `model`. This keeps pricing resolution shared across agents and lets the dashboard distinguish sources by the `agent` field.
 
-The 2026-07-02 parity pass found ccusage main was still packaged as `v20.0.14` but had added Codex fast/priority pricing behavior after the last TokenFlow sync. TokenFlow now reads existing `CODEX_HOME/config.toml` when present and, if `service_tier` is `fast` or `priority`, applies ccusage-compatible Codex price multipliers: `gpt-5.5` variants use `2.5x`, `gpt-5.4` and `gpt-5.3-codex` variants use `2x`, and other fast Codex models use ccusage's `2x` fallback. This is a local config read only; it does not require new telemetry, permissions, or user setup.
+The 2026-07-02 parity pass found ccusage main was still packaged as `v20.0.14` but had added Codex fast/priority pricing behavior after the last TokenFlow sync. TokenFlow reads existing `CODEX_HOME/config.toml` when present and, if `service_tier` is `fast` or `priority`, applies ccusage-compatible Codex price multipliers: `gpt-5.5` variants use `2.5x`, `gpt-5.4` and `gpt-5.3-codex` variants use `2x`, and other fast Codex models use ccusage's `2x` fallback. This is a local config read only; it does not require new telemetry, permissions, or user setup.
 
-The same ccusage pass also showed non-pricing drift in Rust-native loaders, parser prefilters, reporting, statusline cache behavior, CI/security scan setup, and an embedded models.dev fallback snapshot with many provider-qualified Claude aliases. TokenFlow's existing normalization already prices the directly observed canonical local collector model IDs that overlap with its source parsers, so those changes were not copied into TokenFlow as code or docs beyond this parity note.
+The 2026-07-10 parity pass found ccusage main packaged as `v20.0.16` and added directly migratable pricing behavior in `726ecb3 feat(pricing): support OpenAI two-stage pricing and add the gpt-5.6 family (#1414)`. TokenFlow now includes the `gpt-5.6-sol`, `gpt-5.6-terra`, and `gpt-5.6-luna` pricing rows, fills ccusage's OpenAI long-context tier rates for the `gpt-5.6`, `gpt-5.5`, and `gpt-5.4` families, and applies ccusage's 272K-input two-stage rule: a request above the threshold is billed entirely at long-context input, output, cache-read, and cache-write rates. Because TokenFlow aggregates to half-hour buckets, it also tracks internal per-request long-context token splits before aggregation so a bucket containing both short and long Codex requests is priced like ccusage rather than treating the whole bucket as one request.
+
+The same pass showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. Those changes were not copied because they are adapter, parser, loader, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 
 ## Source Adapter Matrix
 
@@ -22,7 +24,7 @@ The same ccusage pass also showed non-pricing drift in Rust-native loaders, pars
 | `codex` | Supported | Codex rollout JSONL token counts. Reads existing `CODEX_HOME/config.toml` to mirror ccusage fast/priority pricing multipliers. |
 | `gemini` | Supported | Gemini CLI session JSON files. |
 | `opencode` | Supported | OpenCode SQLite `message` rows from `opencode.db` and `opencode-*.db`, plus standalone `storage/message/**/*.json` files. Requires `sqlite3` for DB rows. |
-| `kimi` | Supported | Kimi wire JSONL plus config model metadata and K2.5/K2.6 pricing cutoff. |
+| `kimi` | Supported | Kimi wire JSONL plus config model metadata and K2.5/K2.6 pricing cutoff. ccusage added `~/.kimi-code` `usage.record` support as non-pricing parser/path drift; TokenFlow did not copy it in the 2026-07-10 pricing sync. |
 | `qwen` | Supported | Qwen Code assistant `usageMetadata` rows. |
 | `amp` | Supported | Amp thread JSON, both `usageLedger.events[]` and direct assistant `messages[].usage`. |
 | `codebuff` | Supported | Codebuff/Manicode chat messages, metadata usage, and run-state provider usage fallback. |
@@ -31,7 +33,7 @@ The same ccusage pass also showed non-pricing drift in Rust-native loaders, pars
 | `hermes` | Supported | Hermes `state.db`, positive recorded cost is trusted, recorded zero cost falls back to token pricing. Requires `sqlite3`. |
 | `kilo` | Supported | Kilo `kilo.db` message rows. Requires `sqlite3`. |
 | `openclaw` | Supported | OpenClaw-compatible JSONL sessions and archived/reset JSONL names, with model-change fallback state. |
-| `pi` | Supported | Pi agent session JSONL assistant usage rows. |
+| `pi` | Supported | Pi agent session JSONL assistant usage rows. ccusage named pi-format stores are non-pricing config/reporting drift and were not copied in the 2026-07-10 pricing sync. |
 | `copilot` | Deferred | ccusage reads GitHub Copilot CLI OpenTelemetry JSONL from `~/.copilot/otel/*.jsonl` or `COPILOT_OTEL_FILE_EXPORTER_PATH`. This requires users to enable OTEL file export before sessions; older sessions cannot be recovered. Treat as a separate product decision rather than a no-touch local log migration. |
 | `all` | Not applicable | ccusage meta-command; TokenFlow already scans all configured local sources during `status` and `sync`. |
 

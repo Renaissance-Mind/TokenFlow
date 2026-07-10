@@ -24,6 +24,14 @@ export interface UsageTotals {
   cacheCreation5mTokens?: number;
   cacheCreation1hTokens?: number;
   extraTotalTokens?: number;
+  longContextInputTokens?: number;
+  longContextCachedInputTokens?: number;
+  longContextOutputTokens?: number;
+  longContextReasoningOutputTokens?: number;
+  longContextCacheCreationTokens?: number;
+  longContextCacheCreation5mTokens?: number;
+  longContextCacheCreation1hTokens?: number;
+  longContextExtraTotalTokens?: number;
   totalTokens: number;
 }
 
@@ -48,6 +56,7 @@ export interface PricingRate {
   outputAbove200kUsdPerMillion?: string;
   cacheReadAbove200kUsdPerMillion?: string;
   cacheCreationAbove200kUsdPerMillion?: string;
+  longContextThresholdTokens?: number;
   fastMultiplier?: string;
 }
 

@@ -144,6 +144,54 @@ describe("usage buckets", () => {
     });
   });
 
+  it("prices mixed short and long Codex requests with per-request OpenAI long-context tiers", () => {
+    const buckets = aggregateEvents([
+      {
+        agent: "codex",
+        model: "gpt-5.6-sol",
+        sessionId: "s1",
+        sourcePath: "/codex.jsonl",
+        timestamp: "2026-07-09T08:01:00.000Z",
+        bucketStart: "2026-07-09T08:00:00.000Z",
+        inputTokens: 280_000,
+        cachedInputTokens: 20_000,
+        outputTokens: 500,
+        reasoningOutputTokens: 0,
+        cacheCreationTokens: 0,
+        totalTokens: 280_500,
+      },
+      {
+        agent: "codex",
+        model: "gpt-5.6-sol",
+        sessionId: "s1",
+        sourcePath: "/codex.jsonl",
+        timestamp: "2026-07-09T08:08:00.000Z",
+        bucketStart: "2026-07-09T08:00:00.000Z",
+        inputTokens: 100_000,
+        cachedInputTokens: 50_000,
+        outputTokens: 300,
+        reasoningOutputTokens: 0,
+        cacheCreationTokens: 0,
+        totalTokens: 100_300,
+      },
+    ]);
+
+    expect(buckets).toHaveLength(1);
+    expect(buckets[0]).toMatchObject({
+      model: "gpt-5.6-sol",
+      inputTokens: 380_000,
+      cachedInputTokens: 70_000,
+      outputTokens: 800,
+      pricingStatus: "priced",
+      cost: {
+        inputUsd: "2.850000",
+        cacheReadUsd: "0.045000",
+        outputUsd: "0.031500",
+        totalUsd: "2.926500",
+      },
+    });
+  });
+
   it("keeps Claude fast and standard usage in separate displayed buckets", () => {
     const buckets = aggregateEvents(
       [

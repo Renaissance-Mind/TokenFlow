@@ -20,6 +20,21 @@ const p = (
 
 const codexFast25 = { fastMultiplier: "2.5" };
 const codexFast2 = { fastMultiplier: "2" };
+const openAiLongContextThreshold = { longContextThresholdTokens: 272_000 };
+const gpt55LongContext = {
+  inputAbove200kUsdPerMillion: "10",
+  outputAbove200kUsdPerMillion: "45",
+  cacheReadAbove200kUsdPerMillion: "1",
+  cacheCreationAbove200kUsdPerMillion: "10",
+  ...openAiLongContextThreshold,
+};
+const gpt54LongContext = {
+  inputAbove200kUsdPerMillion: "5",
+  outputAbove200kUsdPerMillion: "22.5",
+  cacheReadAbove200kUsdPerMillion: "0.5",
+  cacheCreationAbove200kUsdPerMillion: "5",
+  ...openAiLongContextThreshold,
+};
 
 export const BUILTIN_PRICING: PricingProfile[] = [
   p("claude-fable-5", "Claude Fable 5", "10", "50", "1", "12.50"),
@@ -52,15 +67,36 @@ export const BUILTIN_PRICING: PricingProfile[] = [
   p("claude-3-opus", "Claude 3 Opus", "15", "75", "1.50", "18.75"),
   p("claude-3-sonnet", "Claude 3 Sonnet", "3", "15", "0.30", "3.75"),
   p("claude-3-haiku", "Claude 3 Haiku", "0.25", "1.25", "0.03", "0.30"),
-  p("gpt-5.5", "GPT-5.5", "5", "30", "0.50", "0", codexFast25),
-  p("gpt-5.5-low", "GPT-5.5", "5", "30", "0.50", "0", codexFast25),
-  p("gpt-5.5-medium", "GPT-5.5", "5", "30", "0.50", "0", codexFast25),
-  p("gpt-5.5-high", "GPT-5.5", "5", "30", "0.50", "0", codexFast25),
-  p("gpt-5.5-xhigh", "GPT-5.5", "5", "30", "0.50", "0", codexFast25),
-  p("gpt-5.5-minimal", "GPT-5.5", "5", "30", "0.50", "0", codexFast25),
-  p("gpt-5.4", "GPT-5.4", "2.50", "15", "0.25", "0", codexFast2),
+  p("gpt-5.5", "GPT-5.5", "5", "30", "0.50", "5", { ...codexFast25, ...gpt55LongContext }),
+  p("gpt-5.5-low", "GPT-5.5", "5", "30", "0.50", "5", { ...codexFast25, ...gpt55LongContext }),
+  p("gpt-5.5-medium", "GPT-5.5", "5", "30", "0.50", "5", { ...codexFast25, ...gpt55LongContext }),
+  p("gpt-5.5-high", "GPT-5.5", "5", "30", "0.50", "5", { ...codexFast25, ...gpt55LongContext }),
+  p("gpt-5.5-xhigh", "GPT-5.5", "5", "30", "0.50", "5", { ...codexFast25, ...gpt55LongContext }),
+  p("gpt-5.5-minimal", "GPT-5.5", "5", "30", "0.50", "5", { ...codexFast25, ...gpt55LongContext }),
+  p("gpt-5.4", "GPT-5.4", "2.50", "15", "0.25", "2.50", { ...codexFast2, ...gpt54LongContext }),
   p("gpt-5.4-mini", "GPT-5.4 Mini", "0.75", "4.50", "0.075", "0"),
   p("gpt-5.4-nano", "GPT-5.4 Nano", "0.20", "1.25", "0.02", "0"),
+  p("gpt-5.6-sol", "GPT-5.6 Sol", "5", "30", "0.50", "6.25", {
+    inputAbove200kUsdPerMillion: "10",
+    outputAbove200kUsdPerMillion: "45",
+    cacheReadAbove200kUsdPerMillion: "1",
+    cacheCreationAbove200kUsdPerMillion: "12.50",
+    ...openAiLongContextThreshold,
+  }),
+  p("gpt-5.6-terra", "GPT-5.6 Terra", "2.50", "15", "0.25", "3.125", {
+    inputAbove200kUsdPerMillion: "5",
+    outputAbove200kUsdPerMillion: "22.5",
+    cacheReadAbove200kUsdPerMillion: "0.5",
+    cacheCreationAbove200kUsdPerMillion: "6.25",
+    ...openAiLongContextThreshold,
+  }),
+  p("gpt-5.6-luna", "GPT-5.6 Luna", "1", "6", "0.10", "1.25", {
+    inputAbove200kUsdPerMillion: "2",
+    outputAbove200kUsdPerMillion: "9",
+    cacheReadAbove200kUsdPerMillion: "0.2",
+    cacheCreationAbove200kUsdPerMillion: "2.50",
+    ...openAiLongContextThreshold,
+  }),
   p("gpt-5.2", "GPT-5.2", "1.75", "14", "0.175", "0"),
   p("gpt-5.2-low", "GPT-5.2", "1.75", "14", "0.175", "0"),
   p("gpt-5.2-medium", "GPT-5.2", "1.75", "14", "0.175", "0"),

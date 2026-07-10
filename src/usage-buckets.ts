@@ -31,12 +31,21 @@ export function aggregateEvents(events: UsageEvent[], pricingProfiles: PricingPr
         cacheCreation5mTokens: 0,
         cacheCreation1hTokens: 0,
         extraTotalTokens: 0,
+        longContextInputTokens: 0,
+        longContextCachedInputTokens: 0,
+        longContextOutputTokens: 0,
+        longContextReasoningOutputTokens: 0,
+        longContextCacheCreationTokens: 0,
+        longContextCacheCreation5mTokens: 0,
+        longContextCacheCreation1hTokens: 0,
+        longContextExtraTotalTokens: 0,
         totalTokens: 0,
         cost: ZERO_COST,
         pricingStatus: "unpriced",
       } satisfies UsageBucket);
 
     addTotals(bucket, event);
+    addLongContextTotals(bucket, event, pricingProfiles);
     bucket.pricingModel ||= event.pricingModel;
     bucket.costMultiplier ||= event.costMultiplier;
     bucket.recordedCostUsd = addUsdStrings(bucket.recordedCostUsd, event.recordedCostUsd);
@@ -81,7 +90,44 @@ function addTotals(target: UsageTotals, delta: UsageTotals): void {
   target.cacheCreation5mTokens = (target.cacheCreation5mTokens || 0) + (delta.cacheCreation5mTokens || 0);
   target.cacheCreation1hTokens = (target.cacheCreation1hTokens || 0) + (delta.cacheCreation1hTokens || 0);
   target.extraTotalTokens = (target.extraTotalTokens || 0) + (delta.extraTotalTokens || 0);
+  target.longContextInputTokens = (target.longContextInputTokens || 0) + (delta.longContextInputTokens || 0);
+  target.longContextCachedInputTokens =
+    (target.longContextCachedInputTokens || 0) + (delta.longContextCachedInputTokens || 0);
+  target.longContextOutputTokens = (target.longContextOutputTokens || 0) + (delta.longContextOutputTokens || 0);
+  target.longContextReasoningOutputTokens =
+    (target.longContextReasoningOutputTokens || 0) + (delta.longContextReasoningOutputTokens || 0);
+  target.longContextCacheCreationTokens =
+    (target.longContextCacheCreationTokens || 0) + (delta.longContextCacheCreationTokens || 0);
+  target.longContextCacheCreation5mTokens =
+    (target.longContextCacheCreation5mTokens || 0) + (delta.longContextCacheCreation5mTokens || 0);
+  target.longContextCacheCreation1hTokens =
+    (target.longContextCacheCreation1hTokens || 0) + (delta.longContextCacheCreation1hTokens || 0);
+  target.longContextExtraTotalTokens =
+    (target.longContextExtraTotalTokens || 0) + (delta.longContextExtraTotalTokens || 0);
   target.totalTokens += delta.totalTokens;
+}
+
+function addLongContextTotals(
+  target: UsageTotals,
+  event: UsageEvent,
+  pricingProfiles: PricingProfile[],
+): void {
+  if (event.longContextInputTokens !== undefined) return;
+  const pricing = resolvePricing(event.pricingModel || event.model, pricingProfiles);
+  if (!pricing?.longContextThresholdTokens || event.inputTokens <= pricing.longContextThresholdTokens) return;
+
+  target.longContextInputTokens = (target.longContextInputTokens || 0) + event.inputTokens;
+  target.longContextCachedInputTokens = (target.longContextCachedInputTokens || 0) + event.cachedInputTokens;
+  target.longContextOutputTokens = (target.longContextOutputTokens || 0) + event.outputTokens;
+  target.longContextReasoningOutputTokens =
+    (target.longContextReasoningOutputTokens || 0) + event.reasoningOutputTokens;
+  target.longContextCacheCreationTokens =
+    (target.longContextCacheCreationTokens || 0) + event.cacheCreationTokens;
+  target.longContextCacheCreation5mTokens =
+    (target.longContextCacheCreation5mTokens || 0) + (event.cacheCreation5mTokens || 0);
+  target.longContextCacheCreation1hTokens =
+    (target.longContextCacheCreation1hTokens || 0) + (event.cacheCreation1hTokens || 0);
+  target.longContextExtraTotalTokens = (target.longContextExtraTotalTokens || 0) + (event.extraTotalTokens || 0);
 }
 function addUsdStrings(left: string | undefined, right: string | undefined): string | undefined {
   if (!right) return left;

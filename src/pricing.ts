@@ -18,22 +18,48 @@ export function calculateCost(
   const billableOutputTokens =
     totals.outputTokens + totals.reasoningOutputTokens + (totals.extraTotalTokens || 0);
 
-  const inputMicro = tieredTokenCostMicroUsd(
-    billableInputTokens,
-    pricing.inputUsdPerMillion,
-    pricing.inputAbove200kUsdPerMillion,
-  );
-  const outputMicro = tieredTokenCostMicroUsd(
-    billableOutputTokens,
-    pricing.outputUsdPerMillion,
-    pricing.outputAbove200kUsdPerMillion,
-  );
-  const cacheReadMicro = tieredTokenCostMicroUsd(
-    totals.cachedInputTokens,
-    pricing.cacheReadUsdPerMillion,
-    pricing.cacheReadAbove200kUsdPerMillion,
-  );
-  const cacheCreationMicro = cacheCreationCostMicroUsd(totals, pricing);
+  const longContext = pricing.longContextThresholdTokens
+    ? longContextTotals(agent, totals, pricing.longContextThresholdTokens)
+    : null;
+  const inputMicro = longContext
+    ? splitTokenCostMicroUsd(
+        billableInputTokens,
+        longContext.billableInputTokens,
+        pricing.inputUsdPerMillion,
+        pricing.inputAbove200kUsdPerMillion,
+      )
+    : tieredTokenCostMicroUsd(
+        billableInputTokens,
+        pricing.inputUsdPerMillion,
+        pricing.inputAbove200kUsdPerMillion,
+      );
+  const outputMicro = longContext
+    ? splitTokenCostMicroUsd(
+        billableOutputTokens,
+        longContext.billableOutputTokens,
+        pricing.outputUsdPerMillion,
+        pricing.outputAbove200kUsdPerMillion,
+      )
+    : tieredTokenCostMicroUsd(
+        billableOutputTokens,
+        pricing.outputUsdPerMillion,
+        pricing.outputAbove200kUsdPerMillion,
+      );
+  const cacheReadMicro = longContext
+    ? splitTokenCostMicroUsd(
+        totals.cachedInputTokens,
+        longContext.cachedInputTokens,
+        pricing.cacheReadUsdPerMillion,
+        pricing.cacheReadAbove200kUsdPerMillion,
+      )
+    : tieredTokenCostMicroUsd(
+        totals.cachedInputTokens,
+        pricing.cacheReadUsdPerMillion,
+        pricing.cacheReadAbove200kUsdPerMillion,
+      );
+  const cacheCreationMicro = longContext
+    ? cacheCreationLongContextCostMicroUsd(totals, pricing, longContext)
+    : cacheCreationCostMicroUsd(totals, pricing);
   const multiplierMicro = parseDecimalToMicroUnits(multiplier);
   const scaledInputMicro = applyMultiplier(inputMicro, multiplierMicro);
   const scaledOutputMicro = applyMultiplier(outputMicro, multiplierMicro);
@@ -47,6 +73,84 @@ export function calculateCost(
     cacheReadUsd: formatMicroUsd(scaledCacheReadMicro),
     cacheCreationUsd: formatMicroUsd(scaledCacheCreationMicro),
     totalUsd: formatMicroUsd(totalMicro),
+  };
+}
+
+interface LongContextTotals {
+  billableInputTokens: number;
+  cachedInputTokens: number;
+  billableOutputTokens: number;
+  cacheCreationTokens: number;
+  cacheCreation5mTokens: number;
+  cacheCreation1hTokens: number;
+}
+
+function longContextTotals(
+  agent: AgentSource,
+  totals: UsageTotals,
+  threshold: number,
+): LongContextTotals {
+  const tracked =
+    totals.longContextInputTokens !== undefined ||
+    totals.longContextOutputTokens !== undefined ||
+    totals.longContextCacheCreationTokens !== undefined;
+  const wholeRequestLong = !tracked && totals.inputTokens > threshold;
+  const inputTokens = clampTokens(
+    tracked ? totals.longContextInputTokens || 0 : wholeRequestLong ? totals.inputTokens : 0,
+    totals.inputTokens,
+  );
+  const cachedInputTokens = Math.min(
+    clampTokens(
+      tracked ? totals.longContextCachedInputTokens || 0 : wholeRequestLong ? totals.cachedInputTokens : 0,
+      totals.cachedInputTokens,
+    ),
+    inputTokens,
+  );
+  const outputTokens = clampTokens(
+    tracked ? totals.longContextOutputTokens || 0 : wholeRequestLong ? totals.outputTokens : 0,
+    totals.outputTokens,
+  );
+  const reasoningOutputTokens = clampTokens(
+    tracked
+      ? totals.longContextReasoningOutputTokens || 0
+      : wholeRequestLong
+        ? totals.reasoningOutputTokens
+        : 0,
+    totals.reasoningOutputTokens,
+  );
+  const extraTotalTokens = clampTokens(
+    tracked ? totals.longContextExtraTotalTokens || 0 : wholeRequestLong ? totals.extraTotalTokens || 0 : 0,
+    totals.extraTotalTokens || 0,
+  );
+
+  return {
+    billableInputTokens: agent === "codex" || agent === "gemini" ? inputTokens - cachedInputTokens : inputTokens,
+    cachedInputTokens,
+    billableOutputTokens: outputTokens + reasoningOutputTokens + extraTotalTokens,
+    cacheCreationTokens: clampTokens(
+      tracked
+        ? totals.longContextCacheCreationTokens || 0
+        : wholeRequestLong
+          ? totals.cacheCreationTokens
+          : 0,
+      totals.cacheCreationTokens,
+    ),
+    cacheCreation5mTokens: clampTokens(
+      tracked
+        ? totals.longContextCacheCreation5mTokens || 0
+        : wholeRequestLong
+          ? totals.cacheCreation5mTokens || 0
+          : 0,
+      totals.cacheCreation5mTokens || 0,
+    ),
+    cacheCreation1hTokens: clampTokens(
+      tracked
+        ? totals.longContextCacheCreation1hTokens || 0
+        : wholeRequestLong
+          ? totals.cacheCreation1hTokens || 0
+          : 0,
+      totals.cacheCreation1hTokens || 0,
+    ),
   };
 }
 
@@ -71,6 +175,39 @@ function cacheCreationCostMicroUsd(totals: UsageTotals, pricing: PricingRate): b
   }
   return tieredTokenCostMicroUsd(
     totals.cacheCreationTokens,
+    pricing.cacheCreationUsdPerMillion,
+    pricing.cacheCreationAbove200kUsdPerMillion,
+  );
+}
+
+function cacheCreationLongContextCostMicroUsd(
+  totals: UsageTotals,
+  pricing: PricingRate,
+  longContext: LongContextTotals,
+): bigint {
+  const cacheCreation5mTokens = totals.cacheCreation5mTokens || 0;
+  const cacheCreation1hTokens = totals.cacheCreation1hTokens || 0;
+  if (cacheCreation5mTokens || cacheCreation1hTokens) {
+    return (
+      splitTokenCostMicroUsd(
+        cacheCreation5mTokens,
+        longContext.cacheCreation5mTokens,
+        pricing.cacheCreationUsdPerMillion,
+        pricing.cacheCreationAbove200kUsdPerMillion,
+      ) +
+      splitTokenCostMicroUsd(
+        cacheCreation1hTokens,
+        longContext.cacheCreation1hTokens,
+        multiplyDecimalString(pricing.inputUsdPerMillion, "2"),
+        pricing.inputAbove200kUsdPerMillion
+          ? multiplyDecimalString(pricing.inputAbove200kUsdPerMillion, "2")
+          : undefined,
+      )
+    );
+  }
+  return splitTokenCostMicroUsd(
+    totals.cacheCreationTokens,
+    longContext.cacheCreationTokens,
     pricing.cacheCreationUsdPerMillion,
     pricing.cacheCreationAbove200kUsdPerMillion,
   );
@@ -350,6 +487,24 @@ function tokenCostMicroUsd(tokens: number, usdPerMillion: string): bigint {
   const rateMicroUsdPerMillion = parseDecimalToMicroUnits(usdPerMillion);
   const safeTokens = BigInt(Math.max(0, Math.floor(tokens)));
   return (safeTokens * rateMicroUsdPerMillion + 500_000n) / 1_000_000n;
+}
+
+function splitTokenCostMicroUsd(
+  totalTokens: number,
+  longContextTokens: number,
+  baseUsdPerMillion: string,
+  longContextUsdPerMillion: string | undefined,
+): bigint {
+  const safeTotal = Math.max(0, Math.floor(totalTokens));
+  const safeLong = Math.min(safeTotal, Math.max(0, Math.floor(longContextTokens)));
+  return (
+    tokenCostMicroUsd(safeTotal - safeLong, baseUsdPerMillion) +
+    tokenCostMicroUsd(safeLong, longContextUsdPerMillion || baseUsdPerMillion)
+  );
+}
+
+function clampTokens(value: number, max: number): number {
+  return Math.min(Math.max(0, Math.floor(value)), Math.max(0, Math.floor(max)));
 }
 
 function applyMultiplier(value: bigint, multiplierMicro: bigint): bigint {

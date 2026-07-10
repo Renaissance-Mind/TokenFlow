@@ -116,8 +116,8 @@ describe("JSONL file scan", () => {
     expect(buckets[0]).toMatchObject({
       model: "gpt-5.4",
       cost: {
-        inputUsd: "5.000000",
-        totalUsd: "5.000000",
+        inputUsd: "10.000000",
+        totalUsd: "10.000000",
       },
     });
   });
