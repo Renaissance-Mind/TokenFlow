@@ -35,6 +35,8 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
   let sessionId: string | null = null;
   let currentModel: UsageModelNormalization = { model: "unknown", originalModel: "unknown" };
   let previousTotal: CumulativeUsage | null = null;
+  // Codex subagent rollouts begin with a replay of their parent's history.
+  let suppressInheritedSubagentReplay = false;
 
   function setCurrentModel(model: string): void {
     const normalized = normalizeAgentModelForUsage("codex", model);
@@ -45,7 +47,12 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
   return {
     pushLine(line: string): void {
       if (!line.trim()) return;
-      if (!line.includes("token_count") && !line.includes("turn_context") && !line.includes("session_meta")) {
+      if (
+        !line.includes("token_count") &&
+        !line.includes("turn_context") &&
+        !line.includes("session_meta") &&
+        !line.includes("inter_agent_communication_metadata")
+      ) {
         return;
       }
 
@@ -60,10 +67,20 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
       const type = stringField(row, "type");
       const payload = recordField(row, "payload");
 
+      if (type === "inter_agent_communication_metadata" && payload?.trigger_turn === true) {
+        suppressInheritedSubagentReplay = false;
+        return;
+      }
+
       if ((type === "session_meta" || type === "turn_context") && payload) {
         const payloadSessionId =
           stringField(payload, "session_id") || stringField(payload, "sessionId") || stringField(payload, "id");
-        if (payloadSessionId && !sessionId) sessionId = payloadSessionId;
+        if (payloadSessionId && !sessionId) {
+          suppressInheritedSubagentReplay = isSubagentSession(payload);
+          sessionId = suppressInheritedSubagentReplay
+            ? stringField(payload, "id") || payloadSessionId
+            : payloadSessionId;
+        }
         const model = modelFromContextPayload(payload);
         if (model) setCurrentModel(model);
         return;
@@ -82,7 +99,10 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
       const lastUsage = recordField(info, "last_token_usage");
       const totalUsage = recordField(info, "total_token_usage");
       const delta = pickDelta(lastUsage, totalUsage, previousTotal);
+      // Retain the cumulative baseline while suppressing inherited events so a
+      // later total-only row can still be converted to the subagent's delta.
       if (totalUsage) previousTotal = normalizeUsage(totalUsage);
+      if (suppressInheritedSubagentReplay) return;
       if (!delta || isZero(delta)) return;
 
       const bucketStart = toUtcHalfHourStart(timestamp);
@@ -122,6 +142,10 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
       return events;
     },
   };
+}
+
+function isSubagentSession(payload: Record<string, unknown>): boolean {
+  return Boolean(recordField(recordField(payload, "source"), "subagent"));
 }
 
 function codexFastMultiplier(model: UsageModelNormalization): string {

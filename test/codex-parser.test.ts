@@ -280,6 +280,91 @@ describe("Codex JSONL parser", () => {
       totalTokens: 1_050,
     });
   });
+
+  it("ignores inherited parent usage replayed into a subagent rollout", () => {
+    const lines = [
+      JSON.stringify({
+        timestamp: "2026-07-12T09:31:08.383Z",
+        type: "session_meta",
+        payload: {
+          id: "subagent-session",
+          session_id: "parent-session",
+          source: {
+            subagent: {
+              thread_spawn: {
+                parent_thread_id: "parent-session",
+                depth: 1,
+                agent_path: "/root/audit",
+              },
+            },
+          },
+        },
+      }),
+      JSON.stringify({
+        timestamp: "2026-07-12T09:31:08.384Z",
+        type: "session_meta",
+        payload: { id: "parent-session", session_id: "parent-session", source: "vscode" },
+      }),
+      JSON.stringify({ type: "turn_context", payload: { model: "gpt-5.6-sol" } }),
+      JSON.stringify({
+        timestamp: "2026-07-12T09:31:08.385Z",
+        type: "event_msg",
+        payload: {
+          type: "token_count",
+          info: {
+            total_token_usage: {
+              input_tokens: 1_000_000,
+              cached_input_tokens: 900_000,
+              output_tokens: 10_000,
+              reasoning_output_tokens: 1_000,
+              total_tokens: 1_010_000,
+            },
+            last_token_usage: {
+              input_tokens: 100_000,
+              cached_input_tokens: 90_000,
+              output_tokens: 1_000,
+              reasoning_output_tokens: 100,
+              total_tokens: 101_000,
+            },
+          },
+        },
+      }),
+      JSON.stringify({
+        timestamp: "2026-07-12T09:31:12.075Z",
+        type: "inter_agent_communication_metadata",
+        payload: { trigger_turn: true },
+      }),
+      JSON.stringify({
+        timestamp: "2026-07-12T09:31:30.490Z",
+        type: "event_msg",
+        payload: {
+          type: "token_count",
+          info: {
+            total_token_usage: {
+              input_tokens: 1_040_000,
+              cached_input_tokens: 910_000,
+              output_tokens: 10_300,
+              reasoning_output_tokens: 1_100,
+              total_tokens: 1_050_300,
+            },
+          },
+        },
+      }),
+    ].join("\n");
+
+    const events = parseCodexJsonl(lines, { sourcePath: "/tmp/subagent-rollout.jsonl" });
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      sessionId: "subagent-session",
+      model: "gpt-5.6-sol",
+      inputTokens: 40_000,
+      cachedInputTokens: 10_000,
+      outputTokens: 300,
+      reasoningOutputTokens: 100,
+      totalTokens: 40_300,
+    });
+  });
 });
 
 function withCcusageModelAliases<T>(value: string, callback: () => T): T {
