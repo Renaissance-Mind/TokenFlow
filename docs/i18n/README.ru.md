@@ -160,7 +160,7 @@ tokenflow logout
 | `update` | Переустанавливает global package и обновляет auto-sync scheduler. |
 | `logout` | Удаляет local upload tokens, сохраняя non-secret config. |
 
-## Pricing model
+## Модель ценообразования
 
 TokenFlow рассчитывает costs локально перед загрузкой.
 
@@ -246,7 +246,7 @@ Source code — небольшой TypeScript CLI:
 
 Этот README является основной пользовательской документацией для CLI. Детали реализации можно начать изучать с focused tests в `test/` и TypeScript modules в `src/`.
 
-## Contributing
+## Вклад
 
 Issues и pull requests приветствуются. Для изменений parser, pricing, scheduler или command behavior добавляйте focused test.
 
