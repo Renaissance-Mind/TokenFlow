@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-07-10
+Last checked: 2026-07-21
 
-Reference ccusage commit: `654d80f docs: update Lineman affiliate links to CCUsage landing page (#1417)`
+Reference ccusage commit: `31e084a fix(ci): update publint fetcherVersion and apply treefmt (#1469)`
 
 ## Summary
 
@@ -14,7 +14,9 @@ The 2026-07-02 parity pass found ccusage main was still packaged as `v20.0.14` b
 
 The 2026-07-10 parity pass found ccusage main packaged as `v20.0.16` and added directly migratable pricing behavior in `726ecb3 feat(pricing): support OpenAI two-stage pricing and add the gpt-5.6 family (#1414)`. TokenFlow now includes the `gpt-5.6-sol`, `gpt-5.6-terra`, and `gpt-5.6-luna` pricing rows, fills ccusage's OpenAI long-context tier rates for the `gpt-5.6`, `gpt-5.5`, and `gpt-5.4` families, and applies ccusage's 272K-input two-stage rule: a request above the threshold is billed entirely at long-context input, output, cache-read, and cache-write rates. Because TokenFlow aggregates to half-hour buckets, it also tracks internal per-request long-context token splits before aggregation so a bucket containing both short and long Codex requests is priced like ccusage rather than treating the whole bucket as one request.
 
-The same pass showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. Those changes were not copied because they are adapter, parser, loader, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
+The 2026-07-21 parity pass found ccusage main packaged as `v20.0.18` and added directly migratable pricing behavior in `fe1c900 feat(pricing): embed Moonshot/Kimi models from models.dev (#1464)`. TokenFlow now includes the new embedded Moonshot/Kimi rows that affect local model resolution, including Kimi K3, Kimi K2.7 Code, and Kimi K2.6/K2.5 fast, flex, lightning, nitro, and highspeed variants. This is pricing-data-only parity; it does not add a new source path, parser, telemetry requirement, permission, or user workflow.
+
+The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. Those changes were not copied because they are adapter, parser, loader, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 
 ## Source Adapter Matrix
 

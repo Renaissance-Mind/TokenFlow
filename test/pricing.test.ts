@@ -289,6 +289,34 @@ describe("pricing", () => {
     expect(resolvePricing("kimi-for-coding")).toBeNull();
   });
 
+  it("resolves ccusage embedded models.dev Moonshot/Kimi pricing", () => {
+    expect(resolvePricing("moonshot/kimi-k3")).toMatchObject({
+      modelId: "kimi-k3",
+      inputUsdPerMillion: "3",
+      outputUsdPerMillion: "15",
+      cacheReadUsdPerMillion: "0.3",
+      cacheCreationUsdPerMillion: "3.75",
+    });
+    expect(resolvePricing("moonshotai/Kimi-K2.7-Code")).toMatchObject({
+      modelId: "kimi-k2.7-code",
+      inputUsdPerMillion: "0.95",
+      outputUsdPerMillion: "4",
+      cacheReadUsdPerMillion: "0.19",
+    });
+    expect(resolvePricing("moonshotai/kimi-k2.7-code-highspeed")).toMatchObject({
+      modelId: "kimi-k2.7-code-highspeed",
+      inputUsdPerMillion: "1.90",
+      outputUsdPerMillion: "8",
+      cacheReadUsdPerMillion: "0.38",
+    });
+    expect(resolvePricing("moonshotai/Kimi-K2.6-Fast")).toMatchObject({
+      modelId: "kimi-k2.6-fast",
+      inputUsdPerMillion: "0.69",
+      outputUsdPerMillion: "3.22",
+      cacheReadUsdPerMillion: "0.1725",
+    });
+  });
+
   it("prices cache creation duration tiers like ccusage", () => {
     const cost = calculateCost(
       "claude",
