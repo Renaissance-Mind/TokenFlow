@@ -21,6 +21,12 @@ interface CumulativeUsage {
   totalTokens: number;
 }
 
+type CodexServiceTier = "standard" | "fast";
+
+interface ParsedCodexUsageEvent extends UsageEvent {
+  codexServiceTier?: CodexServiceTier;
+}
+
 export function parseCodexJsonl(jsonl: string, options: ParseOptions): UsageEvent[] {
   const parser = createCodexJsonlParser(options);
   for (const line of jsonl.split(/\r?\n/)) {
@@ -30,10 +36,11 @@ export function parseCodexJsonl(jsonl: string, options: ParseOptions): UsageEven
 }
 
 export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser {
-  const events: UsageEvent[] = [];
+  const events: ParsedCodexUsageEvent[] = [];
   const seenModels = new Map<string, UsageModelNormalization>();
   let sessionId: string | null = null;
   let currentModel: UsageModelNormalization = { model: "unknown", originalModel: "unknown" };
+  let currentServiceTier: CodexServiceTier | null = null;
   let previousTotal: CumulativeUsage | null = null;
   // Codex subagent rollouts begin with a replay of their parent's history.
   let suppressInheritedSubagentReplay = false;
@@ -51,7 +58,8 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
         !line.includes("token_count") &&
         !line.includes("turn_context") &&
         !line.includes("session_meta") &&
-        !line.includes("inter_agent_communication_metadata")
+        !line.includes("inter_agent_communication_metadata") &&
+        !line.includes("thread_settings_applied")
       ) {
         return;
       }
@@ -69,6 +77,12 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
 
       if (type === "inter_agent_communication_metadata" && payload?.trigger_turn === true) {
         suppressInheritedSubagentReplay = false;
+        return;
+      }
+
+      const settingsTier = codexServiceTierFromSettings(payload);
+      if (settingsTier !== undefined) {
+        currentServiceTier = settingsTier;
         return;
       }
 
@@ -112,9 +126,7 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
         agent: "codex",
         model: currentModel.model,
         ...(currentModel.pricingModel ? { pricingModel: currentModel.pricingModel } : {}),
-        ...(options.serviceTier === "fast" || options.serviceTier === "priority"
-          ? { costMultiplier: codexFastMultiplier(currentModel) }
-          : {}),
+        ...codexPricingFields(currentModel, effectiveServiceTier(currentServiceTier, options.serviceTier)),
         sessionId,
         sourcePath: options.sourcePath,
         timestamp,
@@ -126,20 +138,19 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
     finish(): UsageEvent[] {
       if (seenModels.size === 1) {
         const [model] = [...seenModels.values()];
-        return events.map((event) =>
-          event.model === "unknown"
-            ? {
-                ...event,
+        return events.map((event) => {
+          const { codexServiceTier, ...publicEvent } = event;
+          return publicEvent.model === "unknown"
+            ? stripUndefinedCostMultiplier({
+                ...publicEvent,
                 model: model.model,
                 ...(model.pricingModel ? { pricingModel: model.pricingModel } : {}),
-                ...(options.serviceTier === "fast" || options.serviceTier === "priority"
-                  ? { costMultiplier: codexFastMultiplier(model) }
-                  : {}),
-              }
-            : event,
-        );
+                ...codexPricingFields(model, codexServiceTier || "standard"),
+              })
+            : publicEvent;
+        });
       }
-      return events;
+      return events.map(({ codexServiceTier, ...event }) => event);
     },
   };
 }
@@ -148,9 +159,45 @@ function isSubagentSession(payload: Record<string, unknown>): boolean {
   return Boolean(recordField(recordField(payload, "source"), "subagent"));
 }
 
-function codexFastMultiplier(model: UsageModelNormalization): string {
+function codexPricingFields(
+  model: UsageModelNormalization,
+  serviceTier: CodexServiceTier,
+): { costMultiplier?: string; codexServiceTier?: CodexServiceTier } {
+  if (serviceTier !== "fast") return { codexServiceTier: serviceTier };
+  const multiplier = codexFastMultiplier(model);
+  return {
+    codexServiceTier: serviceTier,
+    ...(multiplier ? { costMultiplier: multiplier } : {}),
+  };
+}
+
+function stripUndefinedCostMultiplier(event: UsageEvent): UsageEvent {
+  if (event.costMultiplier !== undefined) return event;
+  const { costMultiplier, ...withoutMultiplier } = event;
+  return withoutMultiplier;
+}
+
+function effectiveServiceTier(
+  recordedTier: CodexServiceTier | null,
+  fallbackTier: ParseOptions["serviceTier"],
+): CodexServiceTier {
+  if (recordedTier) return recordedTier;
+  return fallbackTier === "fast" || fallbackTier === "priority" ? "fast" : "standard";
+}
+
+function codexFastMultiplier(model: UsageModelNormalization): string | null {
   const pricingModel = model.pricingModel || model.originalModel || model.model;
-  return resolvePricing(pricingModel)?.fastMultiplier || "2";
+  return resolvePricing(pricingModel)?.fastMultiplier || null;
+}
+
+function codexServiceTierFromSettings(payload: Record<string, unknown> | null): CodexServiceTier | null | undefined {
+  if (stringField(payload, "type") !== "thread_settings_applied") return undefined;
+  const settings = recordField(payload, "thread_settings");
+  if (!settings || !("service_tier" in settings)) return undefined;
+  const value = stringField(settings, "service_tier");
+  if (value === "default" || value === "standard") return "standard";
+  if (value === "fast" || value === "priority") return "fast";
+  return null;
 }
 
 function modelFromContextPayload(payload: Record<string, unknown>): string | null {

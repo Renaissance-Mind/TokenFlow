@@ -311,9 +311,17 @@ function pricingCandidatesForCleanedModel(cleaned: string): string[] {
     if (candidate.startsWith("claude-") && candidate.includes(".")) {
       queue.push(candidate.replaceAll(".", "-"));
     }
+    const builtinAlias = builtinPricingAlias(candidate);
+    if (builtinAlias) queue.push(builtinAlias);
   }
 
   return out;
+}
+
+function builtinPricingAlias(model: string): string | null {
+  if (model === "gpt-5.6") return "gpt-5.6-sol";
+  if (model === "gpt-5.3-spark") return "gpt-5.3-codex-spark";
+  return null;
 }
 
 function cleanModelId(model: string): string {

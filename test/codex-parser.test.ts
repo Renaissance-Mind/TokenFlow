@@ -224,7 +224,7 @@ describe("Codex JSONL parser", () => {
     });
   });
 
-  it("uses ccusage's default Codex fast multiplier for models without explicit overrides", () => {
+  it("keeps standard pricing for Codex fast models without explicit multipliers", () => {
     const lines = [
       JSON.stringify({ type: "session_meta", payload: { session_id: "s1" } }),
       JSON.stringify({ type: "turn_context", payload: { model: "OpenAI/GPT-5.2-Codex" } }),
@@ -248,8 +248,100 @@ describe("Codex JSONL parser", () => {
 
     expect(events[0]).toMatchObject({
       model: "gpt-5.2-codex",
+    });
+    expect(events[0].costMultiplier).toBeUndefined();
+  });
+
+  it("uses recorded Codex service tier changes for following usage", () => {
+    const lines = [
+      JSON.stringify({ type: "session_meta", payload: { session_id: "s1" } }),
+      JSON.stringify({ type: "turn_context", payload: { model: "OpenAI/GPT-5.4" } }),
+      JSON.stringify({
+        type: "event_msg",
+        timestamp: "2026-07-22T00:00:00.000Z",
+        payload: { type: "thread_settings_applied", thread_settings: { service_tier: "default" } },
+      }),
+      JSON.stringify({
+        type: "event_msg",
+        timestamp: "2026-07-22T00:00:01.000Z",
+        payload: {
+          type: "token_count",
+          info: {
+            last_token_usage: {
+              input_tokens: 100_000,
+              output_tokens: 0,
+              total_tokens: 100_000,
+            },
+          },
+        },
+      }),
+      JSON.stringify({
+        type: "event_msg",
+        timestamp: "2026-07-22T00:00:02.000Z",
+        payload: { type: "thread_settings_applied", thread_settings: { service_tier: "priority" } },
+      }),
+      JSON.stringify({
+        type: "event_msg",
+        timestamp: "2026-07-22T00:00:03.000Z",
+        payload: {
+          type: "token_count",
+          info: {
+            last_token_usage: {
+              input_tokens: 100_000,
+              output_tokens: 0,
+              total_tokens: 100_000,
+            },
+          },
+        },
+      }),
+    ].join("\n");
+
+    const events = parseCodexJsonl(lines, { sourcePath: "/tmp/rollout.jsonl", serviceTier: "priority" });
+    const buckets = aggregateEvents(events);
+
+    expect(events).toHaveLength(2);
+    expect(events[0].costMultiplier).toBeUndefined();
+    expect(events[1]).toMatchObject({
+      model: "gpt-5.4",
       costMultiplier: "2",
     });
+    expect(buckets[0]).toMatchObject({
+      inputTokens: 200_000,
+      fastInputTokens: 100_000,
+      cost: {
+        inputUsd: "0.750000",
+        totalUsd: "0.750000",
+      },
+    });
+  });
+
+  it("preserves and clears recorded Codex service tier state like ccusage", () => {
+    const lines = [
+      JSON.stringify({ type: "session_meta", payload: { session_id: "s1" } }),
+      JSON.stringify({ type: "turn_context", payload: { model: "OpenAI/GPT-5.4" } }),
+      JSON.stringify({
+        type: "event_msg",
+        timestamp: "2026-07-22T00:00:00.000Z",
+        payload: { type: "thread_settings_applied", thread_settings: { service_tier: "priority" } },
+      }),
+      tokenCount("2026-07-22T00:00:01.000Z", 10),
+      JSON.stringify({
+        type: "event_msg",
+        timestamp: "2026-07-22T00:00:02.000Z",
+        payload: { type: "thread_settings_applied", thread_settings: { model: "codex-auto-review" } },
+      }),
+      tokenCount("2026-07-22T00:00:03.000Z", 20),
+      JSON.stringify({
+        type: "event_msg",
+        timestamp: "2026-07-22T00:00:04.000Z",
+        payload: { type: "thread_settings_applied", thread_settings: { service_tier: "flex" } },
+      }),
+      tokenCount("2026-07-22T00:00:05.000Z", 30),
+    ].join("\n");
+
+    const events = parseCodexJsonl(lines, { sourcePath: "/tmp/rollout.jsonl" });
+
+    expect(events.map((event) => event.costMultiplier)).toEqual(["2", "2", undefined]);
   });
 
   it("keeps early unknown token counts when a session contains multiple real models", () => {
@@ -376,4 +468,21 @@ function withCcusageModelAliases<T>(value: string, callback: () => T): T {
     if (previous === undefined) delete process.env.CCUSAGE_MODEL_ALIASES;
     else process.env.CCUSAGE_MODEL_ALIASES = previous;
   }
+}
+
+function tokenCount(timestamp: string, inputTokens: number): string {
+  return JSON.stringify({
+    type: "event_msg",
+    timestamp,
+    payload: {
+      type: "token_count",
+      info: {
+        last_token_usage: {
+          input_tokens: inputTokens,
+          output_tokens: 0,
+          total_tokens: inputTokens,
+        },
+      },
+    },
+  });
 }

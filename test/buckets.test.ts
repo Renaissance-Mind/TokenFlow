@@ -192,6 +192,51 @@ describe("usage buckets", () => {
     });
   });
 
+  it("applies Codex fast multipliers only to the recorded fast subset of a bucket", () => {
+    const buckets = aggregateEvents([
+      {
+        agent: "codex",
+        model: "gpt-5.4",
+        sessionId: "s1",
+        sourcePath: "/codex.jsonl",
+        timestamp: "2026-07-22T00:00:01.000Z",
+        bucketStart: "2026-07-22T00:00:00.000Z",
+        inputTokens: 100_000,
+        cachedInputTokens: 0,
+        outputTokens: 0,
+        reasoningOutputTokens: 0,
+        cacheCreationTokens: 0,
+        totalTokens: 100_000,
+      },
+      {
+        agent: "codex",
+        model: "gpt-5.4",
+        costMultiplier: "2",
+        sessionId: "s1",
+        sourcePath: "/codex.jsonl",
+        timestamp: "2026-07-22T00:00:02.000Z",
+        bucketStart: "2026-07-22T00:00:00.000Z",
+        inputTokens: 100_000,
+        cachedInputTokens: 0,
+        outputTokens: 0,
+        reasoningOutputTokens: 0,
+        cacheCreationTokens: 0,
+        totalTokens: 100_000,
+      },
+    ]);
+
+    expect(buckets).toHaveLength(1);
+    expect(buckets[0]).toMatchObject({
+      inputTokens: 200_000,
+      fastInputTokens: 100_000,
+      costMultiplier: "2",
+      cost: {
+        inputUsd: "0.750000",
+        totalUsd: "0.750000",
+      },
+    });
+  });
+
   it("keeps Claude fast and standard usage in separate displayed buckets", () => {
     const buckets = aggregateEvents(
       [

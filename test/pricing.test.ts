@@ -79,6 +79,15 @@ describe("pricing", () => {
   });
 
   it("exposes ccusage Codex fast pricing multipliers on explicit override models", () => {
+    expect(resolvePricing("gpt-5.6")).toMatchObject({
+      modelId: "gpt-5.6-sol",
+      fastMultiplier: "2",
+      longContextThresholdTokens: 272_000,
+    });
+    expect(resolvePricing("gpt-5.6-terra")).toMatchObject({
+      modelId: "gpt-5.6-terra",
+      fastMultiplier: "2",
+    });
     expect(resolvePricing("gpt-5.5-high")).toMatchObject({
       modelId: "gpt-5.5-high",
       fastMultiplier: "2.5",

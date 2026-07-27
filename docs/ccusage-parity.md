@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-07-21
+Last checked: 2026-07-27
 
-Reference ccusage commit: `31e084a fix(ci): update publint fetcherVersion and apply treefmt (#1469)`
+Reference ccusage commit: `df89eb7 refactor(nix): manage Nix-built JS tooling with bun2nix (#1489)`
 
 ## Summary
 
@@ -16,6 +16,8 @@ The 2026-07-10 parity pass found ccusage main packaged as `v20.0.16` and added d
 
 The 2026-07-21 parity pass found ccusage main packaged as `v20.0.18` and added directly migratable pricing behavior in `fe1c900 feat(pricing): embed Moonshot/Kimi models from models.dev (#1464)`. TokenFlow now includes the new embedded Moonshot/Kimi rows that affect local model resolution, including Kimi K3, Kimi K2.7 Code, and Kimi K2.6/K2.5 fast, flex, lightning, nitro, and highspeed variants. This is pricing-data-only parity; it does not add a new source path, parser, telemetry requirement, permission, or user workflow.
 
+The 2026-07-27 parity pass found ccusage main still packaged as `v20.0.18` and added directly migratable Codex pricing behavior in `409b4a5 fix(codex): dedupe replayed usage (#1435)` and `0d968b9 fix(usage): correct replay and pricing accounting (#1438)`. TokenFlow now resolves the default `gpt-5.6` pricing alias through `gpt-5.6-sol`, applies ccusage's explicit `2x` fast multipliers for GPT-5.6 Sol, Terra, and Luna, and honors recorded Codex `thread_settings_applied` service-tier changes per usage event. Recorded `priority` and legacy `fast` turns receive the model's published fast multiplier, recorded `default` and `standard` turns remain standard priced, settings events without `service_tier` preserve the previous tier, and unsupported recorded tiers clear the recorded tier. Unclassified usage still falls back to the existing local `CODEX_HOME/config.toml` read. Models without a published fast multiplier now stay at standard pricing instead of inventing a fallback multiplier, matching ccusage's current API-equivalent cost behavior.
+
 The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. Those changes were not copied because they are adapter, parser, loader, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 
 ## Source Adapter Matrix
@@ -23,7 +25,7 @@ The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.
 | ccusage adapter | TokenFlow status | Notes |
 | --- | --- | --- |
 | `claude` | Supported | Claude Code project JSONL usage. Includes fast/regular split when Claude Code exposes it. |
-| `codex` | Supported | Codex rollout JSONL token counts. Reads existing `CODEX_HOME/config.toml` to mirror ccusage fast/priority pricing multipliers. |
+| `codex` | Supported | Codex rollout JSONL token counts. Reads recorded `thread_settings_applied` tiers when present, then existing `CODEX_HOME/config.toml` for unclassified usage to mirror ccusage fast/priority pricing. |
 | `gemini` | Supported | Gemini CLI session JSON files. |
 | `opencode` | Supported | OpenCode SQLite `message` rows from `opencode.db` and `opencode-*.db`, plus standalone `storage/message/**/*.json` files. Requires `sqlite3` for DB rows. |
 | `kimi` | Supported | Kimi wire JSONL plus config model metadata and K2.5/K2.6 pricing cutoff. ccusage added `~/.kimi-code` `usage.record` support as non-pricing parser/path drift; TokenFlow did not copy it in the 2026-07-10 pricing sync. |
@@ -47,6 +49,7 @@ The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.
 | Aggregation grain | TokenFlow aggregates to UTC half-hour buckets by `agent` and `model`; ccusage reports daily/monthly/session tables locally. |
 | Adapter model prefixes | TokenFlow keeps raw normalized model IDs and uses the separate `agent` field instead of ccusage display prefixes. |
 | Model aliases | TokenFlow honors `CCUSAGE_MODEL_ALIASES` for ccusage-compatible private/internal model aliases and display aliases. Supported formats are JSON objects such as `{"private-alpha":"gpt-5.5"}` and delimited pairs such as `private-alpha=gpt-5.5;other=claude-sonnet-4`. If the original model already has pricing, TokenFlow keeps the alias as the displayed bucket model while pricing through the original model. |
+| Codex fast pricing | TokenFlow applies Codex fast multipliers only to the fast subset of a half-hour bucket when recorded tier events distinguish standard and fast turns. |
 | Recorded costs | Positive recorded costs are trusted. Hermes recorded zero cost is ignored so pricing can fall back to token counts, matching ccusage's subscription-included behavior. |
 | SQLite dependency | OpenCode, Goose, Hermes, and Kilo require the `sqlite3` CLI on `PATH`. |
 

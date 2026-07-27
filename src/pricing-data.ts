@@ -77,6 +77,7 @@ export const BUILTIN_PRICING: PricingProfile[] = [
   p("gpt-5.4-mini", "GPT-5.4 Mini", "0.75", "4.50", "0.075", "0"),
   p("gpt-5.4-nano", "GPT-5.4 Nano", "0.20", "1.25", "0.02", "0"),
   p("gpt-5.6-sol", "GPT-5.6 Sol", "5", "30", "0.50", "6.25", {
+    ...codexFast2,
     inputAbove200kUsdPerMillion: "10",
     outputAbove200kUsdPerMillion: "45",
     cacheReadAbove200kUsdPerMillion: "1",
@@ -84,6 +85,7 @@ export const BUILTIN_PRICING: PricingProfile[] = [
     ...openAiLongContextThreshold,
   }),
   p("gpt-5.6-terra", "GPT-5.6 Terra", "2.50", "15", "0.25", "3.125", {
+    ...codexFast2,
     inputAbove200kUsdPerMillion: "5",
     outputAbove200kUsdPerMillion: "22.5",
     cacheReadAbove200kUsdPerMillion: "0.5",
@@ -91,6 +93,7 @@ export const BUILTIN_PRICING: PricingProfile[] = [
     ...openAiLongContextThreshold,
   }),
   p("gpt-5.6-luna", "GPT-5.6 Luna", "1", "6", "0.10", "1.25", {
+    ...codexFast2,
     inputAbove200kUsdPerMillion: "2",
     outputAbove200kUsdPerMillion: "9",
     cacheReadAbove200kUsdPerMillion: "0.2",

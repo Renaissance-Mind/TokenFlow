@@ -32,6 +32,22 @@ export interface UsageTotals {
   longContextCacheCreation5mTokens?: number;
   longContextCacheCreation1hTokens?: number;
   longContextExtraTotalTokens?: number;
+  fastInputTokens?: number;
+  fastCachedInputTokens?: number;
+  fastOutputTokens?: number;
+  fastReasoningOutputTokens?: number;
+  fastCacheCreationTokens?: number;
+  fastCacheCreation5mTokens?: number;
+  fastCacheCreation1hTokens?: number;
+  fastExtraTotalTokens?: number;
+  fastLongContextInputTokens?: number;
+  fastLongContextCachedInputTokens?: number;
+  fastLongContextOutputTokens?: number;
+  fastLongContextReasoningOutputTokens?: number;
+  fastLongContextCacheCreationTokens?: number;
+  fastLongContextCacheCreation5mTokens?: number;
+  fastLongContextCacheCreation1hTokens?: number;
+  fastLongContextExtraTotalTokens?: number;
   totalTokens: number;
 }
 

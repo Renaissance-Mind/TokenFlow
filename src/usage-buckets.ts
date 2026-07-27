@@ -39,6 +39,22 @@ export function aggregateEvents(events: UsageEvent[], pricingProfiles: PricingPr
         longContextCacheCreation5mTokens: 0,
         longContextCacheCreation1hTokens: 0,
         longContextExtraTotalTokens: 0,
+        fastInputTokens: 0,
+        fastCachedInputTokens: 0,
+        fastOutputTokens: 0,
+        fastReasoningOutputTokens: 0,
+        fastCacheCreationTokens: 0,
+        fastCacheCreation5mTokens: 0,
+        fastCacheCreation1hTokens: 0,
+        fastExtraTotalTokens: 0,
+        fastLongContextInputTokens: 0,
+        fastLongContextCachedInputTokens: 0,
+        fastLongContextOutputTokens: 0,
+        fastLongContextReasoningOutputTokens: 0,
+        fastLongContextCacheCreationTokens: 0,
+        fastLongContextCacheCreation5mTokens: 0,
+        fastLongContextCacheCreation1hTokens: 0,
+        fastLongContextExtraTotalTokens: 0,
         totalTokens: 0,
         cost: ZERO_COST,
         pricingStatus: "unpriced",
@@ -46,6 +62,7 @@ export function aggregateEvents(events: UsageEvent[], pricingProfiles: PricingPr
 
     addTotals(bucket, event);
     addLongContextTotals(bucket, event, pricingProfiles);
+    addFastTotals(bucket, event, pricingProfiles);
     bucket.pricingModel ||= event.pricingModel;
     bucket.costMultiplier ||= event.costMultiplier;
     bucket.recordedCostUsd = addUsdStrings(bucket.recordedCostUsd, event.recordedCostUsd);
@@ -78,7 +95,25 @@ function calculateBucketCost(
   }
   const pricing = resolvePricing(bucket.pricingModel || bucket.model, pricingProfiles);
   if (!pricing) return { cost: ZERO_COST, status: "unpriced" };
-  return { cost: calculateCost(bucket.agent, bucket, pricing, bucket.costMultiplier || "1"), status: "priced" };
+  return { cost: calculateBucketTokenCost(bucket, pricing), status: "priced" };
+}
+
+function calculateBucketTokenCost(bucket: UsageBucket, pricing: PricingProfile): CostBreakdown {
+  if (!bucket.costMultiplier || !bucket.fastInputTokens) {
+    return calculateCost(bucket.agent, bucket, pricing, bucket.costMultiplier || "1");
+  }
+  const extraMultiplier = subtractDecimalString(bucket.costMultiplier, "1");
+  if (extraMultiplier === "0.000000") return calculateCost(bucket.agent, bucket, pricing);
+
+  const standardCost = calculateCost(bucket.agent, bucket, pricing);
+  const fastPremium = calculateCost(bucket.agent, fastTotalsFromBucket(bucket), pricing, extraMultiplier);
+  return {
+    inputUsd: addUsdStrings(standardCost.inputUsd, fastPremium.inputUsd) || "0.000000",
+    outputUsd: addUsdStrings(standardCost.outputUsd, fastPremium.outputUsd) || "0.000000",
+    cacheReadUsd: addUsdStrings(standardCost.cacheReadUsd, fastPremium.cacheReadUsd) || "0.000000",
+    cacheCreationUsd: addUsdStrings(standardCost.cacheCreationUsd, fastPremium.cacheCreationUsd) || "0.000000",
+    totalUsd: addUsdStrings(standardCost.totalUsd, fastPremium.totalUsd) || "0.000000",
+  };
 }
 
 function addTotals(target: UsageTotals, delta: UsageTotals): void {
@@ -129,10 +164,92 @@ function addLongContextTotals(
     (target.longContextCacheCreation1hTokens || 0) + (event.cacheCreation1hTokens || 0);
   target.longContextExtraTotalTokens = (target.longContextExtraTotalTokens || 0) + (event.extraTotalTokens || 0);
 }
+
+function addFastTotals(
+  target: UsageTotals,
+  event: UsageEvent,
+  pricingProfiles: PricingProfile[],
+): void {
+  if (!event.costMultiplier) return;
+
+  target.fastInputTokens = (target.fastInputTokens || 0) + event.inputTokens;
+  target.fastCachedInputTokens = (target.fastCachedInputTokens || 0) + event.cachedInputTokens;
+  target.fastOutputTokens = (target.fastOutputTokens || 0) + event.outputTokens;
+  target.fastReasoningOutputTokens = (target.fastReasoningOutputTokens || 0) + event.reasoningOutputTokens;
+  target.fastCacheCreationTokens = (target.fastCacheCreationTokens || 0) + event.cacheCreationTokens;
+  target.fastCacheCreation5mTokens = (target.fastCacheCreation5mTokens || 0) + (event.cacheCreation5mTokens || 0);
+  target.fastCacheCreation1hTokens = (target.fastCacheCreation1hTokens || 0) + (event.cacheCreation1hTokens || 0);
+  target.fastExtraTotalTokens = (target.fastExtraTotalTokens || 0) + (event.extraTotalTokens || 0);
+
+  if (event.longContextInputTokens !== undefined) {
+    target.fastLongContextInputTokens =
+      (target.fastLongContextInputTokens || 0) + (event.longContextInputTokens || 0);
+    target.fastLongContextCachedInputTokens =
+      (target.fastLongContextCachedInputTokens || 0) + (event.longContextCachedInputTokens || 0);
+    target.fastLongContextOutputTokens =
+      (target.fastLongContextOutputTokens || 0) + (event.longContextOutputTokens || 0);
+    target.fastLongContextReasoningOutputTokens =
+      (target.fastLongContextReasoningOutputTokens || 0) + (event.longContextReasoningOutputTokens || 0);
+    target.fastLongContextCacheCreationTokens =
+      (target.fastLongContextCacheCreationTokens || 0) + (event.longContextCacheCreationTokens || 0);
+    target.fastLongContextCacheCreation5mTokens =
+      (target.fastLongContextCacheCreation5mTokens || 0) + (event.longContextCacheCreation5mTokens || 0);
+    target.fastLongContextCacheCreation1hTokens =
+      (target.fastLongContextCacheCreation1hTokens || 0) + (event.longContextCacheCreation1hTokens || 0);
+    target.fastLongContextExtraTotalTokens =
+      (target.fastLongContextExtraTotalTokens || 0) + (event.longContextExtraTotalTokens || 0);
+    return;
+  }
+
+  const pricing = resolvePricing(event.pricingModel || event.model, pricingProfiles);
+  if (!pricing?.longContextThresholdTokens || event.inputTokens <= pricing.longContextThresholdTokens) return;
+
+  target.fastLongContextInputTokens = (target.fastLongContextInputTokens || 0) + event.inputTokens;
+  target.fastLongContextCachedInputTokens =
+    (target.fastLongContextCachedInputTokens || 0) + event.cachedInputTokens;
+  target.fastLongContextOutputTokens = (target.fastLongContextOutputTokens || 0) + event.outputTokens;
+  target.fastLongContextReasoningOutputTokens =
+    (target.fastLongContextReasoningOutputTokens || 0) + event.reasoningOutputTokens;
+  target.fastLongContextCacheCreationTokens =
+    (target.fastLongContextCacheCreationTokens || 0) + event.cacheCreationTokens;
+  target.fastLongContextCacheCreation5mTokens =
+    (target.fastLongContextCacheCreation5mTokens || 0) + (event.cacheCreation5mTokens || 0);
+  target.fastLongContextCacheCreation1hTokens =
+    (target.fastLongContextCacheCreation1hTokens || 0) + (event.cacheCreation1hTokens || 0);
+  target.fastLongContextExtraTotalTokens =
+    (target.fastLongContextExtraTotalTokens || 0) + (event.extraTotalTokens || 0);
+}
+
+function fastTotalsFromBucket(bucket: UsageBucket): UsageTotals {
+  return {
+    inputTokens: bucket.fastInputTokens || 0,
+    cachedInputTokens: bucket.fastCachedInputTokens || 0,
+    outputTokens: bucket.fastOutputTokens || 0,
+    reasoningOutputTokens: bucket.fastReasoningOutputTokens || 0,
+    cacheCreationTokens: bucket.fastCacheCreationTokens || 0,
+    cacheCreation5mTokens: bucket.fastCacheCreation5mTokens || 0,
+    cacheCreation1hTokens: bucket.fastCacheCreation1hTokens || 0,
+    extraTotalTokens: bucket.fastExtraTotalTokens || 0,
+    longContextInputTokens: bucket.fastLongContextInputTokens || 0,
+    longContextCachedInputTokens: bucket.fastLongContextCachedInputTokens || 0,
+    longContextOutputTokens: bucket.fastLongContextOutputTokens || 0,
+    longContextReasoningOutputTokens: bucket.fastLongContextReasoningOutputTokens || 0,
+    longContextCacheCreationTokens: bucket.fastLongContextCacheCreationTokens || 0,
+    longContextCacheCreation5mTokens: bucket.fastLongContextCacheCreation5mTokens || 0,
+    longContextCacheCreation1hTokens: bucket.fastLongContextCacheCreation1hTokens || 0,
+    longContextExtraTotalTokens: bucket.fastLongContextExtraTotalTokens || 0,
+    totalTokens: bucket.fastInputTokens || 0,
+  };
+}
 function addUsdStrings(left: string | undefined, right: string | undefined): string | undefined {
   if (!right) return left;
   if (!left) return normalizeUsdString(right);
   return formatMicroUsd(parseUsdToMicro(left) + parseUsdToMicro(right));
+}
+
+function subtractDecimalString(left: string, right: string): string {
+  const difference = parseUsdToMicro(left) - parseUsdToMicro(right);
+  return difference <= 0n ? "0.000000" : formatMicroUsd(difference);
 }
 
 function normalizeUsdString(value: string): string {
