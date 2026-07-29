@@ -72,4 +72,20 @@ describe("Kimi parser", () => {
     expect(after.model).toBe("kimi-for-coding");
     expect(after.pricingModel).toBe("moonshot/kimi-k2.6");
   });
+
+  it("keeps provider-qualified Kimi models compact while preserving provider pricing", () => {
+    const event = parseKimiWireJsonl(
+      JSON.stringify({
+        timestamp: 1776698890.072,
+        message: { type: "StatusUpdate", payload: { token_usage: { input_other: 100 } } },
+      }),
+      {
+        sourcePath: "/tmp/.kimi/sessions/group/provider/wire.jsonl",
+        model: "moonshotai/Kimi-K3",
+      },
+    )[0];
+
+    expect(event.model).toBe("kimi-k3");
+    expect(event.pricingModel).toBe("moonshotai/kimi-k3");
+  });
 });

@@ -267,18 +267,28 @@ export function normalizeAgentModelForUsage(
   let originalModel = normalizeModelWithoutConfiguredAlias(raw);
   if (agent === "codex") originalModel = stripModelDateSuffix(originalModel) || originalModel;
   originalModel ||= "unknown";
+  const providerPricingModel = normalizeProviderModelForPricing(raw);
 
+  const useProviderPricing =
+    providerPricingModel !== displayModel &&
+    providerPricingModel !== originalModel &&
+    resolvePricing(providerPricingModel)?.modelId === providerPricingModel;
   const useOriginalPricing =
     displayModel !== originalModel && originalModel !== "unknown" && resolvePricing(originalModel) !== null;
   return {
     model: displayModel,
     originalModel,
-    ...(useOriginalPricing ? { pricingModel: originalModel } : {}),
+    ...(useProviderPricing
+      ? { pricingModel: providerPricingModel }
+      : useOriginalPricing
+        ? { pricingModel: originalModel }
+        : {}),
   };
 }
 
 function pricingCandidates(model: string): string[] {
   const candidates = [
+    ...pricingCandidatesForCleanedModel(cleanProviderModelId(model)),
     ...pricingCandidatesForCleanedModel(cleanModelId(model)),
     ...pricingCandidatesForCleanedModel(cleanAndResolveConfiguredAlias(model)),
   ];
@@ -328,6 +338,19 @@ function cleanModelId(model: string): string {
   const afterSlash = model.includes("/") ? model.slice(model.lastIndexOf("/") + 1) : model;
   const beforeColon = afterSlash.split(":")[0] || afterSlash;
   return beforeColon.trim().replace(/\[1m\]$/i, "").replaceAll("@", "-").toLowerCase();
+}
+
+function normalizeProviderModelForPricing(model: string): string {
+  let cleaned = cleanProviderModelId(model);
+  cleaned = stripBedrockVersionSuffix(cleaned) || cleaned;
+  cleaned = stripModelDateSuffix(cleaned) || cleaned;
+  return cleaned || "unknown";
+}
+
+function cleanProviderModelId(model: string): string {
+  const trimmed = model.trim().replace(/\[1m\]$/i, "").replaceAll("@", "-").toLowerCase();
+  if (trimmed.startsWith("hf:")) return trimmed;
+  return trimmed.split(":")[0] || trimmed;
 }
 
 function cleanAndResolveConfiguredAlias(model: string): string {

@@ -307,10 +307,11 @@ describe("pricing", () => {
       cacheCreationUsdPerMillion: "3.75",
     });
     expect(resolvePricing("moonshotai/Kimi-K2.7-Code")).toMatchObject({
-      modelId: "kimi-k2.7-code",
-      inputUsdPerMillion: "0.95",
-      outputUsdPerMillion: "4",
-      cacheReadUsdPerMillion: "0.19",
+      modelId: "moonshotai/kimi-k2.7-code",
+      inputUsdPerMillion: "0.73",
+      outputUsdPerMillion: "3.5",
+      cacheReadUsdPerMillion: "0.15",
+      cacheCreationUsdPerMillion: "0",
     });
     expect(resolvePricing("moonshotai/kimi-k2.7-code-highspeed")).toMatchObject({
       modelId: "kimi-k2.7-code-highspeed",
@@ -318,11 +319,56 @@ describe("pricing", () => {
       outputUsdPerMillion: "8",
       cacheReadUsdPerMillion: "0.38",
     });
+    expect(resolvePricing("moonshotai/kimi-k3")).toMatchObject({
+      modelId: "moonshotai/kimi-k3",
+      inputUsdPerMillion: "3",
+      outputUsdPerMillion: "12.5",
+      cacheReadUsdPerMillion: "0.5",
+      cacheCreationUsdPerMillion: "3.75",
+    });
+    expect(resolvePricing("moonshotai/kimi-k3-fast")).toMatchObject({
+      modelId: "moonshotai/kimi-k3-fast",
+      inputUsdPerMillion: "4.5",
+      outputUsdPerMillion: "22.5",
+      cacheReadUsdPerMillion: "0.45",
+      cacheCreationUsdPerMillion: "5.625",
+    });
+    expect(resolvePricing("kimi-k2.7-code-1100b")).toMatchObject({
+      modelId: "kimi-k2.7-code-1100b",
+      inputUsdPerMillion: "0.86",
+      outputUsdPerMillion: "3",
+      cacheReadUsdPerMillion: "0.086",
+      cacheCreationUsdPerMillion: "1.075",
+    });
     expect(resolvePricing("moonshotai/Kimi-K2.6-Fast")).toMatchObject({
       modelId: "kimi-k2.6-fast",
       inputUsdPerMillion: "0.69",
       outputUsdPerMillion: "3.22",
       cacheReadUsdPerMillion: "0.1725",
+    });
+  });
+
+  it("resolves ccusage Claude Opus 5 models.dev pricing", () => {
+    expect(resolvePricing("claude-opus-5")).toMatchObject({
+      modelId: "claude-opus-5",
+      inputUsdPerMillion: "5",
+      outputUsdPerMillion: "25",
+      cacheReadUsdPerMillion: "0.50",
+      cacheCreationUsdPerMillion: "6.25",
+    });
+    expect(resolvePricing("claude-opus-5-fast")).toMatchObject({
+      modelId: "claude-opus-5-fast",
+      inputUsdPerMillion: "12",
+      outputUsdPerMillion: "60",
+      cacheReadUsdPerMillion: "1.2",
+      cacheCreationUsdPerMillion: "15",
+    });
+    expect(resolvePricing("anthropic/claude-opus-5-fast")).toMatchObject({
+      modelId: "anthropic/claude-opus-5-fast",
+      inputUsdPerMillion: "10",
+      outputUsdPerMillion: "50",
+      cacheReadUsdPerMillion: "1",
+      cacheCreationUsdPerMillion: "12.5",
     });
   });
 

@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-07-27
+Last checked: 2026-07-29
 
-Reference ccusage commit: `df89eb7 refactor(nix): manage Nix-built JS tooling with bun2nix (#1489)`
+Reference ccusage commit: `809c4c7 chore(deps): update pullfrog/pullfrog action to v0.1.39 (#1522)`
 
 ## Summary
 
@@ -17,6 +17,8 @@ The 2026-07-10 parity pass found ccusage main packaged as `v20.0.16` and added d
 The 2026-07-21 parity pass found ccusage main packaged as `v20.0.18` and added directly migratable pricing behavior in `fe1c900 feat(pricing): embed Moonshot/Kimi models from models.dev (#1464)`. TokenFlow now includes the new embedded Moonshot/Kimi rows that affect local model resolution, including Kimi K3, Kimi K2.7 Code, and Kimi K2.6/K2.5 fast, flex, lightning, nitro, and highspeed variants. This is pricing-data-only parity; it does not add a new source path, parser, telemetry requirement, permission, or user workflow.
 
 The 2026-07-27 parity pass found ccusage main still packaged as `v20.0.18` and added directly migratable Codex pricing behavior in `409b4a5 fix(codex): dedupe replayed usage (#1435)` and `0d968b9 fix(usage): correct replay and pricing accounting (#1438)`. TokenFlow now resolves the default `gpt-5.6` pricing alias through `gpt-5.6-sol`, applies ccusage's explicit `2x` fast multipliers for GPT-5.6 Sol, Terra, and Luna, and honors recorded Codex `thread_settings_applied` service-tier changes per usage event. Recorded `priority` and legacy `fast` turns receive the model's published fast multiplier, recorded `default` and `standard` turns remain standard priced, settings events without `service_tier` preserve the previous tier, and unsupported recorded tiers clear the recorded tier. Unclassified usage still falls back to the existing local `CODEX_HOME/config.toml` read. Models without a published fast multiplier now stay at standard pricing instead of inventing a fallback multiplier, matching ccusage's current API-equivalent cost behavior.
+
+The 2026-07-29 parity pass found ccusage main packaged as `v20.0.19` and added directly migratable pricing-table behavior in `64932e7 chore(pricing): update models.dev snapshot`. TokenFlow now includes the new Claude Opus 5 and Opus 5 fast pricing rows, Kimi K2.7 Code 1100B, provider-qualified Moonshot Kimi K2.7 Code and Kimi K3/K3 Fast rates, and the Hugging Face Kimi K3 snapshot row. Provider-qualified Kimi model ids are preserved internally as pricing keys when an exact migrated row exists, while displayed bucket models remain compact, so existing aggregation and dashboard semantics do not change.
 
 The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. Those changes were not copied because they are adapter, parser, loader, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 
