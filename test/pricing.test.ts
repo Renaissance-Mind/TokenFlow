@@ -313,6 +313,20 @@ describe("pricing", () => {
       cacheReadUsdPerMillion: "0.15",
       cacheCreationUsdPerMillion: "0",
     });
+    expect(resolvePricing("kimi-k2-7-code")).toMatchObject({
+      modelId: "kimi-k2-7-code",
+      inputUsdPerMillion: "0.95",
+      outputUsdPerMillion: "4",
+      cacheReadUsdPerMillion: "0.95",
+      cacheCreationUsdPerMillion: "1.1875",
+    });
+    expect(resolvePricing("kimi-k2-7-code-highspeed")).toMatchObject({
+      modelId: "kimi-k2-7-code-highspeed",
+      inputUsdPerMillion: "1.90",
+      outputUsdPerMillion: "8",
+      cacheReadUsdPerMillion: "1.9",
+      cacheCreationUsdPerMillion: "2.375",
+    });
     expect(resolvePricing("moonshotai/kimi-k2.7-code-highspeed")).toMatchObject({
       modelId: "kimi-k2.7-code-highspeed",
       inputUsdPerMillion: "1.90",
@@ -332,6 +346,13 @@ describe("pricing", () => {
       outputUsdPerMillion: "22.5",
       cacheReadUsdPerMillion: "0.45",
       cacheCreationUsdPerMillion: "5.625",
+    });
+    expect(resolvePricing("moonshotai/Kimi-K3-TEE")).toMatchObject({
+      modelId: "moonshotai/kimi-k3-tee",
+      inputUsdPerMillion: "3",
+      outputUsdPerMillion: "15",
+      cacheReadUsdPerMillion: "1.5",
+      cacheCreationUsdPerMillion: "3.75",
     });
     expect(resolvePricing("kimi-k2.7-code-1100b")).toMatchObject({
       modelId: "kimi-k2.7-code-1100b",

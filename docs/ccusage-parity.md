@@ -1,12 +1,12 @@
 # ccusage Parity Status
 
-Last checked: 2026-07-29
+Last checked: 2026-07-30
 
-Reference ccusage commit: `809c4c7 chore(deps): update pullfrog/pullfrog action to v0.1.39 (#1522)`
+Reference ccusage commit: `a71d92e chore(pricing): update LiteLLM snapshot`
 
 ## Summary
 
-TokenFlow now supports every ccusage local source adapter that can be consumed without requiring a new user-side telemetry setup, except GitHub Copilot CLI OpenTelemetry export.
+TokenFlow now supports every ccusage local source adapter that can be consumed without requiring a new user-side telemetry setup, except GitHub Copilot CLI OpenTelemetry export and the newly added Antigravity adapter.
 
 TokenFlow intentionally stores agent and model separately, so adapter display prefixes used by ccusage, such as `[pi]` or `[openclaw]`, are not copied into `model`. This keeps pricing resolution shared across agents and lets the dashboard distinguish sources by the `agent` field.
 
@@ -20,7 +20,9 @@ The 2026-07-27 parity pass found ccusage main still packaged as `v20.0.18` and a
 
 The 2026-07-29 parity pass found ccusage main packaged as `v20.0.19` and added directly migratable pricing-table behavior in `64932e7 chore(pricing): update models.dev snapshot`. TokenFlow now includes the new Claude Opus 5 and Opus 5 fast pricing rows, Kimi K2.7 Code 1100B, provider-qualified Moonshot Kimi K2.7 Code and Kimi K3/K3 Fast rates, and the Hugging Face Kimi K3 snapshot row. Provider-qualified Kimi model ids are preserved internally as pricing keys when an exact migrated row exists, while displayed bucket models remain compact, so existing aggregation and dashboard semantics do not change.
 
-The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. Those changes were not copied because they are adapter, parser, loader, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
+The 2026-07-30 parity pass found ccusage main still packaged as `v20.0.19` and added directly migratable pricing-table behavior in `aa8c7b1 chore(pricing): update models.dev snapshot`. TokenFlow now includes the updated hyphenated `kimi-k2-7-code` and `kimi-k2-7-code-highspeed` rows from the latest models.dev snapshot, including ccusage's new cache-read rates, plus the provider-qualified `moonshotai/Kimi-K3-TEE` pricing row. The dotted `kimi-k2.7-code` rows remain separate because ccusage still carries them as distinct pricing keys with distinct cache-read rates.
+
+The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. The 2026-07-30 pass also found ccusage's new experimental Antigravity adapter, which scans `~/.gemini/antigravity-cli/conversations/**/*.db` or `ANTIGRAVITY_DATA_DIR` conversation databases through a new SQLite/protobuf parser. Those changes were not copied because they are adapter, parser, loader, path, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 
 ## Source Adapter Matrix
 
@@ -40,6 +42,7 @@ The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.
 | `kilo` | Supported | Kilo `kilo.db` message rows. Requires `sqlite3`. |
 | `openclaw` | Supported | OpenClaw-compatible JSONL sessions and archived/reset JSONL names, with model-change fallback state. |
 | `pi` | Supported | Pi agent session JSONL assistant usage rows. ccusage named pi-format stores are non-pricing config/reporting drift and were not copied in the 2026-07-10 pricing sync. |
+| `antigravity` | Deferred | ccusage added experimental Antigravity SQLite/protobuf parsing under `~/.gemini/antigravity-cli/conversations/**/*.db` with optional `ANTIGRAVITY_DATA_DIR`. This is a new adapter/parser/path surface, not pricing behavior. |
 | `copilot` | Deferred | ccusage reads GitHub Copilot CLI OpenTelemetry JSONL from `~/.copilot/otel/*.jsonl` or `COPILOT_OTEL_FILE_EXPORTER_PATH`. This requires users to enable OTEL file export before sessions; older sessions cannot be recovered. Treat as a separate product decision rather than a no-touch local log migration. |
 | `all` | Not applicable | ccusage meta-command; TokenFlow already scans all configured local sources during `status` and `sync`. |
 
