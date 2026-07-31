@@ -204,6 +204,7 @@ export const BUILTIN_PRICING: PricingProfile[] = [
   p("kimi-k2.7-code-highspeed", "Kimi K2.7 Code Highspeed", "1.90", "8", "0.38", "2.375"),
   p("kimi-k2.7-code-nitro", "Kimi K2.7 Code Nitro", "0.275", "1.10", "0.0275", "0.34375"),
   p("kimi-k3", "Kimi K3", "3", "15", "0.3", "3.75"),
+  p("kimi-k3-eco", "Kimi K3 Eco", "1", "4", "0.1", "1.25"),
   p("hf:moonshotai/kimi-k3", "Kimi K3 (Hugging Face)", "3", "15", "0.45", "3.75"),
   p("moonshotai/kimi-k3", "Kimi K3 (Moonshot)", "3", "12.5", "0.5", "3.75"),
   p("moonshotai/kimi-k3-fast", "Kimi K3 Fast (Moonshot)", "4.5", "22.5", "0.45", "5.625"),

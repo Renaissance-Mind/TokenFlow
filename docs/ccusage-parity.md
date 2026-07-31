@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-07-30
+Last checked: 2026-07-31
 
-Reference ccusage commit: `a71d92e chore(pricing): update LiteLLM snapshot`
+Reference ccusage commit: `90e296e chore(pricing): update LiteLLM snapshot`
 
 ## Summary
 
@@ -21,6 +21,8 @@ The 2026-07-27 parity pass found ccusage main still packaged as `v20.0.18` and a
 The 2026-07-29 parity pass found ccusage main packaged as `v20.0.19` and added directly migratable pricing-table behavior in `64932e7 chore(pricing): update models.dev snapshot`. TokenFlow now includes the new Claude Opus 5 and Opus 5 fast pricing rows, Kimi K2.7 Code 1100B, provider-qualified Moonshot Kimi K2.7 Code and Kimi K3/K3 Fast rates, and the Hugging Face Kimi K3 snapshot row. Provider-qualified Kimi model ids are preserved internally as pricing keys when an exact migrated row exists, while displayed bucket models remain compact, so existing aggregation and dashboard semantics do not change.
 
 The 2026-07-30 parity pass found ccusage main still packaged as `v20.0.19` and added directly migratable pricing-table behavior in `aa8c7b1 chore(pricing): update models.dev snapshot`. TokenFlow now includes the updated hyphenated `kimi-k2-7-code` and `kimi-k2-7-code-highspeed` rows from the latest models.dev snapshot, including ccusage's new cache-read rates, plus the provider-qualified `moonshotai/Kimi-K3-TEE` pricing row. The dotted `kimi-k2.7-code` rows remain separate because ccusage still carries them as distinct pricing keys with distinct cache-read rates.
+
+The 2026-07-31 parity pass found ccusage main at `90e296e chore(pricing): update LiteLLM snapshot` with models.dev snapshot additions for `anthropic/claude-3-7-sonnet-20250219`, `kimi-k3-eco`, `moonshot-ai/kimi-k2.7-code`, `moonshot-ai/kimi-k3`, and `moonshot/kimi-k2.7-code-highspeed`. TokenFlow added the new `kimi-k3-eco` pricing row. The other added provider-qualified rows already price equivalently through TokenFlow's existing namespace and compact Kimi/Claude model normalization, so they are covered by regression tests without adding duplicate builtin rows.
 
 The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. The 2026-07-30 pass also found ccusage's new experimental Antigravity adapter, which scans `~/.gemini/antigravity-cli/conversations/**/*.db` or `ANTIGRAVITY_DATA_DIR` conversation databases through a new SQLite/protobuf parser. Those changes were not copied because they are adapter, parser, loader, path, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 
