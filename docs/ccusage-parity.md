@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-07-31
+Last checked: 2026-08-01
 
-Reference ccusage commit: `90e296e chore(pricing): update LiteLLM snapshot`
+Reference ccusage commit: `e93a1fa chore(deps): update rust crate smallvec to 1.15.2 (#1537)`
 
 ## Summary
 
@@ -24,7 +24,11 @@ The 2026-07-30 parity pass found ccusage main still packaged as `v20.0.19` and a
 
 The 2026-07-31 parity pass found ccusage main at `90e296e chore(pricing): update LiteLLM snapshot` with models.dev snapshot additions for `anthropic/claude-3-7-sonnet-20250219`, `kimi-k3-eco`, `moonshot-ai/kimi-k2.7-code`, `moonshot-ai/kimi-k3`, and `moonshot/kimi-k2.7-code-highspeed`. TokenFlow added the new `kimi-k3-eco` pricing row. The other added provider-qualified rows already price equivalently through TokenFlow's existing namespace and compact Kimi/Claude model normalization, so they are covered by regression tests without adding duplicate builtin rows.
 
+The 2026-08-01 parity pass found ccusage main at `e93a1fa chore(deps): update rust crate smallvec to 1.15.2 (#1537)`. Its `fd765b4 chore(pricing): update LiteLLM snapshot` pin moved LiteLLM from `79d49620` to `83c256f`, changing only GPT-5.6 pricing entries. TokenFlow now mirrors the lowered GPT-5.6 Terra and Luna standard, cache-read, cache-creation, long-context, and fast-derived rates, and adds exact Bedrock Mantle GPT-5.6 Terra/Luna provider-qualified pricing rows. The new LiteLLM flex long-context fields for GPT-5.6 Sol/Terra/Luna were not copied because TokenFlow does not currently collect a local flex service-tier signal.
+
 The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. The 2026-07-30 pass also found ccusage's new experimental Antigravity adapter, which scans `~/.gemini/antigravity-cli/conversations/**/*.db` or `ANTIGRAVITY_DATA_DIR` conversation databases through a new SQLite/protobuf parser. Those changes were not copied because they are adapter, parser, loader, path, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
+
+The 2026-08-01 pass also observed dependency/workflow-only upstream drift in `.github/workflows/pullfrog.yml`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, and `rust/Cargo.toml`; those changes were not copied because they do not affect TokenFlow pricing behavior.
 
 ## Source Adapter Matrix
 

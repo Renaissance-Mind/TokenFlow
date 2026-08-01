@@ -172,9 +172,41 @@ describe("pricing", () => {
     });
     expect(resolvePricing("gpt-5.6-terra")).toMatchObject({
       modelId: "gpt-5.6-terra",
-      inputUsdPerMillion: "2.50",
-      outputAbove200kUsdPerMillion: "22.5",
+      inputUsdPerMillion: "2",
+      outputUsdPerMillion: "12",
+      cacheCreationUsdPerMillion: "2.50",
+      cacheReadUsdPerMillion: "0.20",
+      inputAbove200kUsdPerMillion: "4",
+      outputAbove200kUsdPerMillion: "18",
+      cacheCreationAbove200kUsdPerMillion: "5",
+      cacheReadAbove200kUsdPerMillion: "0.40",
       longContextThresholdTokens: 272_000,
+    });
+    expect(resolvePricing("gpt-5.6-luna")).toMatchObject({
+      modelId: "gpt-5.6-luna",
+      inputUsdPerMillion: "0.20",
+      outputUsdPerMillion: "1.20",
+      cacheCreationUsdPerMillion: "0.25",
+      cacheReadUsdPerMillion: "0.02",
+      inputAbove200kUsdPerMillion: "0.40",
+      outputAbove200kUsdPerMillion: "1.80",
+      cacheCreationAbove200kUsdPerMillion: "0.50",
+      cacheReadAbove200kUsdPerMillion: "0.04",
+      longContextThresholdTokens: 272_000,
+    });
+    expect(resolvePricing("bedrock_mantle/openai.gpt-5.6-terra")).toMatchObject({
+      modelId: "bedrock_mantle/openai.gpt-5.6-terra",
+      inputUsdPerMillion: "2.20",
+      outputUsdPerMillion: "13.20",
+      cacheCreationUsdPerMillion: "2.75",
+      cacheReadUsdPerMillion: "0.22",
+    });
+    expect(resolvePricing("bedrock_mantle/openai.gpt-5.6-luna")).toMatchObject({
+      modelId: "bedrock_mantle/openai.gpt-5.6-luna",
+      inputUsdPerMillion: "0.22",
+      outputUsdPerMillion: "1.32",
+      cacheCreationUsdPerMillion: "0.275",
+      cacheReadUsdPerMillion: "0.022",
     });
     expect(resolvePricing("gpt-5.5")).toMatchObject({
       inputAbove200kUsdPerMillion: "10",
