@@ -1,12 +1,12 @@
 # ccusage Parity Status
 
-Last checked: 2026-08-02
+Last checked: 2026-08-04
 
-Reference ccusage commit: `11b6862 chore(deps): update dependency vitepress-plugin-group-icons to ^1.7.6 (#1559)`
+Reference ccusage commit: `5fd1591 chore(pricing): update models.dev snapshot`
 
 ## Summary
 
-TokenFlow now supports every ccusage local source adapter that can be consumed without requiring a new user-side telemetry setup, except GitHub Copilot CLI OpenTelemetry export and the newly added Antigravity adapter.
+TokenFlow now supports every ccusage local source adapter that can be consumed without requiring a new user-side telemetry setup, except GitHub Copilot CLI OpenTelemetry export.
 
 TokenFlow intentionally stores agent and model separately, so adapter display prefixes used by ccusage, such as `[pi]` or `[openclaw]`, are not copied into `model`. This keeps pricing resolution shared across agents and lets the dashboard distinguish sources by the `agent` field.
 
@@ -28,9 +28,11 @@ The 2026-08-01 parity pass found ccusage main at `e93a1fa chore(deps): update ru
 
 The 2026-08-02 parity pass found ccusage main at `11b6862 chore(deps): update dependency vitepress-plugin-group-icons to ^1.7.6 (#1559)`. Its `7fcbda3 chore(pricing): update models.dev snapshot` commit added directly migratable Kimi pricing-table behavior: `Pro/moonshotai/Kimi-K2.5` gained an explicit cache-read rate, `moonshotai/kimi-k2.5` changed input, output, cache-read, cache-write, and context metadata, and `kimi-k3-fast` was added. TokenFlow now preserves the provider-qualified Kimi K2.5 rows internally where exact pricing keys exist and adds the generic Kimi K3 Fast row; display aggregation remains compact when source adapters provide compact model ids.
 
+The 2026-08-04 parity pass found ccusage main at `5fd1591 chore(pricing): update models.dev snapshot`. Its `d0d53aa`, `d63d392`, `dfc599f`, and `5fd1591` models.dev snapshot commits added directly migratable pricing-table behavior for Claude latest/Fable/Sonnet 5, Claude thinking aliases, provider-specific Stealth Claude Opus 4.8, Kimi TEE/provider/latest/thinking rows, Kimi K2 Instruct variants, Kimi K2 0905 provider rates, Kimi K3 Fast API, and updated Moonshot Kimi K3 TEE cache-read pricing. TokenFlow now preserves exact provider/colon pricing keys where ccusage prices them differently from the compact display model, while keeping displayed bucket models compact. Pricing lookup also keeps provider `:thinking` suffixes as exact pricing candidates so Kimi and Claude thinking rows can resolve without changing dashboard aggregation.
+
 The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. The 2026-07-30 pass also found ccusage's new experimental Antigravity adapter, which scans `~/.gemini/antigravity-cli/conversations/**/*.db` or `ANTIGRAVITY_DATA_DIR` conversation databases through a new SQLite/protobuf parser. Those changes were not copied because they are adapter, parser, loader, path, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 
-The 2026-08-01 pass also observed dependency/workflow-only upstream drift in `.github/workflows/pullfrog.yml`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, and `rust/Cargo.toml`; those changes were not copied because they do not affect TokenFlow pricing behavior. The 2026-08-02 pass also observed docs, agent-skill, workflow, lockfile, and Rust dependency churn outside TokenFlow's pricing surface; those changes were left report-only.
+The 2026-08-01 pass also observed dependency/workflow-only upstream drift in `.github/workflows/pullfrog.yml`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, and `rust/Cargo.toml`; those changes were not copied because they do not affect TokenFlow pricing behavior. The 2026-08-02 pass also observed docs, agent-skill, workflow, lockfile, and Rust dependency churn outside TokenFlow's pricing surface; those changes were left report-only. The 2026-08-04 pass observed `8028fd4 revert(antigravity): remove the Antigravity adapter until #1487 lands (#1569)` plus docs/schema/CLI help changes, dependency bumps, and workflow churn; only pricing-table and pricing-resolution behavior was migrated.
 
 ## Source Adapter Matrix
 
@@ -50,7 +52,7 @@ The 2026-08-01 pass also observed dependency/workflow-only upstream drift in `.g
 | `kilo` | Supported | Kilo `kilo.db` message rows. Requires `sqlite3`. |
 | `openclaw` | Supported | OpenClaw-compatible JSONL sessions and archived/reset JSONL names, with model-change fallback state. |
 | `pi` | Supported | Pi agent session JSONL assistant usage rows. ccusage named pi-format stores are non-pricing config/reporting drift and were not copied in the 2026-07-10 pricing sync. |
-| `antigravity` | Deferred | ccusage added experimental Antigravity SQLite/protobuf parsing under `~/.gemini/antigravity-cli/conversations/**/*.db` with optional `ANTIGRAVITY_DATA_DIR`. This is a new adapter/parser/path surface, not pricing behavior. |
+| `antigravity` | Not applicable | ccusage reverted the experimental Antigravity adapter in `8028fd4`, so there is no current upstream adapter surface to mirror. |
 | `copilot` | Deferred | ccusage reads GitHub Copilot CLI OpenTelemetry JSONL from `~/.copilot/otel/*.jsonl` or `COPILOT_OTEL_FILE_EXPORTER_PATH`. This requires users to enable OTEL file export before sessions; older sessions cannot be recovered. Treat as a separate product decision rather than a no-touch local log migration. |
 | `all` | Not applicable | ccusage meta-command; TokenFlow already scans all configured local sources during `status` and `sync`. |
 

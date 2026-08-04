@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { calculateCost, normalizeModelForPricing, resolvePricing } from "../src/pricing.js";
+import {
+  calculateCost,
+  normalizeAgentModelForUsage,
+  normalizeModelForPricing,
+  resolvePricing,
+} from "../src/pricing.js";
 
 describe("pricing", () => {
   it("subtracts cache-read tokens from Codex fresh input before applying input price", () => {
@@ -147,6 +152,13 @@ describe("pricing", () => {
       outputUsdPerMillion: "50",
       cacheReadUsdPerMillion: "1",
       cacheCreationUsdPerMillion: "12.50",
+    });
+    expect(resolvePricing("anthropic/claude-fable-latest")).toMatchObject({
+      modelId: "claude-fable-latest",
+      inputUsdPerMillion: "10",
+      outputUsdPerMillion: "50",
+      cacheReadUsdPerMillion: "1",
+      cacheCreationUsdPerMillion: "12.5",
     });
     expect(resolvePricing("openai/gpt-5.3-codex-spark")).toMatchObject({
       modelId: "gpt-5.3-codex-spark",
@@ -352,6 +364,24 @@ describe("pricing", () => {
       cacheReadUsdPerMillion: "0.125",
       cacheCreationUsdPerMillion: "0.625",
     });
+    expect(resolvePricing("moonshotai/kimi-k2.5:thinking")).toMatchObject({
+      modelId: "moonshotai/kimi-k2.5:thinking",
+      inputUsdPerMillion: "0.3",
+      outputUsdPerMillion: "1.9",
+      cacheReadUsdPerMillion: "0.15",
+      cacheCreationUsdPerMillion: "0.375",
+    });
+    expect(normalizeAgentModelForUsage("kimi", "moonshotai/kimi-k2.5:thinking")).toMatchObject({
+      model: "kimi-k2.5",
+      pricingModel: "moonshotai/kimi-k2.5:thinking",
+    });
+    expect(resolvePricing("moonshotai/kimi-k2.6:thinking")).toMatchObject({
+      modelId: "moonshotai/kimi-k2.6:thinking",
+      inputUsdPerMillion: "0.5",
+      outputUsdPerMillion: "2.6",
+      cacheReadUsdPerMillion: "0.125",
+      cacheCreationUsdPerMillion: "0.625",
+    });
     expect(resolvePricing("moonshotai/Kimi-K2.7-Code")).toMatchObject({
       modelId: "moonshotai/kimi-k2.7-code",
       inputUsdPerMillion: "0.73",
@@ -404,6 +434,13 @@ describe("pricing", () => {
       modelId: "moonshotai/kimi-k3-tee",
       inputUsdPerMillion: "3",
       outputUsdPerMillion: "15",
+      cacheReadUsdPerMillion: "0.3",
+      cacheCreationUsdPerMillion: "3.75",
+    });
+    expect(resolvePricing("TEE/kimi-k3")).toMatchObject({
+      modelId: "tee/kimi-k3",
+      inputUsdPerMillion: "3",
+      outputUsdPerMillion: "15",
       cacheReadUsdPerMillion: "1.5",
       cacheCreationUsdPerMillion: "3.75",
     });
@@ -445,6 +482,27 @@ describe("pricing", () => {
       outputUsdPerMillion: "3.22",
       cacheReadUsdPerMillion: "0.1725",
     });
+    expect(resolvePricing("moonshotai/kimi-k2-0905")).toMatchObject({
+      modelId: "moonshotai/kimi-k2-0905",
+      inputUsdPerMillion: "0.6",
+      outputUsdPerMillion: "2.5",
+      cacheReadUsdPerMillion: "0.15",
+      cacheCreationUsdPerMillion: "0.75",
+    });
+    expect(resolvePricing("moonshotai/kimi-latest")).toMatchObject({
+      modelId: "moonshotai/kimi-latest",
+      inputUsdPerMillion: "2.5",
+      outputUsdPerMillion: "13.5",
+      cacheReadUsdPerMillion: "0.25",
+      cacheCreationUsdPerMillion: "3.125",
+    });
+    expect(resolvePricing("~moonshotai/kimi-latest")).toMatchObject({
+      modelId: "~moonshotai/kimi-latest",
+      inputUsdPerMillion: "2.9",
+      outputUsdPerMillion: "14",
+      cacheReadUsdPerMillion: "0.29",
+      cacheCreationUsdPerMillion: "3.625",
+    });
   });
 
   it("resolves ccusage Claude Opus 5 models.dev pricing", () => {
@@ -468,6 +526,27 @@ describe("pricing", () => {
       outputUsdPerMillion: "50",
       cacheReadUsdPerMillion: "1",
       cacheCreationUsdPerMillion: "12.5",
+    });
+    expect(resolvePricing("anthropic/claude-sonnet-latest")).toMatchObject({
+      modelId: "claude-sonnet-latest",
+      inputUsdPerMillion: "2",
+      outputUsdPerMillion: "10",
+      cacheReadUsdPerMillion: "0.2",
+      cacheCreationUsdPerMillion: "2.5",
+    });
+    expect(resolvePricing("anthropic/claude-sonnet-5:thinking")).toMatchObject({
+      modelId: "claude-sonnet-5",
+      inputUsdPerMillion: "2",
+      outputUsdPerMillion: "10",
+      cacheReadUsdPerMillion: "0.2",
+      cacheCreationUsdPerMillion: "2.5",
+    });
+    expect(resolvePricing("stealth/claude-opus-4.8")).toMatchObject({
+      modelId: "stealth/claude-opus-4.8",
+      inputUsdPerMillion: "4",
+      outputUsdPerMillion: "20",
+      cacheReadUsdPerMillion: "0.4",
+      cacheCreationUsdPerMillion: "5",
     });
   });
 

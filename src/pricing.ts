@@ -350,7 +350,7 @@ function normalizeProviderModelForPricing(model: string): string {
 function cleanProviderModelId(model: string): string {
   const trimmed = model.trim().replace(/\[1m\]$/i, "").replaceAll("@", "-").toLowerCase();
   if (trimmed.startsWith("hf:")) return trimmed;
-  return trimmed.split(":")[0] || trimmed;
+  return trimmed || "unknown";
 }
 
 function cleanAndResolveConfiguredAlias(model: string): string {
