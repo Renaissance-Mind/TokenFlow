@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-08-04
+Last checked: 2026-08-05
 
-Reference ccusage commit: `5fd1591 chore(pricing): update models.dev snapshot`
+Reference ccusage commit: `9ad3c77 chore(pricing): update LiteLLM snapshot`
 
 ## Summary
 
@@ -30,9 +30,12 @@ The 2026-08-02 parity pass found ccusage main at `11b6862 chore(deps): update de
 
 The 2026-08-04 parity pass found ccusage main at `5fd1591 chore(pricing): update models.dev snapshot`. Its `d0d53aa`, `d63d392`, `dfc599f`, and `5fd1591` models.dev snapshot commits added directly migratable pricing-table behavior for Claude latest/Fable/Sonnet 5, Claude thinking aliases, provider-specific Stealth Claude Opus 4.8, Kimi TEE/provider/latest/thinking rows, Kimi K2 Instruct variants, Kimi K2 0905 provider rates, Kimi K3 Fast API, and updated Moonshot Kimi K3 TEE cache-read pricing. TokenFlow now preserves exact provider/colon pricing keys where ccusage prices them differently from the compact display model, while keeping displayed bucket models compact. Pricing lookup also keeps provider `:thinking` suffixes as exact pricing candidates so Kimi and Claude thinking rows can resolve without changing dashboard aggregation.
 
+The 2026-08-05 parity pass found ccusage main at `9ad3c77 chore(pricing): update LiteLLM snapshot`. Its models.dev snapshot commits added directly migratable region-qualified Claude/Kimi pricing rows and updated `moonshotai/Kimi-K2.6-TEE`; TokenFlow now resolves ccusage's `@eu` models through its normalized `-eu` pricing keys, including Claude Haiku/Sonnet/Opus regional rows and `kimi-k3@eu`, while keeping displayed bucket models normalized. The LiteLLM snapshot also changed Azure GPT-5.6 Terra/Luna base rates and added Gemini Robotics ER preview token pricing; TokenFlow now includes exact Azure GPT-5.6 provider rows and compact Gemini Robotics rows. LiteLLM metadata-only additions such as Bedrock strict-tool flags and Gemini search-context query prices were not copied because TokenFlow's local collector prices token buckets, not provider feature metadata or search query billing.
+
 The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. The 2026-07-30 pass also found ccusage's new experimental Antigravity adapter, which scans `~/.gemini/antigravity-cli/conversations/**/*.db` or `ANTIGRAVITY_DATA_DIR` conversation databases through a new SQLite/protobuf parser. Those changes were not copied because they are adapter, parser, loader, path, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 
 The 2026-08-01 pass also observed dependency/workflow-only upstream drift in `.github/workflows/pullfrog.yml`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, and `rust/Cargo.toml`; those changes were not copied because they do not affect TokenFlow pricing behavior. The 2026-08-02 pass also observed docs, agent-skill, workflow, lockfile, and Rust dependency churn outside TokenFlow's pricing surface; those changes were left report-only. The 2026-08-04 pass observed `8028fd4 revert(antigravity): remove the Antigravity adapter until #1487 lands (#1569)` plus docs/schema/CLI help changes, dependency bumps, and workflow churn; only pricing-table and pricing-resolution behavior was migrated.
+The 2026-08-05 pass also observed `b6128f1` dependency metadata churn in `pnpm-lock.yaml` and `pnpm-workspace.yaml`; those changes were left report-only.
 
 ## Source Adapter Matrix
 

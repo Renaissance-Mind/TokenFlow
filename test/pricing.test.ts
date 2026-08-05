@@ -220,6 +220,20 @@ describe("pricing", () => {
       cacheCreationUsdPerMillion: "0.275",
       cacheReadUsdPerMillion: "0.022",
     });
+    expect(resolvePricing("azure/gpt-5.6-terra")).toMatchObject({
+      modelId: "azure/gpt-5.6-terra",
+      inputUsdPerMillion: "2",
+      outputUsdPerMillion: "12",
+      cacheCreationUsdPerMillion: "2.5",
+      cacheReadUsdPerMillion: "0.20",
+    });
+    expect(resolvePricing("azure/eu/gpt-5.6-luna")).toMatchObject({
+      modelId: "azure/eu/gpt-5.6-luna",
+      inputUsdPerMillion: "0.22",
+      outputUsdPerMillion: "1.32",
+      cacheCreationUsdPerMillion: "0.275",
+      cacheReadUsdPerMillion: "0.022",
+    });
     expect(resolvePricing("gpt-5.5")).toMatchObject({
       inputAbove200kUsdPerMillion: "10",
       outputAbove200kUsdPerMillion: "45",
@@ -482,6 +496,20 @@ describe("pricing", () => {
       outputUsdPerMillion: "3.22",
       cacheReadUsdPerMillion: "0.1725",
     });
+    expect(resolvePricing("moonshotai/Kimi-K2.6-TEE")).toMatchObject({
+      modelId: "moonshotai/kimi-k2.6-tee",
+      inputUsdPerMillion: "0.58",
+      outputUsdPerMillion: "3.4",
+      cacheReadUsdPerMillion: "0.058",
+      cacheCreationUsdPerMillion: "0.725",
+    });
+    expect(resolvePricing("kimi-k3@eu")).toMatchObject({
+      modelId: "kimi-k3-eu",
+      inputUsdPerMillion: "2.25",
+      outputUsdPerMillion: "11.25",
+      cacheReadUsdPerMillion: "0.225",
+      cacheCreationUsdPerMillion: "2.8125",
+    });
     expect(resolvePricing("moonshotai/kimi-k2-0905")).toMatchObject({
       modelId: "moonshotai/kimi-k2-0905",
       inputUsdPerMillion: "0.6",
@@ -547,6 +575,44 @@ describe("pricing", () => {
       outputUsdPerMillion: "20",
       cacheReadUsdPerMillion: "0.4",
       cacheCreationUsdPerMillion: "5",
+    });
+    expect(resolvePricing("claude-opus-5@eu")).toMatchObject({
+      modelId: "claude-opus-5-eu",
+      inputUsdPerMillion: "5.5",
+      outputUsdPerMillion: "27.5",
+      cacheReadUsdPerMillion: "0.55",
+      cacheCreationUsdPerMillion: "6.875",
+    });
+    expect(resolvePricing("claude-sonnet-5@eu")).toMatchObject({
+      modelId: "claude-sonnet-5-eu",
+      inputUsdPerMillion: "2.2",
+      outputUsdPerMillion: "11",
+      cacheReadUsdPerMillion: "0.22",
+      cacheCreationUsdPerMillion: "2.75",
+    });
+    expect(resolvePricing("claude-haiku-4-5@eu")).toMatchObject({
+      modelId: "claude-haiku-4-5-eu",
+      inputUsdPerMillion: "1.1",
+      outputUsdPerMillion: "5.5",
+      cacheReadUsdPerMillion: "0.11",
+      cacheCreationUsdPerMillion: "1.375",
+    });
+  });
+
+  it("resolves ccusage LiteLLM Gemini Robotics pricing", () => {
+    expect(resolvePricing("gemini/gemini-robotics-er-2-preview")).toMatchObject({
+      modelId: "gemini-robotics-er-2-preview",
+      inputUsdPerMillion: "2",
+      outputUsdPerMillion: "10",
+      cacheReadUsdPerMillion: "0.2",
+      cacheCreationUsdPerMillion: "2.5",
+    });
+    expect(resolvePricing("gemini-robotics-er-1.6-preview")).toMatchObject({
+      modelId: "gemini-robotics-er-1.6-preview",
+      inputUsdPerMillion: "1",
+      outputUsdPerMillion: "5",
+      cacheReadUsdPerMillion: "0.1",
+      cacheCreationUsdPerMillion: "1.25",
     });
   });
 
