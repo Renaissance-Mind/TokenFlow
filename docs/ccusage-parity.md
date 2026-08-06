@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-08-05
+Last checked: 2026-08-06
 
-Reference ccusage commit: `9ad3c77 chore(pricing): update LiteLLM snapshot`
+Reference ccusage commit: `b76e2da chore(pricing): update LiteLLM snapshot`
 
 ## Summary
 
@@ -31,6 +31,8 @@ The 2026-08-02 parity pass found ccusage main at `11b6862 chore(deps): update de
 The 2026-08-04 parity pass found ccusage main at `5fd1591 chore(pricing): update models.dev snapshot`. Its `d0d53aa`, `d63d392`, `dfc599f`, and `5fd1591` models.dev snapshot commits added directly migratable pricing-table behavior for Claude latest/Fable/Sonnet 5, Claude thinking aliases, provider-specific Stealth Claude Opus 4.8, Kimi TEE/provider/latest/thinking rows, Kimi K2 Instruct variants, Kimi K2 0905 provider rates, Kimi K3 Fast API, and updated Moonshot Kimi K3 TEE cache-read pricing. TokenFlow now preserves exact provider/colon pricing keys where ccusage prices them differently from the compact display model, while keeping displayed bucket models compact. Pricing lookup also keeps provider `:thinking` suffixes as exact pricing candidates so Kimi and Claude thinking rows can resolve without changing dashboard aggregation.
 
 The 2026-08-05 parity pass found ccusage main at `9ad3c77 chore(pricing): update LiteLLM snapshot`. Its models.dev snapshot commits added directly migratable region-qualified Claude/Kimi pricing rows and updated `moonshotai/Kimi-K2.6-TEE`; TokenFlow now resolves ccusage's `@eu` models through its normalized `-eu` pricing keys, including Claude Haiku/Sonnet/Opus regional rows and `kimi-k3@eu`, while keeping displayed bucket models normalized. The LiteLLM snapshot also changed Azure GPT-5.6 Terra/Luna base rates and added Gemini Robotics ER preview token pricing; TokenFlow now includes exact Azure GPT-5.6 provider rows and compact Gemini Robotics rows. LiteLLM metadata-only additions such as Bedrock strict-tool flags and Gemini search-context query prices were not copied because TokenFlow's local collector prices token buckets, not provider feature metadata or search query billing.
+
+The 2026-08-06 parity pass found ccusage main at `b76e2da chore(pricing): update LiteLLM snapshot`. Its models.dev snapshot commits added `claude-3-7-sonnet-latest`, updated raw models.dev Claude alias rows such as `claude-4-5-sonnet`, `claude-4-6-sonnet`, and `claude-opus4-*`, updated provider-qualified Moonshot `moonshotai/kimi-k2.7-code` and `moonshotai/Kimi-K3` rates, and removed the generic `kimi-k2-instruct` row. TokenFlow now includes the new Claude alias rows and mirrors the directly used Moonshot provider rates; the removed generic Kimi row required no deletion because TokenFlow only carried provider-qualified Kimi K2 Instruct rows. The LiteLLM snapshot renamed `replicateopenai/gpt-oss-20b` to `replicate/openai/gpt-oss-20b`, so TokenFlow now includes the slash-qualified Replicate GPT-OSS token pricing key.
 
 The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. The 2026-07-30 pass also found ccusage's new experimental Antigravity adapter, which scans `~/.gemini/antigravity-cli/conversations/**/*.db` or `ANTIGRAVITY_DATA_DIR` conversation databases through a new SQLite/protobuf parser. Those changes were not copied because they are adapter, parser, loader, path, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 

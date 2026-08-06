@@ -294,6 +294,7 @@ describe("pricing", () => {
       ["claude-sonnet-4-6", "3", "15", "0.30", "3.75"],
       ["claude-haiku-4-5", "1", "5", "0.10", "1.25"],
       ["claude-3-7-sonnet-20250219", "3", "15", "0.30", "3.75"],
+      ["claude-3-7-sonnet-latest", "3", "15", "0.30", "3.75"],
       ["claude-sonnet-4-5-20250929-thinking", "3", "15", "0.30", "3.75"],
       ["claude-3-opus", "15", "75", "1.50", "18.75"],
       ["claude-3-sonnet", "3", "15", "0.30", "3.75"],
@@ -316,6 +317,36 @@ describe("pricing", () => {
       cacheReadAbove200kUsdPerMillion: "0.6",
       cacheCreationAbove200kUsdPerMillion: "7.5",
     });
+
+    expect(resolvePricing("claude-4-5-sonnet")).toMatchObject({
+      modelId: "claude-4-5-sonnet",
+      inputUsdPerMillion: "2.989",
+      outputUsdPerMillion: "14.945",
+      cacheReadUsdPerMillion: "0.326",
+      cacheCreationUsdPerMillion: "4.078",
+    });
+    expect(resolvePricing("claude-4-6-sonnet")).toMatchObject({
+      modelId: "claude-4-6-sonnet",
+      inputUsdPerMillion: "3.196",
+      outputUsdPerMillion: "15.94",
+      cacheReadUsdPerMillion: "0.32",
+      cacheCreationUsdPerMillion: "3.999",
+    });
+    const rawOpusAliases = [
+      ["claude-opus4-5", "5.313", "26.568", "0.531", "6.645"],
+      ["claude-opus4-6", "5.313", "26.561", "0.531", "6.645"],
+      ["claude-opus4-7", "5.437", "27.186", "0.544", "6.797"],
+      ["claude-opus4-8", "5.437", "27.186", "0.544", "6.797"],
+    ];
+    for (const [modelId, input, output, cacheRead, cacheCreation] of rawOpusAliases) {
+      expect(resolvePricing(modelId)).toMatchObject({
+        modelId,
+        inputUsdPerMillion: input,
+        outputUsdPerMillion: output,
+        cacheReadUsdPerMillion: cacheRead,
+        cacheCreationUsdPerMillion: cacheCreation,
+      });
+    }
   });
 
   it("resolves ccusage supplemental Grok and Z.ai pricing entries", () => {
@@ -349,6 +380,13 @@ describe("pricing", () => {
       inputUsdPerMillion: "0.60",
       outputUsdPerMillion: "2.20",
       cacheReadUsdPerMillion: "0.11",
+    });
+    expect(resolvePricing("replicate/openai/gpt-oss-20b")).toMatchObject({
+      modelId: "replicate/openai/gpt-oss-20b",
+      inputUsdPerMillion: "0.09",
+      outputUsdPerMillion: "0.36",
+      cacheReadUsdPerMillion: "0",
+      cacheCreationUsdPerMillion: "0",
     });
   });
 
@@ -398,7 +436,7 @@ describe("pricing", () => {
     });
     expect(resolvePricing("moonshotai/Kimi-K2.7-Code")).toMatchObject({
       modelId: "moonshotai/kimi-k2.7-code",
-      inputUsdPerMillion: "0.73",
+      inputUsdPerMillion: "0.7",
       outputUsdPerMillion: "3.5",
       cacheReadUsdPerMillion: "0.15",
       cacheCreationUsdPerMillion: "0",
@@ -426,9 +464,9 @@ describe("pricing", () => {
     expect(resolvePricing("moonshotai/kimi-k3")).toMatchObject({
       modelId: "moonshotai/kimi-k3",
       inputUsdPerMillion: "3",
-      outputUsdPerMillion: "12.5",
-      cacheReadUsdPerMillion: "0.5",
-      cacheCreationUsdPerMillion: "3.75",
+      outputUsdPerMillion: "15",
+      cacheReadUsdPerMillion: "0.3",
+      cacheCreationUsdPerMillion: "3",
     });
     expect(resolvePricing("kimi-k3-fast")).toMatchObject({
       modelId: "kimi-k3-fast",
