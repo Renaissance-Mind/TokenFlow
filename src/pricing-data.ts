@@ -264,7 +264,7 @@ export const BUILTIN_PRICING: PricingProfile[] = [
   p("moonshotai/kimi-k3-fast", "Kimi K3 Fast (Moonshot)", "4.5", "22.5", "0.45", "5.625"),
   p("moonshotai/kimi-k3-tee", "Kimi K3 TEE (Moonshot)", "3", "15", "0.3", "3.75"),
   p("moonshotai/kimi-latest", "Kimi Latest (Moonshot)", "2.5", "13.5", "0.25", "3.125"),
-  p("~moonshotai/kimi-latest", "Kimi Latest Preview (Moonshot)", "2.9", "14", "0.29", "3.625"),
+  p("~moonshotai/kimi-latest", "Kimi Latest Preview (Moonshot)", "2.5", "14", "0.29", "3.125"),
   p("minimax-m2.1", "MiniMax M2.1", "0.27", "0.95", "0.03", "0"),
   p("minimax-m2.1-lightning", "MiniMax M2.1 Lightning", "0.27", "2.33", "0.03", "0"),
   p("minimax-m2", "MiniMax M2", "0.27", "0.95", "0.03", "0"),
