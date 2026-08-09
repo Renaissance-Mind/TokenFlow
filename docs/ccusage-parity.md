@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-08-08
+Last checked: 2026-08-09
 
-Reference ccusage commit: `271a5f5 chore(pricing): update models.dev snapshot`
+Reference ccusage commit: `c7af053 chore(pricing): update models.dev snapshot`
 
 ## Summary
 
@@ -36,11 +36,14 @@ The 2026-08-06 parity pass found ccusage main at `b76e2da chore(pricing): update
 
 The 2026-08-08 parity pass found ccusage main at `271a5f5 chore(pricing): update models.dev snapshot`. Its models.dev snapshot lowered `~moonshotai/kimi-latest` input pricing from `2.9` to `2.5` USD per million tokens while leaving output and cache-read rates unchanged. TokenFlow now mirrors that exact preview Moonshot Kimi pricing key and its derived cache-creation rate.
 
+The 2026-08-09 parity pass found ccusage main at `c7af053 chore(pricing): update models.dev snapshot`. Its models.dev snapshot changed `~moonshotai/kimi-latest` input pricing from `2.5` to `2.8` USD per million tokens while leaving output and cache-read rates unchanged. TokenFlow now mirrors that exact preview Moonshot Kimi pricing key and its derived cache-creation rate.
+
 The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. The 2026-07-30 pass also found ccusage's new experimental Antigravity adapter, which scans `~/.gemini/antigravity-cli/conversations/**/*.db` or `ANTIGRAVITY_DATA_DIR` conversation databases through a new SQLite/protobuf parser. Those changes were not copied because they are adapter, parser, loader, path, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 
 The 2026-08-01 pass also observed dependency/workflow-only upstream drift in `.github/workflows/pullfrog.yml`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, and `rust/Cargo.toml`; those changes were not copied because they do not affect TokenFlow pricing behavior. The 2026-08-02 pass also observed docs, agent-skill, workflow, lockfile, and Rust dependency churn outside TokenFlow's pricing surface; those changes were left report-only. The 2026-08-04 pass observed `8028fd4 revert(antigravity): remove the Antigravity adapter until #1487 lands (#1569)` plus docs/schema/CLI help changes, dependency bumps, and workflow churn; only pricing-table and pricing-resolution behavior was migrated.
 The 2026-08-05 pass also observed `b6128f1` dependency metadata churn in `pnpm-lock.yaml` and `pnpm-workspace.yaml`; those changes were left report-only.
 The 2026-08-08 pass also observed CodeQL workflow, VitePress, pnpm workspace/lockfile, Nix flake, and LiteLLM lock metadata churn; those changes were left report-only because they do not alter TokenFlow's local pricing semantics.
+The 2026-08-09 pass also observed CodeQL workflow and Nix flake lock churn; those changes were left report-only because they do not alter TokenFlow's local pricing semantics.
 
 ## Source Adapter Matrix
 

@@ -564,10 +564,10 @@ describe("pricing", () => {
     });
     expect(resolvePricing("~moonshotai/kimi-latest")).toMatchObject({
       modelId: "~moonshotai/kimi-latest",
-      inputUsdPerMillion: "2.5",
+      inputUsdPerMillion: "2.8",
       outputUsdPerMillion: "14",
       cacheReadUsdPerMillion: "0.29",
-      cacheCreationUsdPerMillion: "3.125",
+      cacheCreationUsdPerMillion: "3.5",
     });
   });
 
