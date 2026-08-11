@@ -160,6 +160,20 @@ describe("pricing", () => {
       cacheReadUsdPerMillion: "1",
       cacheCreationUsdPerMillion: "12.5",
     });
+    expect(resolvePricing("anthropic/claude-mythos-5")).toMatchObject({
+      modelId: "claude-mythos-5",
+      inputUsdPerMillion: "10",
+      outputUsdPerMillion: "50",
+      cacheReadUsdPerMillion: "1",
+      cacheCreationUsdPerMillion: "12.5",
+    });
+    expect(resolvePricing("claude-mythos-preview")).toMatchObject({
+      modelId: "claude-mythos-preview",
+      inputUsdPerMillion: "10",
+      outputUsdPerMillion: "50",
+      cacheReadUsdPerMillion: "1",
+      cacheCreationUsdPerMillion: "12.5",
+    });
     expect(resolvePricing("openai/gpt-5.3-codex-spark")).toMatchObject({
       modelId: "gpt-5.3-codex-spark",
       inputUsdPerMillion: "1.75",
@@ -350,6 +364,41 @@ describe("pricing", () => {
   });
 
   it("resolves ccusage supplemental Grok and Z.ai pricing entries", () => {
+    expect(resolvePricing("xai/grok-4.20-0309-reasoning")).toMatchObject({
+      modelId: "grok-4.20-0309-reasoning",
+      inputUsdPerMillion: "1.25",
+      outputUsdPerMillion: "2.5",
+      cacheReadUsdPerMillion: "0.20",
+      inputAbove200kUsdPerMillion: "2.5",
+      outputAbove200kUsdPerMillion: "5",
+      cacheReadAbove200kUsdPerMillion: "0.4",
+    });
+    expect(resolvePricing("xai/grok-4.20-beta-0309-non-reasoning")).toMatchObject({
+      modelId: "grok-4.20-beta-0309-non-reasoning",
+      inputUsdPerMillion: "1.25",
+      outputUsdPerMillion: "2.5",
+      cacheReadUsdPerMillion: "0.20",
+      inputAbove200kUsdPerMillion: "2.5",
+    });
+    expect(resolvePricing("xai/grok-4.20-multi-agent-0309")).toMatchObject({
+      modelId: "grok-4.20-multi-agent-0309",
+      inputUsdPerMillion: "1.25",
+      outputUsdPerMillion: "2.5",
+    });
+    expect(resolvePricing("xai/grok-4.5")).toMatchObject({
+      modelId: "grok-4.5",
+      inputUsdPerMillion: "2",
+      outputUsdPerMillion: "6",
+      cacheReadUsdPerMillion: "0.30",
+      cacheReadAbove200kUsdPerMillion: "0.6",
+    });
+    expect(resolvePricing("xai/grok-code-fast-1-0825")).toMatchObject({
+      modelId: "grok-code-fast-1-0825",
+      inputUsdPerMillion: "1",
+      outputUsdPerMillion: "2",
+      cacheReadUsdPerMillion: "0.20",
+      outputAbove200kUsdPerMillion: "4",
+    });
     expect(resolvePricing("grok-4.3")).toMatchObject({
       modelId: "grok-4.3",
       inputUsdPerMillion: "1.25",
@@ -385,6 +434,23 @@ describe("pricing", () => {
       modelId: "replicate/openai/gpt-oss-20b",
       inputUsdPerMillion: "0.09",
       outputUsdPerMillion: "0.36",
+      cacheReadUsdPerMillion: "0",
+      cacheCreationUsdPerMillion: "0",
+    });
+  });
+
+  it("resolves new ccusage LiteLLM text-token rows", () => {
+    expect(resolvePricing("google/gemini-robotics-er-2-streaming-preview")).toMatchObject({
+      modelId: "gemini-robotics-er-2-streaming-preview",
+      inputUsdPerMillion: "2",
+      outputUsdPerMillion: "10",
+      cacheReadUsdPerMillion: "0",
+      cacheCreationUsdPerMillion: "0",
+    });
+    expect(resolvePricing("mistral/mistral-small-2603")).toMatchObject({
+      modelId: "mistral-small-2603",
+      inputUsdPerMillion: "0.15",
+      outputUsdPerMillion: "0.6",
       cacheReadUsdPerMillion: "0",
       cacheCreationUsdPerMillion: "0",
     });
@@ -427,6 +493,11 @@ describe("pricing", () => {
       model: "kimi-k2.5",
       pricingModel: "moonshotai/kimi-k2.5:thinking",
     });
+    expect(resolvePricing("TEE/kimi-k2.5")).toMatchObject({
+      modelId: "kimi-k2.5",
+      cacheReadUsdPerMillion: "0.10",
+    });
+    expect(resolvePricing("TEE/kimi-k2.5-thinking")).toBeNull();
     expect(resolvePricing("moonshotai/kimi-k2.6:thinking")).toMatchObject({
       modelId: "moonshotai/kimi-k2.6:thinking",
       inputUsdPerMillion: "0.5",

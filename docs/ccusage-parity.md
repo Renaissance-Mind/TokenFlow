@@ -1,12 +1,12 @@
 # ccusage Parity Status
 
-Last checked: 2026-08-09
+Last checked: 2026-08-11
 
-Reference ccusage commit: `c7af053 chore(pricing): update models.dev snapshot`
+Reference ccusage commit: `a87ff2b chore(pricing): update models.dev snapshot`
 
 ## Summary
 
-TokenFlow now supports every ccusage local source adapter that can be consumed without requiring a new user-side telemetry setup, except GitHub Copilot CLI OpenTelemetry export.
+TokenFlow supports ccusage local source adapters that can be consumed without requiring a new user-side telemetry setup, except GitHub Copilot CLI OpenTelemetry export and the new Grok Build CLI adapter added in ccusage `215c61c`.
 
 TokenFlow intentionally stores agent and model separately, so adapter display prefixes used by ccusage, such as `[pi]` or `[openclaw]`, are not copied into `model`. This keeps pricing resolution shared across agents and lets the dashboard distinguish sources by the `agent` field.
 
@@ -38,12 +38,15 @@ The 2026-08-08 parity pass found ccusage main at `271a5f5 chore(pricing): update
 
 The 2026-08-09 parity pass found ccusage main at `c7af053 chore(pricing): update models.dev snapshot`. Its models.dev snapshot changed `~moonshotai/kimi-latest` input pricing from `2.5` to `2.8` USD per million tokens while leaving output and cache-read rates unchanged. TokenFlow now mirrors that exact preview Moonshot Kimi pricing key and its derived cache-creation rate.
 
+The 2026-08-11 parity pass found ccusage main still packaged as `v20.0.19` at `a87ff2b chore(pricing): update models.dev snapshot`. Its `f73b099` and `7c422d0` LiteLLM snapshot pins added directly migratable token pricing for Claude Mythos, Gemini Robotics ER 2 Streaming Preview, Mistral Small 2603, and the latest XAI/Grok rows, including Grok 4.20, 4.5, Grok Code Fast, and Grok Build 0.1 rate and 200k+ tier changes. TokenFlow now mirrors those token-pricing rows with compact model ids so existing local sources that report those model ids resolve consistently. The `a87ff2b` models.dev snapshot also removed exact NanoGPT `TEE/kimi-k2.5` and `TEE/kimi-k2.5-thinking` rows; TokenFlow removed its exact TEE K2.5 rows, while generic `kimi-k2.5` fallback pricing remains available where ccusage can still resolve the compact model.
+
 The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. The 2026-07-30 pass also found ccusage's new experimental Antigravity adapter, which scans `~/.gemini/antigravity-cli/conversations/**/*.db` or `ANTIGRAVITY_DATA_DIR` conversation databases through a new SQLite/protobuf parser. Those changes were not copied because they are adapter, parser, loader, path, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 
 The 2026-08-01 pass also observed dependency/workflow-only upstream drift in `.github/workflows/pullfrog.yml`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, and `rust/Cargo.toml`; those changes were not copied because they do not affect TokenFlow pricing behavior. The 2026-08-02 pass also observed docs, agent-skill, workflow, lockfile, and Rust dependency churn outside TokenFlow's pricing surface; those changes were left report-only. The 2026-08-04 pass observed `8028fd4 revert(antigravity): remove the Antigravity adapter until #1487 lands (#1569)` plus docs/schema/CLI help changes, dependency bumps, and workflow churn; only pricing-table and pricing-resolution behavior was migrated.
 The 2026-08-05 pass also observed `b6128f1` dependency metadata churn in `pnpm-lock.yaml` and `pnpm-workspace.yaml`; those changes were left report-only.
 The 2026-08-08 pass also observed CodeQL workflow, VitePress, pnpm workspace/lockfile, Nix flake, and LiteLLM lock metadata churn; those changes were left report-only because they do not alter TokenFlow's local pricing semantics.
 The 2026-08-09 pass also observed CodeQL workflow and Nix flake lock churn; those changes were left report-only because they do not alter TokenFlow's local pricing semantics.
+The 2026-08-11 pass also observed workflow, Node, pnpm, Rust dependency, docs, config-schema, CLI help, and contributor metadata churn. It also observed `215c61c feat(grok): add Grok Build CLI usage adapter (#1593)`, which reads `$GROK_HOME` or `~/.grok/sessions/**/updates.jsonl`, trusts positive `costUsdTicks` in auto/display cost modes, splits OpenAI-style cached input, and strips `-build` for pricing candidates. That adapter/parser/path drift was left report-only by policy; only the underlying LiteLLM/XAI token pricing rows were migrated.
 
 ## Source Adapter Matrix
 
@@ -55,6 +58,7 @@ The 2026-08-09 pass also observed CodeQL workflow and Nix flake lock churn; thos
 | `opencode` | Supported | OpenCode SQLite `message` rows from `opencode.db` and `opencode-*.db`, plus standalone `storage/message/**/*.json` files. Requires `sqlite3` for DB rows. |
 | `kimi` | Supported | Kimi wire JSONL plus config model metadata and K2.5/K2.6 pricing cutoff. ccusage added `~/.kimi-code` `usage.record` support as non-pricing parser/path drift; TokenFlow did not copy it in the 2026-07-10 pricing sync. |
 | `qwen` | Supported | Qwen Code assistant `usageMetadata` rows. |
+| `grok` | Report-only | ccusage added Grok Build CLI `updates.jsonl` support in `215c61c`; this automation did not copy adapter/parser/path behavior because the run had directly migratable pricing changes only. |
 | `amp` | Supported | Amp thread JSON, both `usageLedger.events[]` and direct assistant `messages[].usage`. |
 | `codebuff` | Supported | Codebuff/Manicode chat messages, metadata usage, and run-state provider usage fallback. |
 | `droid` | Supported | Droid `*.settings.json` snapshots, latest snapshot per session, model normalization, sidecar model fallback. |
