@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-08-12
+Last checked: 2026-08-13
 
-Reference ccusage commit: `1d47402 chore(pricing): update LiteLLM snapshot`
+Reference ccusage commit: `348b4d3 chore(pricing): update LiteLLM snapshot`
 
 ## Summary
 
@@ -41,6 +41,8 @@ The 2026-08-09 parity pass found ccusage main at `c7af053 chore(pricing): update
 The 2026-08-11 parity pass found ccusage main still packaged as `v20.0.19` at `a87ff2b chore(pricing): update models.dev snapshot`. Its `f73b099` and `7c422d0` LiteLLM snapshot pins added directly migratable token pricing for Claude Mythos, Gemini Robotics ER 2 Streaming Preview, Mistral Small 2603, and the latest XAI/Grok rows, including Grok 4.20, 4.5, Grok Code Fast, and Grok Build 0.1 rate and 200k+ tier changes. TokenFlow now mirrors those token-pricing rows with compact model ids so existing local sources that report those model ids resolve consistently. The `a87ff2b` models.dev snapshot also removed exact NanoGPT `TEE/kimi-k2.5` and `TEE/kimi-k2.5-thinking` rows; TokenFlow removed its exact TEE K2.5 rows, while generic `kimi-k2.5` fallback pricing remains available where ccusage can still resolve the compact model.
 
 The 2026-08-12 parity pass found ccusage main at `1d47402 chore(pricing): update LiteLLM snapshot`. Its `4d71b5e` and `f5903a9` models.dev snapshot commits added a bare `kimi-latest` pricing key and lowered `moonshotai/kimi-k2.7-code` input, output, and cache-read pricing from `0.7`/`3.5`/`0.15` to `0.69`/`3.49`/`0.14` USD per million tokens. TokenFlow now mirrors those directly migratable rows while keeping `moonshotai/kimi-latest` and `~moonshotai/kimi-latest` as separate provider/preview pricing keys. The same models.dev snapshot also added `claude-mythos-5`, which TokenFlow already covered from the prior LiteLLM pricing sync. The `dddebce` and `1d47402` LiteLLM lock updates produced no compact embedded pricing-field changes, so no additional TokenFlow pricing rows or formulas were changed.
+
+The 2026-08-13 parity pass found ccusage main at `348b4d3 chore(pricing): update LiteLLM snapshot`. Its models.dev snapshot changed the mixed-case provider keys `moonshotai/Kimi-K2.6` to input/output/cache-read `0.6`/`3.41`/`0.2`, removed the exact `moonshotai/Kimi-K2.6-Fast` row so pricing falls back to the base `moonshotai/Kimi-K2.6` row, and changed `moonshotai/Kimi-K2.7-Code` to `0.67`/`3.4`/`0.15` USD per million tokens. TokenFlow now tries case-preserved provider pricing keys before normalized lowercase fallbacks, so these mixed-case rows remain distinct from existing lowercase rows such as `moonshotai/kimi-k2.7-code`. No adapter, parser, loader, path, environment-variable, formula, cache-tier, recorded-cost, or telemetry behavior changed upstream.
 
 The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. The 2026-07-30 pass also found ccusage's new experimental Antigravity adapter, which scans `~/.gemini/antigravity-cli/conversations/**/*.db` or `ANTIGRAVITY_DATA_DIR` conversation databases through a new SQLite/protobuf parser. Those changes were not copied because they are adapter, parser, loader, path, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 

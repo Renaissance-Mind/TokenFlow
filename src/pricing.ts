@@ -268,18 +268,24 @@ export function normalizeAgentModelForUsage(
   if (agent === "codex") originalModel = stripModelDateSuffix(originalModel) || originalModel;
   originalModel ||= "unknown";
   const providerPricingModel = normalizeProviderModelForPricing(raw);
+  const providerPricing =
+    providerPricingModel !== displayModel && providerPricingModel !== originalModel
+      ? resolvePricing(providerPricingModel)
+      : null;
+  const resolvedProviderPricingModel =
+    providerPricing &&
+    providerPricing.modelId !== displayModel &&
+    providerPricing.modelId !== originalModel
+      ? providerPricing.modelId
+      : null;
 
-  const useProviderPricing =
-    providerPricingModel !== displayModel &&
-    providerPricingModel !== originalModel &&
-    resolvePricing(providerPricingModel)?.modelId === providerPricingModel;
   const useOriginalPricing =
     displayModel !== originalModel && originalModel !== "unknown" && resolvePricing(originalModel) !== null;
   return {
     model: displayModel,
     originalModel,
-    ...(useProviderPricing
-      ? { pricingModel: providerPricingModel }
+    ...(resolvedProviderPricingModel
+      ? { pricingModel: resolvedProviderPricingModel }
       : useOriginalPricing
         ? { pricingModel: originalModel }
         : {}),
@@ -288,6 +294,7 @@ export function normalizeAgentModelForUsage(
 
 function pricingCandidates(model: string): string[] {
   const candidates = [
+    ...pricingCandidatesForCleanedModel(cleanProviderModelId(model, { preserveCase: true })),
     ...pricingCandidatesForCleanedModel(cleanProviderModelId(model)),
     ...pricingCandidatesForCleanedModel(cleanModelId(model)),
     ...pricingCandidatesForCleanedModel(cleanAndResolveConfiguredAlias(model)),
@@ -341,16 +348,20 @@ function cleanModelId(model: string): string {
 }
 
 function normalizeProviderModelForPricing(model: string): string {
-  let cleaned = cleanProviderModelId(model);
+  let cleaned = cleanProviderModelId(model, { preserveCase: true });
   cleaned = stripBedrockVersionSuffix(cleaned) || cleaned;
   cleaned = stripModelDateSuffix(cleaned) || cleaned;
   return cleaned || "unknown";
 }
 
-function cleanProviderModelId(model: string): string {
-  const trimmed = model.trim().replace(/\[1m\]$/i, "").replaceAll("@", "-").toLowerCase();
-  if (trimmed.startsWith("hf:")) return trimmed;
-  return trimmed || "unknown";
+function cleanProviderModelId(
+  model: string,
+  options: { preserveCase?: boolean } = {},
+): string {
+  const trimmed = model.trim().replace(/\[1m\]$/i, "").replaceAll("@", "-");
+  const cleaned = options.preserveCase ? trimmed : trimmed.toLowerCase();
+  if (cleaned.toLowerCase().startsWith("hf:")) return cleaned;
+  return cleaned || "unknown";
 }
 
 function cleanAndResolveConfiguredAlias(model: string): string {
@@ -439,12 +450,12 @@ function stripModelDateSuffix(model: string): string | null {
 }
 
 function stripReasoningEffortSuffix(model: string): string | null {
-  const effort = model.match(/^(.*)-(minimal|low|medium|high|xhigh)$/);
+  const effort = model.match(/^(.*)-(minimal|low|medium|high|xhigh)$/i);
   return effort?.[1] || null;
 }
 
 function stripFastSuffix(model: string): string | null {
-  return model.endsWith("-fast") ? model.slice(0, -"-fast".length) : null;
+  return /-fast$/i.test(model) ? model.slice(0, -"-fast".length) : null;
 }
 
 function shouldTryPricingPrefixMatch(model: string): boolean {
