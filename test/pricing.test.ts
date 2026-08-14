@@ -406,6 +406,27 @@ describe("pricing", () => {
       cacheReadUsdPerMillion: "0.125",
       cacheCreationUsdPerMillion: "1.25",
     });
+    expect(resolvePricing("azure_ai/grok-4.3")).toMatchObject({
+      modelId: "azure_ai/grok-4.3",
+      inputUsdPerMillion: "1.25",
+      outputUsdPerMillion: "2.5",
+      cacheReadUsdPerMillion: "0.20",
+      cacheCreationUsdPerMillion: "1.5625",
+    });
+    expect(normalizeAgentModelForUsage("opencode", "azure_ai/grok-4.3")).toMatchObject({
+      model: "grok-4.3",
+      pricingModel: "azure_ai/grok-4.3",
+    });
+    expect(resolvePricing("xai/grok-4.6")).toMatchObject({
+      modelId: "grok-4.6",
+      inputUsdPerMillion: "2",
+      outputUsdPerMillion: "6",
+      cacheReadUsdPerMillion: "0.50",
+      cacheCreationUsdPerMillion: "2.5",
+      inputAbove200kUsdPerMillion: "4",
+      outputAbove200kUsdPerMillion: "12",
+      cacheReadAbove200kUsdPerMillion: "1",
+    });
     expect(resolvePricing("zai/glm-4.5-airx")).toMatchObject({
       modelId: "glm-4.5-airx",
       inputUsdPerMillion: "1.10",
@@ -453,6 +474,38 @@ describe("pricing", () => {
       outputUsdPerMillion: "0.6",
       cacheReadUsdPerMillion: "0",
       cacheCreationUsdPerMillion: "0",
+    });
+    expect(resolvePricing("gemini/gemini-3.7-flash")).toMatchObject({
+      modelId: "gemini-3.7-flash",
+      inputUsdPerMillion: "0.75",
+      outputUsdPerMillion: "3.75",
+      cacheReadUsdPerMillion: "0.075",
+      cacheCreationUsdPerMillion: "0.9375",
+    });
+    expect(resolvePricing("azure_ai/FW-Kimi-K2.7-Code")).toMatchObject({
+      modelId: "azure_ai/FW-Kimi-K2.7-Code",
+      inputUsdPerMillion: "1.05",
+      outputUsdPerMillion: "4.4",
+      cacheReadUsdPerMillion: "0.21",
+      cacheCreationUsdPerMillion: "1.3125",
+    });
+    expect(normalizeAgentModelForUsage("opencode", "azure_ai/FW-Kimi-K2.7-Code")).toMatchObject({
+      model: "fw-kimi-k2.7-code",
+      pricingModel: "azure_ai/FW-Kimi-K2.7-Code",
+    });
+    expect(resolvePricing("meta/muse-spark-1.2-contributor")).toMatchObject({
+      modelId: "meta/muse-spark-1.2-contributor",
+      inputUsdPerMillion: "0.10",
+      outputUsdPerMillion: "0.20",
+      cacheReadUsdPerMillion: "0.002",
+      cacheCreationUsdPerMillion: "0.125",
+    });
+    expect(resolvePricing("groq/qwen/qwen3.6-27b")).toMatchObject({
+      modelId: "groq/qwen/qwen3.6-27b",
+      inputUsdPerMillion: "0.60",
+      outputUsdPerMillion: "3",
+      cacheReadUsdPerMillion: "0.06",
+      cacheCreationUsdPerMillion: "0.75",
     });
   });
 
@@ -668,10 +721,10 @@ describe("pricing", () => {
     });
     expect(resolvePricing("~moonshotai/kimi-latest")).toMatchObject({
       modelId: "~moonshotai/kimi-latest",
-      inputUsdPerMillion: "2.8",
-      outputUsdPerMillion: "14",
-      cacheReadUsdPerMillion: "0.29",
-      cacheCreationUsdPerMillion: "3.5",
+      inputUsdPerMillion: "2.4",
+      outputUsdPerMillion: "12",
+      cacheReadUsdPerMillion: "0.24",
+      cacheCreationUsdPerMillion: "3",
     });
   });
 

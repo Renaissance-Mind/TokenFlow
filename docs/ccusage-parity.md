@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-08-13
+Last checked: 2026-08-14
 
-Reference ccusage commit: `348b4d3 chore(pricing): update LiteLLM snapshot`
+Reference ccusage commit: `d022420 chore(pricing): update LiteLLM snapshot`
 
 ## Summary
 
@@ -44,6 +44,8 @@ The 2026-08-12 parity pass found ccusage main at `1d47402 chore(pricing): update
 
 The 2026-08-13 parity pass found ccusage main at `348b4d3 chore(pricing): update LiteLLM snapshot`. Its models.dev snapshot changed the mixed-case provider keys `moonshotai/Kimi-K2.6` to input/output/cache-read `0.6`/`3.41`/`0.2`, removed the exact `moonshotai/Kimi-K2.6-Fast` row so pricing falls back to the base `moonshotai/Kimi-K2.6` row, and changed `moonshotai/Kimi-K2.7-Code` to `0.67`/`3.4`/`0.15` USD per million tokens. TokenFlow now tries case-preserved provider pricing keys before normalized lowercase fallbacks, so these mixed-case rows remain distinct from existing lowercase rows such as `moonshotai/kimi-k2.7-code`. No adapter, parser, loader, path, environment-variable, formula, cache-tier, recorded-cost, or telemetry behavior changed upstream.
 
+The 2026-08-14 parity pass found ccusage main at `d022420 chore(pricing): update LiteLLM snapshot`. Its `ec4914f` models.dev snapshot lowered `~moonshotai/kimi-latest` input/output/cache-read pricing from `2.8`/`14`/`0.29` to `2.4`/`12`/`0.24` USD per million tokens. Its LiteLLM snapshot commits also added directly migratable token pricing rows for Gemini 3.7 Flash, Grok 4.6, exact Azure AI provider rows for DeepSeek/GLM/Kimi/MiniMax/Nemotron/Inkling/Grok, Groq Qwen and Llama Prompt Guard rows, and Meta Muse Spark rows. TokenFlow now mirrors those rows, preserving exact provider-qualified pricing keys when their rates differ from compact fallback ids. The same upstream range changed only context metadata for Bedrock GPT-5.6 and some Groq rows and bumped the Rust `ureq` dependency; those changes were left report-only because they do not alter TokenFlow's local token pricing behavior.
+
 The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. The 2026-07-30 pass also found ccusage's new experimental Antigravity adapter, which scans `~/.gemini/antigravity-cli/conversations/**/*.db` or `ANTIGRAVITY_DATA_DIR` conversation databases through a new SQLite/protobuf parser. Those changes were not copied because they are adapter, parser, loader, path, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 
 The 2026-08-01 pass also observed dependency/workflow-only upstream drift in `.github/workflows/pullfrog.yml`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, and `rust/Cargo.toml`; those changes were not copied because they do not affect TokenFlow pricing behavior. The 2026-08-02 pass also observed docs, agent-skill, workflow, lockfile, and Rust dependency churn outside TokenFlow's pricing surface; those changes were left report-only. The 2026-08-04 pass observed `8028fd4 revert(antigravity): remove the Antigravity adapter until #1487 lands (#1569)` plus docs/schema/CLI help changes, dependency bumps, and workflow churn; only pricing-table and pricing-resolution behavior was migrated.
@@ -51,6 +53,7 @@ The 2026-08-05 pass also observed `b6128f1` dependency metadata churn in `pnpm-l
 The 2026-08-08 pass also observed CodeQL workflow, VitePress, pnpm workspace/lockfile, Nix flake, and LiteLLM lock metadata churn; those changes were left report-only because they do not alter TokenFlow's local pricing semantics.
 The 2026-08-09 pass also observed CodeQL workflow and Nix flake lock churn; those changes were left report-only because they do not alter TokenFlow's local pricing semantics.
 The 2026-08-11 pass also observed workflow, Node, pnpm, Rust dependency, docs, config-schema, CLI help, and contributor metadata churn. It also observed `215c61c feat(grok): add Grok Build CLI usage adapter (#1593)`, which reads `$GROK_HOME` or `~/.grok/sessions/**/updates.jsonl`, trusts positive `costUsdTicks` in auto/display cost modes, splits OpenAI-style cached input, and strips `-build` for pricing candidates. That adapter/parser/path drift was left report-only by policy; only the underlying LiteLLM/XAI token pricing rows were migrated.
+The 2026-08-14 pass also observed `471cfad chore(deps): update rust crate ureq to 3.4.0 (#1594)` plus LiteLLM lock changes whose only TokenFlow-visible differences were context-limit metadata; those changes were left report-only.
 
 ## Source Adapter Matrix
 
