@@ -705,6 +705,20 @@ describe("pricing", () => {
       cacheReadUsdPerMillion: "0.15",
       cacheCreationUsdPerMillion: "0.75",
     });
+    expect(resolvePricing("amazon/moonshot.kimi-k2-thinking")).toMatchObject({
+      modelId: "amazon/moonshot.kimi-k2-thinking",
+      inputUsdPerMillion: "0.6",
+      outputUsdPerMillion: "2.5",
+      cacheReadUsdPerMillion: "0.06",
+      cacheCreationUsdPerMillion: "0.75",
+    });
+    expect(resolvePricing("amazon/moonshotai.kimi-k2.5")).toMatchObject({
+      modelId: "amazon/moonshotai.kimi-k2.5",
+      inputUsdPerMillion: "0.6",
+      outputUsdPerMillion: "3",
+      cacheReadUsdPerMillion: "0.06",
+      cacheCreationUsdPerMillion: "0.75",
+    });
     expect(resolvePricing("moonshotai/kimi-latest")).toMatchObject({
       modelId: "moonshotai/kimi-latest",
       inputUsdPerMillion: "2.5",
@@ -721,10 +735,24 @@ describe("pricing", () => {
     });
     expect(resolvePricing("~moonshotai/kimi-latest")).toMatchObject({
       modelId: "~moonshotai/kimi-latest",
-      inputUsdPerMillion: "2.4",
-      outputUsdPerMillion: "12",
-      cacheReadUsdPerMillion: "0.24",
-      cacheCreationUsdPerMillion: "3",
+      inputUsdPerMillion: "2.8",
+      outputUsdPerMillion: "14",
+      cacheReadUsdPerMillion: "0.29",
+      cacheCreationUsdPerMillion: "3.5",
+    });
+    expect(resolvePricing("deepinfra/moonshotai/Kimi-K2.5")).toMatchObject({
+      modelId: "deepinfra/moonshotai/Kimi-K2.5",
+      inputUsdPerMillion: "0.45",
+      outputUsdPerMillion: "2.25",
+      cacheReadUsdPerMillion: "0.07",
+      cacheCreationUsdPerMillion: "0.5625",
+    });
+    expect(resolvePricing("workers-ai/@cf/moonshotai/kimi-k2.7-code")).toMatchObject({
+      modelId: "workers-ai/-cf/moonshotai/kimi-k2.7-code",
+      inputUsdPerMillion: "0.95",
+      outputUsdPerMillion: "4",
+      cacheReadUsdPerMillion: "0.19",
+      cacheCreationUsdPerMillion: "1.1875",
     });
   });
 
