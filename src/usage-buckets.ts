@@ -149,7 +149,7 @@ function addLongContextTotals(
 ): void {
   if (event.longContextInputTokens !== undefined) return;
   const pricing = resolvePricing(event.pricingModel || event.model, pricingProfiles);
-  if (!pricing?.longContextThresholdTokens || event.inputTokens <= pricing.longContextThresholdTokens) return;
+  if (!pricing?.longContextThresholdTokens || eventContextTokens(event) <= pricing.longContextThresholdTokens) return;
 
   target.longContextInputTokens = (target.longContextInputTokens || 0) + event.inputTokens;
   target.longContextCachedInputTokens = (target.longContextCachedInputTokens || 0) + event.cachedInputTokens;
@@ -202,7 +202,7 @@ function addFastTotals(
   }
 
   const pricing = resolvePricing(event.pricingModel || event.model, pricingProfiles);
-  if (!pricing?.longContextThresholdTokens || event.inputTokens <= pricing.longContextThresholdTokens) return;
+  if (!pricing?.longContextThresholdTokens || eventContextTokens(event) <= pricing.longContextThresholdTokens) return;
 
   target.fastLongContextInputTokens = (target.fastLongContextInputTokens || 0) + event.inputTokens;
   target.fastLongContextCachedInputTokens =
@@ -218,6 +218,21 @@ function addFastTotals(
     (target.fastLongContextCacheCreation1hTokens || 0) + (event.cacheCreation1hTokens || 0);
   target.fastLongContextExtraTotalTokens =
     (target.fastLongContextExtraTotalTokens || 0) + (event.extraTotalTokens || 0);
+}
+
+function eventContextTokens(event: UsageEvent): number {
+  const cacheCreationContextTokens =
+    event.cacheCreation5mTokens || event.cacheCreation1hTokens
+      ? (event.cacheCreation5mTokens || 0) + (event.cacheCreation1hTokens || 0)
+      : event.cacheCreationTokens;
+  const inputContextTokens =
+    event.agent === "codex" || event.agent === "gemini"
+      ? event.inputTokens
+      : event.inputTokens + event.cachedInputTokens;
+  return (
+    inputContextTokens +
+    cacheCreationContextTokens
+  );
 }
 
 function fastTotalsFromBucket(bucket: UsageBucket): UsageTotals {

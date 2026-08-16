@@ -94,17 +94,28 @@ function longContextTotals(
     totals.longContextInputTokens !== undefined ||
     totals.longContextOutputTokens !== undefined ||
     totals.longContextCacheCreationTokens !== undefined;
-  const wholeRequestLong = !tracked && totals.inputTokens > threshold;
+  const cacheCreationContextTokens =
+    totals.cacheCreation5mTokens || totals.cacheCreation1hTokens
+      ? (totals.cacheCreation5mTokens || 0) + (totals.cacheCreation1hTokens || 0)
+      : totals.cacheCreationTokens;
+  const inputContextTokens =
+    agent === "codex" || agent === "gemini" ? totals.inputTokens : totals.inputTokens + totals.cachedInputTokens;
+  const contextTokens =
+    inputContextTokens +
+    cacheCreationContextTokens;
+  const wholeRequestLong = !tracked && contextTokens > threshold;
   const inputTokens = clampTokens(
     tracked ? totals.longContextInputTokens || 0 : wholeRequestLong ? totals.inputTokens : 0,
     totals.inputTokens,
   );
+  const maxLongContextCachedInputTokens =
+    agent === "codex" || agent === "gemini" ? inputTokens : totals.cachedInputTokens;
   const cachedInputTokens = Math.min(
     clampTokens(
       tracked ? totals.longContextCachedInputTokens || 0 : wholeRequestLong ? totals.cachedInputTokens : 0,
       totals.cachedInputTokens,
     ),
-    inputTokens,
+    maxLongContextCachedInputTokens,
   );
   const outputTokens = clampTokens(
     tracked ? totals.longContextOutputTokens || 0 : wholeRequestLong ? totals.outputTokens : 0,

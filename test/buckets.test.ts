@@ -192,6 +192,38 @@ describe("usage buckets", () => {
     });
   });
 
+  it("prices cached-heavy requests at the long-context tier after bucketing", () => {
+    const buckets = aggregateEvents([
+      {
+        agent: "opencode",
+        model: "grok-4.5",
+        sessionId: "s1",
+        sourcePath: "/opencode.db",
+        timestamp: "2026-08-16T08:01:00.000Z",
+        bucketStart: "2026-08-16T08:00:00.000Z",
+        inputTokens: 10_000,
+        cachedInputTokens: 500_000,
+        outputTokens: 1_000,
+        reasoningOutputTokens: 0,
+        cacheCreationTokens: 0,
+        totalTokens: 511_000,
+      },
+    ]);
+
+    expect(buckets).toHaveLength(1);
+    expect(buckets[0]).toMatchObject({
+      pricingStatus: "priced",
+      longContextInputTokens: 10_000,
+      longContextCachedInputTokens: 500_000,
+      cost: {
+        inputUsd: "0.040000",
+        cacheReadUsd: "0.300000",
+        outputUsd: "0.012000",
+        totalUsd: "0.352000",
+      },
+    });
+  });
+
   it("applies Codex fast multipliers only to the recorded fast subset of a bucket", () => {
     const buckets = aggregateEvents([
       {

@@ -256,6 +256,27 @@ describe("pricing", () => {
     });
   });
 
+  it("resolves ccusage GPT-5.1 Codex and chat pricing rows", () => {
+    expect(resolvePricing("openai/gpt-5.1-codex-mini")).toMatchObject({
+      modelId: "gpt-5.1-codex-mini",
+      inputUsdPerMillion: "0.25",
+      outputUsdPerMillion: "2",
+      cacheReadUsdPerMillion: "0.025",
+    });
+    expect(resolvePricing("gpt-5.1-chat-latest")).toMatchObject({
+      modelId: "gpt-5.1-chat-latest",
+      inputUsdPerMillion: "1.25",
+      outputUsdPerMillion: "10",
+      cacheReadUsdPerMillion: "0.125",
+    });
+    expect(resolvePricing("gpt-5.1@eu")).toMatchObject({
+      modelId: "gpt-5.1-eu",
+      inputUsdPerMillion: "1.375",
+      outputUsdPerMillion: "11",
+      cacheReadUsdPerMillion: "0.1375",
+    });
+  });
+
   it("prices OpenAI two-stage models as a whole request at the selected tier", () => {
     const pricing = resolvePricing("gpt-5.6-sol");
     expect(pricing).not.toBeNull();
@@ -297,6 +318,49 @@ describe("pricing", () => {
       outputUsd: "0.030000",
       totalUsd: "0.529550",
     });
+
+    const cachedCodexShort = calculateCost(
+      "codex",
+      {
+        inputTokens: 260_000,
+        cachedInputTokens: 20_000,
+        outputTokens: 1_000,
+        reasoningOutputTokens: 0,
+        cacheCreationTokens: 0,
+        totalTokens: 261_000,
+      },
+      pricing!,
+    );
+    expect(cachedCodexShort).toMatchObject({
+      inputUsd: "1.200000",
+      cacheReadUsd: "0.010000",
+      outputUsd: "0.030000",
+      totalUsd: "1.240000",
+    });
+  });
+
+  it("selects long-context tiers from the full cached request context", () => {
+    const pricing = resolvePricing("grok-4.5");
+    expect(pricing).not.toBeNull();
+
+    const cachedHeavy = calculateCost(
+      "opencode",
+      {
+        inputTokens: 10_000,
+        cachedInputTokens: 500_000,
+        outputTokens: 1_000,
+        reasoningOutputTokens: 0,
+        cacheCreationTokens: 0,
+        totalTokens: 511_000,
+      },
+      pricing!,
+    );
+    expect(cachedHeavy).toMatchObject({
+      inputUsd: "0.040000",
+      cacheReadUsd: "0.300000",
+      outputUsd: "0.012000",
+      totalUsd: "0.352000",
+    });
   });
 
   it("resolves ccusage Claude short aliases and legacy Claude 3 pricing", () => {
@@ -330,6 +394,22 @@ describe("pricing", () => {
       outputAbove200kUsdPerMillion: "22.5",
       cacheReadAbove200kUsdPerMillion: "0.6",
       cacheCreationAbove200kUsdPerMillion: "7.5",
+    });
+    expect(resolvePricing("anthropic/claude-sonnet-4.6")).toMatchObject({
+      modelId: "anthropic/claude-sonnet-4.6",
+      inputAbove200kUsdPerMillion: "6",
+      outputAbove200kUsdPerMillion: "22.5",
+      cacheReadAbove200kUsdPerMillion: "0.6",
+      cacheCreationAbove200kUsdPerMillion: "7.5",
+      longContextThresholdTokens: 200_000,
+    });
+    expect(resolvePricing("anthropic/claude-opus-4.7")).toMatchObject({
+      modelId: "anthropic/claude-opus-4.7",
+      inputAbove200kUsdPerMillion: "10",
+      outputAbove200kUsdPerMillion: "37.5",
+      cacheReadAbove200kUsdPerMillion: "1",
+      cacheCreationAbove200kUsdPerMillion: "12.5",
+      longContextThresholdTokens: 200_000,
     });
 
     expect(resolvePricing("claude-4-5-sonnet")).toMatchObject({
