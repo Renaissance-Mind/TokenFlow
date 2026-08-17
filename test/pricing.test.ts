@@ -589,6 +589,94 @@ describe("pricing", () => {
     });
   });
 
+  it("resolves ccusage models.dev pricing rows updated after v20.0.20", () => {
+    expect(resolvePricing("global.openai.gpt-5.6-sol")).toMatchObject({
+      modelId: "global.openai.gpt-5.6-sol",
+      inputUsdPerMillion: "5.5",
+      outputUsdPerMillion: "33",
+      cacheReadUsdPerMillion: "0.55",
+      cacheCreationUsdPerMillion: "6.875",
+      inputAbove200kUsdPerMillion: "11",
+      outputAbove200kUsdPerMillion: "49.5",
+      cacheReadAbove200kUsdPerMillion: "1.1",
+      cacheCreationAbove200kUsdPerMillion: "13.75",
+      longContextThresholdTokens: 272_000,
+    });
+    expect(resolvePricing("deepseek-v4-pro-0813")).toMatchObject({
+      modelId: "deepseek-v4-pro-0813",
+      inputUsdPerMillion: "1.32",
+      outputUsdPerMillion: "3.96",
+      cacheReadUsdPerMillion: "0.044",
+      cacheCreationUsdPerMillion: "1.65",
+    });
+    expect(resolvePricing("deepinfra/deepseek-ai/DeepSeek-V4-Pro-0813")).toMatchObject({
+      modelId: "deepinfra/deepseek-ai/DeepSeek-V4-Pro-0813",
+      inputUsdPerMillion: "1.3",
+      outputUsdPerMillion: "2.6",
+      cacheReadUsdPerMillion: "0.1",
+      cacheCreationUsdPerMillion: "1.625",
+    });
+    expect(resolvePricing("gemma-4")).toMatchObject({
+      modelId: "gemma-4",
+      inputUsdPerMillion: "2",
+      outputUsdPerMillion: "5",
+      cacheReadUsdPerMillion: "0.5",
+      cacheCreationUsdPerMillion: "2.5",
+    });
+    expect(resolvePricing("qwen/qwen3.8-27b")).toMatchObject({
+      modelId: "qwen/qwen3.8-27b",
+      inputUsdPerMillion: "0.45",
+      outputUsdPerMillion: "3.2",
+      cacheReadUsdPerMillion: "0.05",
+      cacheCreationUsdPerMillion: "0.5625",
+    });
+    expect(resolvePricing("qwen3.8-27b:thinking")).toMatchObject({
+      modelId: "qwen3.8-27b:thinking",
+      inputUsdPerMillion: "0.4",
+      outputUsdPerMillion: "3",
+      cacheReadUsdPerMillion: "0.2",
+      cacheCreationUsdPerMillion: "0.5",
+    });
+    expect(normalizeAgentModelForUsage("qwen", "qwen3.8-27b:thinking")).toMatchObject({
+      model: "qwen3.8-27b",
+      pricingModel: "qwen3.8-27b:thinking",
+    });
+    expect(resolvePricing("seed-2-0-pro")).toMatchObject({
+      modelId: "seed-2-0-pro",
+      inputUsdPerMillion: "0.63",
+      outputUsdPerMillion: "3.79",
+      cacheReadUsdPerMillion: "0.63",
+      cacheCreationUsdPerMillion: "0.7875",
+      inputAbove200kUsdPerMillion: "1.26",
+      outputAbove200kUsdPerMillion: "7.58",
+      cacheReadAbove200kUsdPerMillion: "1.26",
+      longContextThresholdTokens: 128_000,
+    });
+    expect(resolvePricing("fugu-ultra-v1-1")).toMatchObject({
+      modelId: "fugu-ultra-v1-1",
+      inputUsdPerMillion: "5",
+      outputUsdPerMillion: "30",
+      cacheReadUsdPerMillion: "0.5",
+      cacheCreationUsdPerMillion: "6.25",
+      inputAbove200kUsdPerMillion: "10",
+      outputAbove200kUsdPerMillion: "45",
+      cacheReadAbove200kUsdPerMillion: "1",
+      longContextThresholdTokens: 272_000,
+    });
+    expect(resolvePricing("mimo/mimo-v2.5-pro")).toMatchObject({
+      modelId: "mimo-v2.5-pro",
+      inputUsdPerMillion: "0.435",
+      outputUsdPerMillion: "0.87",
+    });
+    expect(resolvePricing("~deepseek/deepseek-v4-flash-latest")).toMatchObject({
+      modelId: "~deepseek/deepseek-v4-flash-latest",
+      inputUsdPerMillion: "0.0603",
+      outputUsdPerMillion: "0.1206",
+      cacheReadUsdPerMillion: "0.01206",
+      cacheCreationUsdPerMillion: "0.075375",
+    });
+  });
+
   it("does not invent per-token pricing for Kimi For Coding plan quotas", () => {
     expect(resolvePricing("kimi-for-coding")).toBeNull();
   });

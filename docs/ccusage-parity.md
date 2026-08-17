@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-08-16
+Last checked: 2026-08-17
 
-Reference ccusage commit: `1268775 chore(pricing): update models.dev snapshot`
+Reference ccusage commit: `ed5537d chore(pricing): update models.dev snapshot`
 
 ## Summary
 
@@ -50,6 +50,8 @@ The 2026-08-15 parity pass found ccusage main still packaged as `v20.0.19` at `7
 
 The 2026-08-16 parity pass found ccusage main packaged as `v20.0.20` at `1268775 chore(pricing): update models.dev snapshot`. Its `b936c29 fix(pricing): take models.dev rates from the authoring catalog (#1541)` and later snapshot commits added directly migratable pricing behavior: models.dev context tiers now select the long-context rate by whole request context, including cache-read and cache-creation tokens; provider-qualified Anthropic Claude Sonnet 4/4.5/4.6 and Opus 4.6/4.7 rows carry exact 200K context-tier rates; Grok 4.20/4.5/4.6 and Grok Build tier rows now use whole-request tier selection instead of marginal 200K token splitting; GPT-5.1 Codex Mini prices at `0.25` input / `2` output / `0.025` cache-read USD per million tokens; and GPT-5.1 Chat Latest, Instant, and EU rows were added. TokenFlow now mirrors those pricing rows and uses ccusage's full-context tier decision while preserving its local half-hour aggregation by tracking long-context token splits before pricing.
 
+The 2026-08-17 parity pass found ccusage main still packaged as `v20.0.20` at `ed5537d chore(pricing): update models.dev snapshot`. Its models.dev snapshot commits added directly migratable pricing rows for Qwen 3.8, Qwen 3.5, DeepSeek V4 Pro 0813 provider variants, Fugu Ultra, Seed 2.0, Global OpenAI GPT-5.6, Gemma 4, Muse Glimmer, Mistral Voxtral, Perplexity Sonar Deep Research, IONOS/Scaleway provider rows, PublicAI Apertus, NVIDIA Nemotron, Trendyol Asure, Upstage Solar, Dots, and preview DeepSeek V4 Flash latest. It also changed token rates for `gemma-4`, `mimo-v2.5`, `mimo-v2.5-pro`, `qwen/qwen3.8-27b`, `seed-2-1-turbo`, `deepseek-v4-pro-0813`, `deepseek-ai/DeepSeek-V4-Pro-0813`, IONOS/Scaleway rows, and `~deepseek/deepseek-v4-flash-latest`. TokenFlow now mirrors those token pricing rows, including ccusage's models.dev-derived missing-cache defaults (`cache_read = input * 0.1`, `cache_creation = input * 1.25`) and the new 128K/272K context-tier rows where models.dev publishes them.
+
 The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. The 2026-07-30 pass also found ccusage's new experimental Antigravity adapter, which scans `~/.gemini/antigravity-cli/conversations/**/*.db` or `ANTIGRAVITY_DATA_DIR` conversation databases through a new SQLite/protobuf parser. Those changes were not copied because they are adapter, parser, loader, path, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 
 The 2026-08-01 pass also observed dependency/workflow-only upstream drift in `.github/workflows/pullfrog.yml`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, and `rust/Cargo.toml`; those changes were not copied because they do not affect TokenFlow pricing behavior. The 2026-08-02 pass also observed docs, agent-skill, workflow, lockfile, and Rust dependency churn outside TokenFlow's pricing surface; those changes were left report-only. The 2026-08-04 pass observed `8028fd4 revert(antigravity): remove the Antigravity adapter until #1487 lands (#1569)` plus docs/schema/CLI help changes, dependency bumps, and workflow churn; only pricing-table and pricing-resolution behavior was migrated.
@@ -60,6 +62,7 @@ The 2026-08-11 pass also observed workflow, Node, pnpm, Rust dependency, docs, c
 The 2026-08-14 pass also observed `471cfad chore(deps): update rust crate ureq to 3.4.0 (#1594)` plus LiteLLM lock changes whose only TokenFlow-visible differences were context-limit metadata; those changes were left report-only.
 The 2026-08-15 pass also observed pnpm package-manager metadata, Nix flake lock, and LiteLLM lock churn. Fetching the old and new LiteLLM `model_prices_and_context_window.json` files showed no token-pricing, cache-tier, long-context, or model-cost field changes, so the LiteLLM lock movement was left report-only.
 The 2026-08-16 pass also observed CLI/config date-bound validation fixes, Grok report display changes that hide empty cache-creation columns, ccusage `v20.0.20` release metadata, package/dependency/Nix churn, and models.dev generator/catalog-rule internals. Those were left report-only because they do not require TokenFlow source parser, loader, path, environment-variable, telemetry, permission, or privacy-surface changes for pricing parity.
+The 2026-08-17 pass also observed only `flake.lock` and models.dev catalog-rule drift outside the embedded pricing snapshot. Those changes were left report-only because they are dependency/generator inputs and do not alter TokenFlow's local source parser, loader, path, environment-variable, telemetry, permission, login, or privacy surfaces.
 
 ## Source Adapter Matrix
 
