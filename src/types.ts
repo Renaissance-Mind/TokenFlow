@@ -79,6 +79,7 @@ export interface PricingRate {
 export interface PricingProfile extends PricingRate {
   modelId: string;
   displayName: string;
+  exactOnly?: boolean;
 }
 
 export interface CostBreakdown {

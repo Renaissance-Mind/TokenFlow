@@ -235,7 +235,7 @@ export function resolvePricing(model: string, extraProfiles: PricingProfile[] = 
   const allPricing = [...extraProfiles, ...BUILTIN_PRICING];
   for (const candidate of candidates) {
     if (!shouldTryPricingPrefixMatch(candidate)) continue;
-    const prefixMatch = allPricing.find((profile) => profile.modelId.startsWith(`${candidate}-`));
+    const prefixMatch = allPricing.find((profile) => !profile.exactOnly && profile.modelId.startsWith(`${candidate}-`));
     if (prefixMatch) return prefixMatch;
   }
   return null;

@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-08-18
+Last checked: 2026-08-19
 
-Reference ccusage commit: `4ed898e chore(pricing): update models.dev snapshot`
+Reference ccusage commit: `b80aff8 chore(pricing): update models.dev snapshot`
 
 ## Summary
 
@@ -54,6 +54,8 @@ The 2026-08-17 parity pass found ccusage main still packaged as `v20.0.20` at `e
 
 The 2026-08-18 parity pass found ccusage main still packaged as `v20.0.20` at `4ed898e chore(pricing): update models.dev snapshot`. Its models.dev snapshot commits added directly migratable pricing behavior for provider-qualified DeepSeek V4 Pro, Qwen DeepSeek V4 Pro 0813, DeepSeek V4 Flash latest, OpenAI GPT-4o, OpenAI GPT-5.6 Pro and `~openai/gpt-latest` rows, Qwen3.8 dotted keys and Qwen3 VL thinking, TensorX provider rows, Nebius provider cache-read rows, Trinity Large Thinking, and lowered `~moonshotai/kimi-latest` pricing. It also updated IONOS and Scaleway token rates and removed the old hyphenated `qwen3-8-27b` key in favor of `qwen3.8-27b`. TokenFlow now mirrors those directly migratable token rates and preserves ccusage's derived missing-cache defaults. Context-limit-only changes for Cloudflare DeepSeek, Doubao, Thinking Machines, and catalog-rule/flake updates were left report-only because they do not alter TokenFlow's local token pricing formulas, parser, loader, path, environment-variable, telemetry, login, or privacy surface.
 
+The 2026-08-19 parity pass found ccusage main still packaged as `v20.0.20` at `b80aff8 chore(pricing): update models.dev snapshot`. Its models.dev snapshot commits added directly migratable pricing behavior for exact OpenAI fast rows such as `openai/gpt-4.1-fast`, `openai/gpt-4o-fast`, `openai/gpt-5-fast`, `openai/gpt-5.1-thinking-fast`, `openai/gpt-5.2-fast`, `openai/gpt-5.3-codex-fast`, `openai/gpt-5.4-fast`, `openai/gpt-5.5-fast`, `openai/gpt-5.6-*-fast`, `openai/o3-fast`, and `openai/o4-mini-fast`; lowered `openai/gpt-chat-latest`; added Qwen 3.8 provider rows for Cloudflare, Alibaba, DeepInfra, and case-preserved `Qwen/Qwen3.8-27B`; replaced the removed `qwen/qwen3.8-27b` exact row with fallback to compact `qwen3.8-27b`; lowered `qwen/deepseek-v4-pro-0813`; and added or updated Ambient Large, Gemma 4 26B, Meta Muse Glimmer 30B, Nemotron 3 Ultra, Sakana Namazu, Z.ai GLM 5.2/5.3, IONOS, Scaleway, and preview DeepSeek V4 Flash Latest rows. TokenFlow now mirrors these token rates and stores ccusage `exactOnly` pricing rows so they do not participate in prefix fallback matching.
+
 The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. The 2026-07-30 pass also found ccusage's new experimental Antigravity adapter, which scans `~/.gemini/antigravity-cli/conversations/**/*.db` or `ANTIGRAVITY_DATA_DIR` conversation databases through a new SQLite/protobuf parser. Those changes were not copied because they are adapter, parser, loader, path, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 
 The 2026-08-01 pass also observed dependency/workflow-only upstream drift in `.github/workflows/pullfrog.yml`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, and `rust/Cargo.toml`; those changes were not copied because they do not affect TokenFlow pricing behavior. The 2026-08-02 pass also observed docs, agent-skill, workflow, lockfile, and Rust dependency churn outside TokenFlow's pricing surface; those changes were left report-only. The 2026-08-04 pass observed `8028fd4 revert(antigravity): remove the Antigravity adapter until #1487 lands (#1569)` plus docs/schema/CLI help changes, dependency bumps, and workflow churn; only pricing-table and pricing-resolution behavior was migrated.
@@ -66,6 +68,7 @@ The 2026-08-15 pass also observed pnpm package-manager metadata, Nix flake lock,
 The 2026-08-16 pass also observed CLI/config date-bound validation fixes, Grok report display changes that hide empty cache-creation columns, ccusage `v20.0.20` release metadata, package/dependency/Nix churn, and models.dev generator/catalog-rule internals. Those were left report-only because they do not require TokenFlow source parser, loader, path, environment-variable, telemetry, permission, or privacy-surface changes for pricing parity.
 The 2026-08-17 pass also observed only `flake.lock` and models.dev catalog-rule drift outside the embedded pricing snapshot. Those changes were left report-only because they are dependency/generator inputs and do not alter TokenFlow's local source parser, loader, path, environment-variable, telemetry, permission, login, or privacy surfaces.
 The 2026-08-18 pass also observed only `flake.lock` and models.dev catalog-rule drift outside the embedded pricing snapshot. Those changes were left report-only because they are dependency/generator inputs and do not alter TokenFlow's local source parser, loader, path, environment-variable, telemetry, permission, login, or privacy surfaces.
+The 2026-08-19 pass also observed LiteLLM and models.dev lock movement in `flake.lock`, plus a `models-dev-catalog-rules.json` addition for `sakana-namazu`. Context-limit-only changes for FlexAI DeepSeek and Nebius Nemotron stayed report-only because they do not change TokenFlow's local token price calculation without corresponding above-threshold rates.
 
 ## Source Adapter Matrix
 
