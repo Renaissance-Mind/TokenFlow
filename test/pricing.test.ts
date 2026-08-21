@@ -639,6 +639,20 @@ describe("pricing", () => {
       cacheReadUsdPerMillion: "0.0726",
       cacheCreationUsdPerMillion: "0.9075",
     });
+    expect(resolvePricing("deepseek-ai/deepseek-v3.1-maas")).toMatchObject({
+      modelId: "deepseek-ai/deepseek-v3.1-maas",
+      inputUsdPerMillion: "0.6",
+      outputUsdPerMillion: "1.7",
+      cacheReadUsdPerMillion: "0.06",
+      cacheCreationUsdPerMillion: "0.75",
+    });
+    expect(resolvePricing("qwen/deepseek-v4-flash-0731")).toMatchObject({
+      modelId: "qwen/deepseek-v4-flash-0731",
+      inputUsdPerMillion: "0.242",
+      outputUsdPerMillion: "0.726",
+      cacheReadUsdPerMillion: "0.0242",
+      cacheCreationUsdPerMillion: "0.3025",
+    });
     expect(resolvePricing("deepseek/deepseek-v4-flash-latest")).toMatchObject({
       modelId: "deepseek/deepseek-v4-flash-latest",
       inputUsdPerMillion: "0.14",
@@ -764,10 +778,10 @@ describe("pricing", () => {
     });
     expect(resolvePricing("~deepseek/deepseek-v4-flash-latest")).toMatchObject({
       modelId: "~deepseek/deepseek-v4-flash-latest",
-      inputUsdPerMillion: "0.07",
+      inputUsdPerMillion: "0.065",
       outputUsdPerMillion: "0.14",
       cacheReadUsdPerMillion: "0.014",
-      cacheCreationUsdPerMillion: "0.0875",
+      cacheCreationUsdPerMillion: "0.08125",
     });
     expect(resolvePricing("tensorx/deepseek/deepseek-v4-flash-0731")).toMatchObject({
       modelId: "tensorx/deepseek/deepseek-v4-flash-0731",
@@ -843,19 +857,47 @@ describe("pricing", () => {
       outputUsdPerMillion: "1.2",
       cacheReadAbove200kUsdPerMillion: "0.04",
     });
+    expect(resolvePricing("glm-5.2-fast")).toMatchObject({
+      modelId: "glm-5.2-fast",
+      inputUsdPerMillion: "1.99",
+      outputUsdPerMillion: "6.16",
+      cacheReadUsdPerMillion: "0.4",
+      cacheCreationUsdPerMillion: "2.4875",
+    });
     expect(resolvePricing("ionos/openai/gpt-oss-120b")).toMatchObject({
       modelId: "ionos/openai/gpt-oss-120b",
-      inputUsdPerMillion: "0.174075",
-      outputUsdPerMillion: "0.754325",
-      cacheReadUsdPerMillion: "0.0174075",
-      cacheCreationUsdPerMillion: "0.21759375",
+      inputUsdPerMillion: "0.175215",
+      outputUsdPerMillion: "0.759265",
+      cacheReadUsdPerMillion: "0.0175215",
+      cacheCreationUsdPerMillion: "0.21901875",
+    });
+    expect(resolvePricing("ionos/meta-llama/Llama-3.3-70B-Instruct")).toMatchObject({
+      modelId: "ionos/meta-llama/Llama-3.3-70B-Instruct",
+      inputUsdPerMillion: "0.759265",
+      outputUsdPerMillion: "0.759265",
+      cacheReadUsdPerMillion: "0.0759265",
+      cacheCreationUsdPerMillion: "0.94908125",
     });
     expect(resolvePricing("scaleway/deepseek-v4-flash-0731")).toMatchObject({
       modelId: "scaleway/deepseek-v4-flash-0731",
-      inputUsdPerMillion: "0.4642",
-      outputUsdPerMillion: "0.9284",
-      cacheReadUsdPerMillion: "0.04642",
-      cacheCreationUsdPerMillion: "0.58025",
+      inputUsdPerMillion: "0.46724",
+      outputUsdPerMillion: "0.93448",
+      cacheReadUsdPerMillion: "0.046724",
+      cacheCreationUsdPerMillion: "0.58405",
+    });
+    expect(resolvePricing("scaleway/gpt-oss-120b")).toMatchObject({
+      modelId: "scaleway/gpt-oss-120b",
+      inputUsdPerMillion: "0.175215",
+      outputUsdPerMillion: "0.70086",
+      cacheReadUsdPerMillion: "0.0175215",
+      cacheCreationUsdPerMillion: "0.21901875",
+    });
+    expect(resolvePricing("scaleway/llama-3.3-70b-instruct")).toMatchObject({
+      modelId: "scaleway/llama-3.3-70b-instruct",
+      inputUsdPerMillion: "1.05129",
+      outputUsdPerMillion: "1.05129",
+      cacheReadUsdPerMillion: "0.105129",
+      cacheCreationUsdPerMillion: "1.3141125",
     });
     expect(resolvePricing("nebius/openai/gpt-oss-120b")).toMatchObject({
       modelId: "nebius/openai/gpt-oss-120b",
@@ -873,10 +915,59 @@ describe("pricing", () => {
     });
     expect(resolvePricing("meta/muse-glimmer-30b")).toMatchObject({
       modelId: "meta/muse-glimmer-30b",
-      inputUsdPerMillion: "0.35",
-      outputUsdPerMillion: "1.5",
+      inputUsdPerMillion: "0.3",
+      outputUsdPerMillion: "1.1",
       cacheReadUsdPerMillion: "0.04",
-      cacheCreationUsdPerMillion: "0.4375",
+      cacheCreationUsdPerMillion: "0.375",
+    });
+    expect(resolvePricing("mistralai/ministral-8b")).toMatchObject({
+      modelId: "mistralai/ministral-8b",
+      inputUsdPerMillion: "0.11",
+      outputUsdPerMillion: "0.11",
+      cacheReadUsdPerMillion: "0.011",
+      cacheCreationUsdPerMillion: "0.1375",
+    });
+    expect(resolvePricing("moonshotai/kimi-k2-thinking-maas")).toMatchObject({
+      modelId: "moonshotai/kimi-k2-thinking-maas",
+      inputUsdPerMillion: "0.6",
+      outputUsdPerMillion: "2.5",
+      cacheReadUsdPerMillion: "0.06",
+      cacheCreationUsdPerMillion: "0.75",
+    });
+    expect(resolvePricing("nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16")).toMatchObject({
+      modelId: "nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16",
+      inputUsdPerMillion: "0.5",
+      outputUsdPerMillion: "0.5",
+      cacheReadUsdPerMillion: "0.5",
+      cacheCreationUsdPerMillion: "0.5",
+    });
+    expect(resolvePricing("openai/gpt-oss-20b-maas")).toMatchObject({
+      modelId: "openai/gpt-oss-20b-maas",
+      inputUsdPerMillion: "0.07",
+      outputUsdPerMillion: "0.25",
+      cacheReadUsdPerMillion: "0.007",
+      cacheCreationUsdPerMillion: "0.0875",
+    });
+    expect(resolvePricing("ornith-ai/ornith-1.5-35b-a3b:thinking")).toMatchObject({
+      modelId: "ornith-ai/ornith-1.5-35b-a3b:thinking",
+      inputUsdPerMillion: "0.1",
+      outputUsdPerMillion: "0.4",
+      cacheReadUsdPerMillion: "0.01",
+      cacheCreationUsdPerMillion: "0.125",
+    });
+    expect(resolvePricing("tencent/hy-mt2-30b-a3b")).toMatchObject({
+      modelId: "tencent/hy-mt2-30b-a3b",
+      inputUsdPerMillion: "0.074",
+      outputUsdPerMillion: "0.295",
+      cacheReadUsdPerMillion: "0.0074",
+      cacheCreationUsdPerMillion: "0.0925",
+    });
+    expect(resolvePricing("zai-org/glm-4.7-maas")).toMatchObject({
+      modelId: "zai-org/glm-4.7-maas",
+      inputUsdPerMillion: "0.6",
+      outputUsdPerMillion: "2.2",
+      cacheReadUsdPerMillion: "0.06",
+      cacheCreationUsdPerMillion: "0.75",
     });
     expect(resolvePricing("nemotron-3-ultra-550b")).toMatchObject({
       modelId: "nemotron-3-ultra-550b",
