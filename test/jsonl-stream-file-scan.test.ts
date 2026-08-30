@@ -66,7 +66,7 @@ describe("JSONL file scan", () => {
       agent: "codex",
       sessionId: "codex-session",
       model: "gpt-5.2-codex-high",
-      totalTokens: 155,
+      totalTokens: 130,
     });
   });
 

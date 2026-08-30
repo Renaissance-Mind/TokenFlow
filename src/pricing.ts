@@ -11,9 +11,10 @@ export function calculateCost(
   pricing: PricingRate,
   multiplier = "1",
 ): CostBreakdown {
-  const inputIncludesCacheRead = agent === "codex" || agent === "gemini";
-  const billableInputTokens = inputIncludesCacheRead
-    ? Math.max(0, totals.inputTokens - totals.cachedInputTokens)
+  const inputIncludesCacheUsage = agent === "codex" || agent === "gemini";
+  const cacheCreationInputTokens = cacheCreationContextTokenTotal(totals);
+  const billableInputTokens = inputIncludesCacheUsage
+    ? Math.max(0, totals.inputTokens - totals.cachedInputTokens - cacheCreationInputTokens)
     : totals.inputTokens;
   const billableOutputTokens =
     totals.outputTokens + totals.reasoningOutputTokens + (totals.extraTotalTokens || 0);
@@ -94,10 +95,7 @@ function longContextTotals(
     totals.longContextInputTokens !== undefined ||
     totals.longContextOutputTokens !== undefined ||
     totals.longContextCacheCreationTokens !== undefined;
-  const cacheCreationContextTokens =
-    totals.cacheCreation5mTokens || totals.cacheCreation1hTokens
-      ? (totals.cacheCreation5mTokens || 0) + (totals.cacheCreation1hTokens || 0)
-      : totals.cacheCreationTokens;
+  const cacheCreationContextTokens = cacheCreationContextTokenTotal(totals);
   const inputContextTokens =
     agent === "codex" || agent === "gemini" ? totals.inputTokens : totals.inputTokens + totals.cachedInputTokens;
   const contextTokens =
@@ -133,36 +131,53 @@ function longContextTotals(
     tracked ? totals.longContextExtraTotalTokens || 0 : wholeRequestLong ? totals.extraTotalTokens || 0 : 0,
     totals.extraTotalTokens || 0,
   );
+  const cacheCreationTokens = clampTokens(
+    tracked
+      ? totals.longContextCacheCreationTokens || 0
+      : wholeRequestLong
+        ? totals.cacheCreationTokens
+        : 0,
+    totals.cacheCreationTokens,
+  );
+  const cacheCreation5mTokens = clampTokens(
+    tracked
+      ? totals.longContextCacheCreation5mTokens || 0
+      : wholeRequestLong
+        ? totals.cacheCreation5mTokens || 0
+        : 0,
+    totals.cacheCreation5mTokens || 0,
+  );
+  const cacheCreation1hTokens = clampTokens(
+    tracked
+      ? totals.longContextCacheCreation1hTokens || 0
+      : wholeRequestLong
+        ? totals.cacheCreation1hTokens || 0
+        : 0,
+    totals.cacheCreation1hTokens || 0,
+  );
+  const longCacheCreationInputTokens =
+    cacheCreation5mTokens || cacheCreation1hTokens ? cacheCreation5mTokens + cacheCreation1hTokens : cacheCreationTokens;
 
   return {
-    billableInputTokens: agent === "codex" || agent === "gemini" ? inputTokens - cachedInputTokens : inputTokens,
+    billableInputTokens: inputIncludesCacheUsage(agent)
+      ? Math.max(0, inputTokens - cachedInputTokens - longCacheCreationInputTokens)
+      : inputTokens,
     cachedInputTokens,
     billableOutputTokens: outputTokens + reasoningOutputTokens + extraTotalTokens,
-    cacheCreationTokens: clampTokens(
-      tracked
-        ? totals.longContextCacheCreationTokens || 0
-        : wholeRequestLong
-          ? totals.cacheCreationTokens
-          : 0,
-      totals.cacheCreationTokens,
-    ),
-    cacheCreation5mTokens: clampTokens(
-      tracked
-        ? totals.longContextCacheCreation5mTokens || 0
-        : wholeRequestLong
-          ? totals.cacheCreation5mTokens || 0
-          : 0,
-      totals.cacheCreation5mTokens || 0,
-    ),
-    cacheCreation1hTokens: clampTokens(
-      tracked
-        ? totals.longContextCacheCreation1hTokens || 0
-        : wholeRequestLong
-          ? totals.cacheCreation1hTokens || 0
-          : 0,
-      totals.cacheCreation1hTokens || 0,
-    ),
+    cacheCreationTokens,
+    cacheCreation5mTokens,
+    cacheCreation1hTokens,
   };
+}
+
+function inputIncludesCacheUsage(agent: AgentSource): boolean {
+  return agent === "codex" || agent === "gemini";
+}
+
+function cacheCreationContextTokenTotal(totals: UsageTotals): number {
+  return totals.cacheCreation5mTokens || totals.cacheCreation1hTokens
+    ? (totals.cacheCreation5mTokens || 0) + (totals.cacheCreation1hTokens || 0)
+    : totals.cacheCreationTokens;
 }
 
 function cacheCreationCostMicroUsd(totals: UsageTotals, pricing: PricingRate): bigint {

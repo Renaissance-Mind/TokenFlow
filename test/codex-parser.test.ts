@@ -67,7 +67,7 @@ describe("Codex JSONL parser", () => {
       cachedInputTokens: 400,
       outputTokens: 100,
       reasoningOutputTokens: 25,
-      totalTokens: 1_525,
+      totalTokens: 1_100,
     });
     expect(events[1]).toMatchObject({
       bucketStart: "2026-06-09T01:30:00.000Z",
@@ -76,7 +76,40 @@ describe("Codex JSONL parser", () => {
       cachedInputTokens: 150,
       outputTokens: 75,
       reasoningOutputTokens: 15,
-      totalTokens: 740,
+      totalTokens: 575,
+    });
+  });
+
+  it("extracts and normalizes Codex cache-write tokens like ccusage", () => {
+    const lines = [
+      JSON.stringify({ type: "session_meta", payload: { session_id: "s1" } }),
+      JSON.stringify({ type: "turn_context", payload: { model: "gpt-5.6-terra" } }),
+      JSON.stringify({
+        type: "event_msg",
+        timestamp: "2026-08-20T05:49:12.034Z",
+        payload: {
+          type: "token_count",
+          info: {
+            last_token_usage: {
+              input_tokens: 100,
+              cached_input_tokens: 80,
+              cache_write_input_tokens: 40,
+              output_tokens: 5,
+            },
+          },
+        },
+      }),
+    ].join("\n");
+
+    const events = parseCodexJsonl(lines, { sourcePath: "/tmp/rollout.jsonl" });
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      inputTokens: 100,
+      cachedInputTokens: 80,
+      cacheCreationTokens: 20,
+      outputTokens: 5,
+      totalTokens: 105,
     });
   });
 
@@ -114,7 +147,7 @@ describe("Codex JSONL parser", () => {
     expect(events).toHaveLength(1);
     expect(events[0]).toMatchObject({
       model: "gpt-5.5",
-      totalTokens: 1_150,
+      totalTokens: 1_050,
     });
   });
 

@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-08-21
+Last checked: 2026-08-30
 
-Reference ccusage commit: `813d801 chore(pricing): update LiteLLM snapshot`
+Reference ccusage commit: `b2809fa fix(claude): scope session totals to date window (#1664)`
 
 ## Summary
 
@@ -60,6 +60,8 @@ The 2026-08-20 parity pass found ccusage main still packaged as `v20.0.20` at `8
 
 The 2026-08-21 parity pass found ccusage main still packaged as `v20.0.20` at `813d801 chore(pricing): update LiteLLM snapshot`. Its models.dev snapshot commits added or changed directly migratable token pricing for DeepSeek V3.1 MaaS, GLM 5.2 Fast, IONOS Llama/GPT OSS rows, Meta Muse Glimmer, Ministral 8B, Moonshot Kimi K2 Thinking MaaS, NVIDIA Nemotron 3.5 Lightning, OpenAI GPT OSS 20B MaaS, Ornith 1.5, Qwen DeepSeek V4 Flash, Scaleway DeepSeek/GPT OSS/Llama rows, Tencent Hunyuan MT2 rows, Z.ai GLM 4.7 MaaS, and preview DeepSeek V4 Flash Latest. TokenFlow now mirrors those token rates and ccusage's models.dev-derived missing-cache defaults. Removed upstream rows for DeepInfra Tencent Hy3 and the generic Nemotron 3.5 Lightning id required no TokenFlow deletion because TokenFlow did not carry those exact pricing keys.
 
+The 2026-08-30 parity pass found ccusage main still packaged as `v20.0.20` at `b2809fa fix(claude): scope session totals to date window (#1664)`. Its `15b3bef fix(codex): account for cache-write tokens (#1663)` commit added directly migratable Codex pricing behavior: `cache_write_input_tokens` is parsed as cache-creation input, cache read plus cache creation is capped to the reported Codex input total, cache-write tokens are billed with the cache-creation rate instead of fresh input, and long-context Codex requests use the long-context cache-creation rate where published. TokenFlow now mirrors that behavior while preserving half-hour aggregation, including the Codex fallback total convention that derives total tokens from input plus output because reasoning, cache-read, and cache-write are subsets of the reported input/output totals.
+
 The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. The 2026-07-30 pass also found ccusage's new experimental Antigravity adapter, which scans `~/.gemini/antigravity-cli/conversations/**/*.db` or `ANTIGRAVITY_DATA_DIR` conversation databases through a new SQLite/protobuf parser. Those changes were not copied because they are adapter, parser, loader, path, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 
 The 2026-08-01 pass also observed dependency/workflow-only upstream drift in `.github/workflows/pullfrog.yml`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, and `rust/Cargo.toml`; those changes were not copied because they do not affect TokenFlow pricing behavior. The 2026-08-02 pass also observed docs, agent-skill, workflow, lockfile, and Rust dependency churn outside TokenFlow's pricing surface; those changes were left report-only. The 2026-08-04 pass observed `8028fd4 revert(antigravity): remove the Antigravity adapter until #1487 lands (#1569)` plus docs/schema/CLI help changes, dependency bumps, and workflow churn; only pricing-table and pricing-resolution behavior was migrated.
@@ -75,13 +77,14 @@ The 2026-08-18 pass also observed only `flake.lock` and models.dev catalog-rule 
 The 2026-08-19 pass also observed LiteLLM and models.dev lock movement in `flake.lock`, plus a `models-dev-catalog-rules.json` addition for `sakana-namazu`. Context-limit-only changes for FlexAI DeepSeek and Nebius Nemotron stayed report-only because they do not change TokenFlow's local token price calculation without corresponding above-threshold rates.
 The 2026-08-20 pass also observed `flake.lock` movement for LiteLLM/models.dev and a `models-dev-catalog-rules.json` addition for `glm-4-6v-flash`; metadata-only and context-limit-only changes were left report-only because they do not alter TokenFlow's local parser, loader, path, environment-variable, telemetry, login, privacy, or token-pricing behavior.
 The 2026-08-21 pass also observed Rust `miniz_oxide` dependency churn, `flake.lock` movement, and context-limit-only models.dev metadata changes for DeepSeek V3.1 Terminus and FlexAI DeepSeek V4 Flash. Those changes were left report-only because they do not alter TokenFlow's local parser, loader, path, environment-variable, telemetry, login, privacy, or token-pricing behavior.
+The 2026-08-30 pass also observed `aa912ef fix(statusline): apply pricing overrides (#1660)`, `0039eb3 fix(opencode): respect XDG data home (#1659)`, `809eeb6 fix(pi): suppress forked session replays (#1662)`, `a4b8420 fix(claude): scope message dedupe by session (#1661)`, `b2809fa fix(claude): scope session totals to date window (#1664)`, workflow/contribution-gate churn, docs/config-schema updates, and package-manager metadata changes. TokenFlow did not copy the statusline `pricingOverrides` surface because it is a ccusage CLI/statusline runtime override path rather than local source pricing behavior. The OpenCode, Pi, and Claude changes are adapter, parser, loader, path, or report-window drift and remain report-only under the automation policy.
 
 ## Source Adapter Matrix
 
 | ccusage adapter | TokenFlow status | Notes |
 | --- | --- | --- |
 | `claude` | Supported | Claude Code project JSONL usage. Includes fast/regular split when Claude Code exposes it. |
-| `codex` | Supported | Codex rollout JSONL token counts. Reads recorded `thread_settings_applied` tiers when present, then existing `CODEX_HOME/config.toml` for unclassified usage to mirror ccusage fast/priority pricing. |
+| `codex` | Supported | Codex rollout JSONL token counts, including cache-read and cache-write input. Reads recorded `thread_settings_applied` tiers when present, then existing `CODEX_HOME/config.toml` for unclassified usage to mirror ccusage fast/priority pricing. |
 | `gemini` | Supported | Gemini CLI session JSON files. |
 | `opencode` | Supported | OpenCode SQLite `message` rows from `opencode.db` and `opencode-*.db`, plus standalone `storage/message/**/*.json` files. Requires `sqlite3` for DB rows. |
 | `kimi` | Supported | Kimi wire JSONL plus config model metadata and K2.5/K2.6 pricing cutoff. ccusage added `~/.kimi-code` `usage.record` support as non-pricing parser/path drift; TokenFlow did not copy it in the 2026-07-10 pricing sync. |

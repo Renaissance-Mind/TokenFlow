@@ -237,10 +237,11 @@ function normalizeUsage(value: Record<string, unknown>): CumulativeUsage {
   );
   const outputTokens = nonNegativeInt(value.output_tokens);
   const reasoningOutputTokens = nonNegativeInt(value.reasoning_output_tokens);
-  const cacheCreationTokens = nonNegativeInt(value.cache_creation_tokens ?? value.cache_creation_input_tokens);
-  const totalTokens =
-    nonNegativeInt(value.total_tokens) ||
-    inputTokens + cachedInputTokens + outputTokens + reasoningOutputTokens + cacheCreationTokens;
+  const cacheCreationTokens = Math.min(
+    inputTokens - cachedInputTokens,
+    nonNegativeInt(value.cache_write_input_tokens ?? value.cache_creation_tokens ?? value.cache_creation_input_tokens),
+  );
+  const totalTokens = nonNegativeInt(value.total_tokens) || inputTokens + outputTokens;
 
   return {
     inputTokens,

@@ -353,6 +353,26 @@ describe("pricing", () => {
       outputUsd: "0.030000",
       totalUsd: "1.240000",
     });
+
+    const cacheWriteLong = calculateCost(
+      "codex",
+      {
+        inputTokens: 935_040,
+        cachedInputTokens: 875_306,
+        outputTokens: 11_150,
+        reasoningOutputTokens: 0,
+        cacheCreationTokens: 57_610,
+        totalTokens: 946_190,
+      },
+      resolvePricing("gpt-5.6-terra")!,
+    );
+    expect(cacheWriteLong).toMatchObject({
+      inputUsd: "0.008496",
+      cacheReadUsd: "0.350122",
+      cacheCreationUsd: "0.288050",
+      outputUsd: "0.200700",
+      totalUsd: "0.847368",
+    });
   });
 
   it("selects long-context tiers from the full cached request context", () => {
