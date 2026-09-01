@@ -224,6 +224,59 @@ describe("usage buckets", () => {
     });
   });
 
+  it("applies timestamp-aware DeepSeek V4 rates by UTC bucket", () => {
+    const buckets = aggregateEvents([
+      {
+        agent: "openclaw",
+        model: "deepseek-v4-flash",
+        sessionId: "s1",
+        sourcePath: "/openclaw.jsonl",
+        timestamp: "2026-08-16T15:30:00.000Z",
+        bucketStart: "2026-08-16T15:30:00.000Z",
+        inputTokens: 1_000_000,
+        cachedInputTokens: 1_000_000,
+        outputTokens: 1_000_000,
+        reasoningOutputTokens: 0,
+        cacheCreationTokens: 1_000_000,
+        totalTokens: 4_000_000,
+      },
+      {
+        agent: "openclaw",
+        model: "deepseek-v4-flash",
+        sessionId: "s2",
+        sourcePath: "/openclaw.jsonl",
+        timestamp: "2026-08-17T04:00:00.000Z",
+        bucketStart: "2026-08-17T04:00:00.000Z",
+        inputTokens: 1_000_000,
+        cachedInputTokens: 1_000_000,
+        outputTokens: 1_000_000,
+        reasoningOutputTokens: 0,
+        cacheCreationTokens: 1_000_000,
+        totalTokens: 4_000_000,
+      },
+      {
+        agent: "openclaw",
+        model: "deepseek-v4-flash",
+        sessionId: "s3",
+        sourcePath: "/openclaw.jsonl",
+        timestamp: "2026-08-17T01:00:00.000Z",
+        bucketStart: "2026-08-17T01:00:00.000Z",
+        inputTokens: 1_000_000,
+        cachedInputTokens: 1_000_000,
+        outputTokens: 1_000_000,
+        reasoningOutputTokens: 0,
+        cacheCreationTokens: 1_000_000,
+        totalTokens: 4_000_000,
+      },
+    ]);
+
+    expect(buckets.map((bucket) => bucket.cost.totalUsd)).toEqual([
+      "0.562800",
+      "2.214000",
+      "1.107000",
+    ]);
+  });
+
   it("applies Codex fast multipliers only to the recorded fast subset of a bucket", () => {
     const buckets = aggregateEvents([
       {

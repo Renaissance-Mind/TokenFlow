@@ -256,6 +256,16 @@ export function resolvePricing(model: string, extraProfiles: PricingProfile[] = 
   return null;
 }
 
+export function resolvePricingAt(
+  model: string,
+  timestamp: string,
+  extraProfiles: PricingProfile[] = [],
+): PricingProfile | null {
+  const pricing = resolvePricing(model, extraProfiles);
+  const schedule = deepseekV4PricingSchedule(model, timestamp);
+  return pricing && schedule ? { ...pricing, ...schedule } : pricing;
+}
+
 export function normalizeModelForPricing(model: string): string {
   return normalizeModelId(model, { resolveConfiguredAlias: true });
 }
@@ -354,6 +364,9 @@ function pricingCandidatesForCleanedModel(cleaned: string): string[] {
     if (candidate.startsWith("claude-") && candidate.includes(".")) {
       queue.push(candidate.replaceAll(".", "-"));
     }
+    if (candidate.startsWith("deepseek") && candidate.includes(".")) {
+      queue.push(candidate.replaceAll(".", "-"));
+    }
     const builtinAlias = builtinPricingAlias(candidate);
     if (builtinAlias) queue.push(builtinAlias);
   }
@@ -365,6 +378,48 @@ function builtinPricingAlias(model: string): string | null {
   if (model === "gpt-5.6") return "gpt-5.6-sol";
   if (model === "gpt-5.3-spark") return "gpt-5.3-codex-spark";
   return null;
+}
+
+function deepseekV4PricingSchedule(model: string, timestamp: string): Partial<PricingRate> | null {
+  const identity = directDeepseekV4PricingIdentity(model);
+  if (!identity) return null;
+  const millis = Date.parse(timestamp);
+  if (!Number.isFinite(millis)) return null;
+
+  const rates = DEEPSEEK_V4_SCHEDULES[identity];
+  const selected =
+    millis < DEEPSEEK_V4_PRICING_CUTOFF_MS
+      ? rates.old
+      : deepseekV4Peak(new Date(millis))
+        ? rates.peak
+        : rates.offPeak;
+  return {
+    inputUsdPerMillion: selected.input,
+    outputUsdPerMillion: selected.output,
+    cacheReadUsdPerMillion: selected.cacheRead,
+    cacheCreationUsdPerMillion: selected.cacheCreation,
+    inputAbove200kUsdPerMillion: selected.input,
+    outputAbove200kUsdPerMillion: selected.output,
+    cacheReadAbove200kUsdPerMillion: selected.cacheRead,
+    cacheCreationAbove200kUsdPerMillion: selected.cacheCreation,
+  };
+}
+
+function directDeepseekV4PricingIdentity(model: string): DeepseekV4ModelId | null {
+  if (isProviderQualifiedModel(model)) return null;
+  const resolved = cleanAndResolveConfiguredAlias(model);
+  const normalized = separatorNormalizedPricingKey(resolved);
+  if (normalized === "deepseek-v4-flash" || normalized === "deepseek-v4-pro") return normalized;
+  return null;
+}
+
+function isProviderQualifiedModel(model: string): boolean {
+  const cleaned = cleanProviderModelId(model);
+  return cleaned.includes("/") || cleaned.startsWith("hf:");
+}
+
+function separatorNormalizedPricingKey(model: string): string {
+  return model.replace(/[.@]/g, "-").toLowerCase();
 }
 
 function cleanModelId(model: string): string {
@@ -539,6 +594,40 @@ const NON_ANTHROPIC_CLAUDE_WRAPPER_PREFIXES = [
   "solar",
   "stepfun",
 ];
+
+type DeepseekV4ModelId = "deepseek-v4-flash" | "deepseek-v4-pro";
+
+interface DeepseekV4Rates {
+  input: string;
+  output: string;
+  cacheRead: string;
+  cacheCreation: string;
+}
+
+const DEEPSEEK_V4_PRICING_CUTOFF_MS = Date.UTC(2026, 7, 16, 16, 0, 0);
+
+const DEEPSEEK_V4_SCHEDULES: Record<
+  DeepseekV4ModelId,
+  { old: DeepseekV4Rates; offPeak: DeepseekV4Rates; peak: DeepseekV4Rates }
+> = {
+  "deepseek-v4-flash": {
+    old: { input: "0.14", output: "0.28", cacheRead: "0.0028", cacheCreation: "0.14" },
+    offPeak: { input: "0.22", output: "0.66", cacheRead: "0.007", cacheCreation: "0.22" },
+    peak: { input: "0.44", output: "1.32", cacheRead: "0.014", cacheCreation: "0.44" },
+  },
+  "deepseek-v4-pro": {
+    old: { input: "0.435", output: "0.87", cacheRead: "0.003625", cacheCreation: "0.435" },
+    offPeak: { input: "0.66", output: "1.98", cacheRead: "0.022", cacheCreation: "0.66" },
+    peak: { input: "1.32", output: "3.96", cacheRead: "0.044", cacheCreation: "1.32" },
+  },
+};
+
+function deepseekV4Peak(timestamp: Date): boolean {
+  const day = timestamp.getUTCDay();
+  if (day === 0 || day === 6) return false;
+  const hour = timestamp.getUTCHours();
+  return (hour >= 1 && hour < 4) || (hour >= 6 && hour < 10);
+}
 
 function tieredTokenCostMicroUsd(tokens: number, usdPerMillion: string, above200kUsdPerMillion?: string): bigint {
   const safeTokens = Math.max(0, Math.floor(tokens));

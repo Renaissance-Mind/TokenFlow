@@ -1,4 +1,4 @@
-import { calculateCost, resolvePricing } from "./pricing.js";
+import { calculateCost, resolvePricing, resolvePricingAt } from "./pricing.js";
 import type { CostBreakdown, PricingProfile, UsageBucket, UsageEvent, UsageTotals } from "./types.js";
 
 const ZERO_COST: CostBreakdown = {
@@ -93,7 +93,7 @@ function calculateBucketCost(
       status: "priced",
     };
   }
-  const pricing = resolvePricing(bucket.pricingModel || bucket.model, pricingProfiles);
+  const pricing = resolvePricingAt(bucket.pricingModel || bucket.model, bucket.bucketStart, pricingProfiles);
   if (!pricing) return { cost: ZERO_COST, status: "unpriced" };
   return { cost: calculateBucketTokenCost(bucket, pricing), status: "priced" };
 }

@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-08-30
+Last checked: 2026-09-01
 
-Reference ccusage commit: `b2809fa fix(claude): scope session totals to date window (#1664)`
+Reference ccusage commit: `21c7f68 revert(codex): remove originator breakdowns (#1687)`
 
 ## Summary
 
@@ -62,6 +62,8 @@ The 2026-08-21 parity pass found ccusage main still packaged as `v20.0.20` at `8
 
 The 2026-08-30 parity pass found ccusage main still packaged as `v20.0.20` at `b2809fa fix(claude): scope session totals to date window (#1664)`. Its `15b3bef fix(codex): account for cache-write tokens (#1663)` commit added directly migratable Codex pricing behavior: `cache_write_input_tokens` is parsed as cache-creation input, cache read plus cache creation is capped to the reported Codex input total, cache-write tokens are billed with the cache-creation rate instead of fresh input, and long-context Codex requests use the long-context cache-creation rate where published. TokenFlow now mirrors that behavior while preserving half-hour aggregation, including the Codex fallback total convention that derives total tokens from input plus output because reasoning, cache-read, and cache-write are subsets of the reported input/output totals.
 
+The 2026-09-01 parity pass found ccusage main still packaged as `v20.0.20` at `21c7f68 revert(codex): remove originator breakdowns (#1687)`. Its `d39a09d fix(pricing): apply timestamp-aware DeepSeek V4 rates (#1679)` commit added directly migratable pricing behavior for direct `deepseek-v4-flash` and `deepseek-v4-pro` model ids: requests before 2026-08-16 16:00 UTC use the historical direct DeepSeek V4 rates, later weekday UTC peak windows 01:00-03:59 and 06:00-09:59 use the peak rates, and other later windows use off-peak rates. TokenFlow now selects those rates by UTC half-hour bucket timestamp, applies them to input, output, cache-read, cache-creation, and long-context fields, and resolves dotted direct DeepSeek spellings and configured ccusage aliases before applying the schedule. Provider-qualified DeepSeek rows remain on their static provider pricing.
+
 The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. The 2026-07-30 pass also found ccusage's new experimental Antigravity adapter, which scans `~/.gemini/antigravity-cli/conversations/**/*.db` or `ANTIGRAVITY_DATA_DIR` conversation databases through a new SQLite/protobuf parser. Those changes were not copied because they are adapter, parser, loader, path, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 
 The 2026-08-01 pass also observed dependency/workflow-only upstream drift in `.github/workflows/pullfrog.yml`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, and `rust/Cargo.toml`; those changes were not copied because they do not affect TokenFlow pricing behavior. The 2026-08-02 pass also observed docs, agent-skill, workflow, lockfile, and Rust dependency churn outside TokenFlow's pricing surface; those changes were left report-only. The 2026-08-04 pass observed `8028fd4 revert(antigravity): remove the Antigravity adapter until #1487 lands (#1569)` plus docs/schema/CLI help changes, dependency bumps, and workflow churn; only pricing-table and pricing-resolution behavior was migrated.
@@ -78,6 +80,7 @@ The 2026-08-19 pass also observed LiteLLM and models.dev lock movement in `flake
 The 2026-08-20 pass also observed `flake.lock` movement for LiteLLM/models.dev and a `models-dev-catalog-rules.json` addition for `glm-4-6v-flash`; metadata-only and context-limit-only changes were left report-only because they do not alter TokenFlow's local parser, loader, path, environment-variable, telemetry, login, privacy, or token-pricing behavior.
 The 2026-08-21 pass also observed Rust `miniz_oxide` dependency churn, `flake.lock` movement, and context-limit-only models.dev metadata changes for DeepSeek V3.1 Terminus and FlexAI DeepSeek V4 Flash. Those changes were left report-only because they do not alter TokenFlow's local parser, loader, path, environment-variable, telemetry, login, privacy, or token-pricing behavior.
 The 2026-08-30 pass also observed `aa912ef fix(statusline): apply pricing overrides (#1660)`, `0039eb3 fix(opencode): respect XDG data home (#1659)`, `809eeb6 fix(pi): suppress forked session replays (#1662)`, `a4b8420 fix(claude): scope message dedupe by session (#1661)`, `b2809fa fix(claude): scope session totals to date window (#1664)`, workflow/contribution-gate churn, docs/config-schema updates, and package-manager metadata changes. TokenFlow did not copy the statusline `pricingOverrides` surface because it is a ccusage CLI/statusline runtime override path rather than local source pricing behavior. The OpenCode, Pi, and Claude changes are adapter, parser, loader, path, or report-window drift and remain report-only under the automation policy.
+The 2026-09-01 pass also observed new Antigravity SQLite conversation usage support, ZCode usage adapter support, Copilot session-state usage events, Gemini XDG path behavior, parser/output/terminal formatting changes, config-schema/docs updates, HTTP cache validation, Nix/dependency churn, and a Codex originator-breakdown revert. Those changes remain report-only because they are adapter, parser, loader, path, environment-variable, reporting, performance, workflow, or dependency drift rather than TokenFlow-local pricing behavior.
 
 ## Source Adapter Matrix
 
@@ -98,8 +101,9 @@ The 2026-08-30 pass also observed `aa912ef fix(statusline): apply pricing overri
 | `kilo` | Supported | Kilo `kilo.db` message rows. Requires `sqlite3`. |
 | `openclaw` | Supported | OpenClaw-compatible JSONL sessions and archived/reset JSONL names, with model-change fallback state. |
 | `pi` | Supported | Pi agent session JSONL assistant usage rows. ccusage named pi-format stores are non-pricing config/reporting drift and were not copied in the 2026-07-10 pricing sync. |
-| `antigravity` | Not applicable | ccusage reverted the experimental Antigravity adapter in `8028fd4`, so there is no current upstream adapter surface to mirror. |
-| `copilot` | Deferred | ccusage reads GitHub Copilot CLI OpenTelemetry JSONL from `~/.copilot/otel/*.jsonl` or `COPILOT_OTEL_FILE_EXPORTER_PATH`. This requires users to enable OTEL file export before sessions; older sessions cannot be recovered. Treat as a separate product decision rather than a no-touch local log migration. |
+| `antigravity` | Report-only | ccusage added Antigravity SQLite conversation usage support in `c951e20`; this is adapter/parser/path behavior and has not been copied by the pricing-only automation. |
+| `zcode` | Report-only | ccusage added a ZCode usage adapter in `562d0ec`; this is adapter/parser/path behavior and has not been copied by the pricing-only automation. |
+| `copilot` | Deferred | ccusage reads GitHub Copilot CLI OpenTelemetry JSONL from `~/.copilot/otel/*.jsonl` or `COPILOT_OTEL_FILE_EXPORTER_PATH`, and added session-state usage events in `8841f92`. Copilot support still requires a separate product decision rather than a pricing-only migration. |
 | `all` | Not applicable | ccusage meta-command; TokenFlow already scans all configured local sources during `status` and `sync`. |
 
 ## Intentional Differences

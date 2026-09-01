@@ -4,6 +4,7 @@ import {
   normalizeAgentModelForUsage,
   normalizeModelForPricing,
   resolvePricing,
+  resolvePricingAt,
 } from "../src/pricing.js";
 
 describe("pricing", () => {
@@ -70,6 +71,42 @@ describe("pricing", () => {
         modelId: "claude-sonnet-4",
         inputUsdPerMillion: "3",
         outputUsdPerMillion: "15",
+      });
+    });
+  });
+
+  it("applies timestamp-aware DeepSeek V4 rates only to direct model identities", () => {
+    expect(resolvePricingAt("deepseek-v4-flash", "2026-08-16T15:59:59.000Z")).toMatchObject({
+      modelId: "deepseek-v4-flash",
+      inputUsdPerMillion: "0.14",
+      outputUsdPerMillion: "0.28",
+      cacheReadUsdPerMillion: "0.0028",
+      cacheCreationUsdPerMillion: "0.14",
+    });
+    expect(resolvePricingAt("deepseek.v4.flash", "2026-08-17T04:00:00.000Z")).toMatchObject({
+      modelId: "deepseek-v4-flash",
+      inputUsdPerMillion: "0.22",
+      outputUsdPerMillion: "0.66",
+      cacheReadUsdPerMillion: "0.007",
+      cacheCreationUsdPerMillion: "0.22",
+    });
+    expect(resolvePricingAt("deepseek-v4-pro", "2026-08-17T01:00:00.000Z")).toMatchObject({
+      modelId: "deepseek-v4-pro",
+      inputUsdPerMillion: "1.32",
+      outputUsdPerMillion: "3.96",
+      cacheReadUsdPerMillion: "0.044",
+      cacheCreationUsdPerMillion: "1.32",
+    });
+    expect(resolvePricingAt("deepseek/deepseek-v4-flash", "2026-08-16T15:59:59.000Z")).toMatchObject({
+      modelId: "deepseek/deepseek-v4-flash",
+      inputUsdPerMillion: "0.44",
+      cacheCreationUsdPerMillion: "0",
+    });
+
+    withCcusageModelAliases("deepseek-latest=deepseek-v4-flash", () => {
+      expect(resolvePricingAt("deepseek-latest", "2026-08-17T01:00:00.000Z")).toMatchObject({
+        modelId: "deepseek-v4-flash",
+        inputUsdPerMillion: "0.44",
       });
     });
   });
