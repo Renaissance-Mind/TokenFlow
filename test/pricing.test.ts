@@ -138,7 +138,7 @@ describe("pricing", () => {
 
   it("exposes ccusage Codex fast pricing multipliers on explicit override models", () => {
     expect(resolvePricing("gpt-5.6")).toMatchObject({
-      modelId: "gpt-5.6-sol",
+      modelId: "gpt-5.6",
       fastMultiplier: "2",
       longContextThresholdTokens: 272_000,
     });
@@ -177,8 +177,8 @@ describe("pricing", () => {
   it("resolves cc-switch seed pricing for third-party coding models", () => {
     expect(resolvePricing("moonshotai/kimi-k2-0905:exa")).toMatchObject({
       modelId: "kimi-k2-0905",
-      inputUsdPerMillion: "0.55",
-      outputUsdPerMillion: "2.20",
+      inputUsdPerMillion: "0.5",
+      outputUsdPerMillion: "2",
     });
     expect(resolvePricing("deepseek-v4-flash")).toMatchObject({
       modelId: "deepseek-v4-flash",
@@ -204,13 +204,13 @@ describe("pricing", () => {
       inputUsdPerMillion: "10",
       outputUsdPerMillion: "50",
       cacheReadUsdPerMillion: "1",
-      cacheCreationUsdPerMillion: "12.50",
+      cacheCreationUsdPerMillion: "12.5",
     });
     expect(resolvePricing("anthropic/claude-fable-latest")).toMatchObject({
-      modelId: "claude-fable-latest",
+      modelId: "anthropic/claude-fable-latest",
       inputUsdPerMillion: "10",
       outputUsdPerMillion: "50",
-      cacheReadUsdPerMillion: "1",
+      cacheReadUsdPerMillion: "0.25",
       cacheCreationUsdPerMillion: "12.5",
     });
     expect(resolvePricing("anthropic/claude-mythos-5")).toMatchObject({
@@ -232,20 +232,20 @@ describe("pricing", () => {
       inputUsdPerMillion: "1.75",
       outputUsdPerMillion: "14",
       cacheReadUsdPerMillion: "0.175",
-      cacheCreationUsdPerMillion: "0",
+      cacheCreationUsdPerMillion: "2.1875",
     });
   });
 
   it("resolves ccusage GPT-5.6 pricing with OpenAI long-context tiers", () => {
     expect(resolvePricing("openai/gpt-5.6-sol")).toMatchObject({
-      modelId: "gpt-5.6-sol",
+      modelId: "openai/gpt-5.6-sol",
       inputUsdPerMillion: "5",
       outputUsdPerMillion: "30",
       cacheCreationUsdPerMillion: "6.25",
-      cacheReadUsdPerMillion: "0.50",
+      cacheReadUsdPerMillion: "0.5",
       inputAbove200kUsdPerMillion: "10",
       outputAbove200kUsdPerMillion: "45",
-      cacheCreationAbove200kUsdPerMillion: "12.50",
+      cacheCreationAbove200kUsdPerMillion: "12.5",
       cacheReadAbove200kUsdPerMillion: "1",
       longContextThresholdTokens: 272_000,
     });
@@ -253,30 +253,30 @@ describe("pricing", () => {
       modelId: "gpt-5.6-terra",
       inputUsdPerMillion: "2",
       outputUsdPerMillion: "12",
-      cacheCreationUsdPerMillion: "2.50",
-      cacheReadUsdPerMillion: "0.20",
+      cacheCreationUsdPerMillion: "2.5",
+      cacheReadUsdPerMillion: "0.2",
       inputAbove200kUsdPerMillion: "4",
       outputAbove200kUsdPerMillion: "18",
       cacheCreationAbove200kUsdPerMillion: "5",
-      cacheReadAbove200kUsdPerMillion: "0.40",
+      cacheReadAbove200kUsdPerMillion: "0.4",
       longContextThresholdTokens: 272_000,
     });
     expect(resolvePricing("gpt-5.6-luna")).toMatchObject({
       modelId: "gpt-5.6-luna",
-      inputUsdPerMillion: "0.20",
-      outputUsdPerMillion: "1.20",
+      inputUsdPerMillion: "0.2",
+      outputUsdPerMillion: "1.2",
       cacheCreationUsdPerMillion: "0.25",
       cacheReadUsdPerMillion: "0.02",
-      inputAbove200kUsdPerMillion: "0.40",
-      outputAbove200kUsdPerMillion: "1.80",
-      cacheCreationAbove200kUsdPerMillion: "0.50",
+      inputAbove200kUsdPerMillion: "0.4",
+      outputAbove200kUsdPerMillion: "1.8",
+      cacheCreationAbove200kUsdPerMillion: "0.5",
       cacheReadAbove200kUsdPerMillion: "0.04",
       longContextThresholdTokens: 272_000,
     });
     expect(resolvePricing("bedrock_mantle/openai.gpt-5.6-terra")).toMatchObject({
       modelId: "bedrock_mantle/openai.gpt-5.6-terra",
-      inputUsdPerMillion: "2.20",
-      outputUsdPerMillion: "13.20",
+      inputUsdPerMillion: "2.2",
+      outputUsdPerMillion: "13.2",
       cacheCreationUsdPerMillion: "2.75",
       cacheReadUsdPerMillion: "0.22",
     });
@@ -292,7 +292,7 @@ describe("pricing", () => {
       inputUsdPerMillion: "2",
       outputUsdPerMillion: "12",
       cacheCreationUsdPerMillion: "2.5",
-      cacheReadUsdPerMillion: "0.20",
+      cacheReadUsdPerMillion: "0.2",
     });
     expect(resolvePricing("azure/eu/gpt-5.6-luna")).toMatchObject({
       modelId: "azure/eu/gpt-5.6-luna",
@@ -311,7 +311,7 @@ describe("pricing", () => {
 
   it("resolves ccusage GPT-5.1 Codex and chat pricing rows", () => {
     expect(resolvePricing("openai/gpt-5.1-codex-mini")).toMatchObject({
-      modelId: "gpt-5.1-codex-mini",
+      modelId: "openai/gpt-5.1-codex-mini",
       inputUsdPerMillion: "0.25",
       outputUsdPerMillion: "2",
       cacheReadUsdPerMillion: "0.025",
@@ -347,10 +347,10 @@ describe("pricing", () => {
       pricing!,
     );
     expect(long).toMatchObject({
-      inputUsd: "2.999000",
-      cacheReadUsd: "0.000100",
-      outputUsd: "0.045000",
-      totalUsd: "3.044100",
+      inputUsd: "2.399200",
+      cacheReadUsd: "0.000080",
+      outputUsd: "0.030000",
+      totalUsd: "2.429280",
     });
 
     const short = calculateCost(
@@ -366,10 +366,10 @@ describe("pricing", () => {
       pricing!,
     );
     expect(short).toMatchObject({
-      inputUsd: "0.499500",
-      cacheReadUsd: "0.000050",
-      outputUsd: "0.030000",
-      totalUsd: "0.529550",
+      inputUsd: "0.399600",
+      cacheReadUsd: "0.000040",
+      outputUsd: "0.020000",
+      totalUsd: "0.419640",
     });
 
     const cachedCodexShort = calculateCost(
@@ -385,10 +385,10 @@ describe("pricing", () => {
       pricing!,
     );
     expect(cachedCodexShort).toMatchObject({
-      inputUsd: "1.200000",
-      cacheReadUsd: "0.010000",
-      outputUsd: "0.030000",
-      totalUsd: "1.240000",
+      inputUsd: "0.960000",
+      cacheReadUsd: "0.008000",
+      outputUsd: "0.020000",
+      totalUsd: "0.988000",
     });
 
     const cacheWriteLong = calculateCost(
@@ -438,15 +438,15 @@ describe("pricing", () => {
 
   it("resolves ccusage Claude short aliases and legacy Claude 3 pricing", () => {
     const aliases = [
-      ["claude-opus-4", "15", "75", "1.50", "18.75"],
-      ["claude-sonnet-4", "3", "15", "0.30", "3.75"],
-      ["claude-opus-4-5", "5", "25", "0.50", "6.25"],
-      ["claude-opus-4-6", "5", "25", "0.50", "6.25"],
-      ["claude-sonnet-4-6", "3", "15", "0.30", "3.75"],
-      ["claude-haiku-4-5", "1", "5", "0.10", "1.25"],
-      ["claude-3-7-sonnet-20250219", "3", "15", "0.30", "3.75"],
-      ["claude-3-7-sonnet-latest", "3", "15", "0.30", "3.75"],
-      ["claude-sonnet-4-5-20250929-thinking", "3", "15", "0.30", "3.75"],
+      ["claude-opus-4", "15", "75", "1.5", "18.75"],
+      ["claude-sonnet-4", "3", "15", "0.3", "3.75"],
+      ["claude-opus-4-5", "5", "25", "0.5", "6.25"],
+      ["claude-opus-4-6", "5", "25", "0.5", "6.25"],
+      ["claude-sonnet-4-6", "3", "15", "0.3", "3.75"],
+      ["claude-haiku-4-5", "1", "5", "0.1", "1.25"],
+      ["claude-3-7-sonnet-20250219", "3", "15", "0.3", "3.75"],
+      ["claude-3-7-sonnet-latest", "3", "15", "0.3", "3.75"],
+      ["claude-sonnet-4-5-20250929-thinking", "3", "15", "0.3", "3.75"],
       ["claude-3-opus", "15", "75", "1.50", "18.75"],
       ["claude-3-sonnet", "3", "15", "0.30", "3.75"],
       ["claude-3-haiku", "0.25", "1.25", "0.03", "0.30"],
@@ -518,52 +518,52 @@ describe("pricing", () => {
 
   it("resolves ccusage supplemental Grok and Z.ai pricing entries", () => {
     expect(resolvePricing("xai/grok-4.20-0309-reasoning")).toMatchObject({
-      modelId: "grok-4.20-0309-reasoning",
+      modelId: "xai/grok-4.20-0309-reasoning",
       inputUsdPerMillion: "1.25",
       outputUsdPerMillion: "2.5",
-      cacheReadUsdPerMillion: "0.20",
+      cacheReadUsdPerMillion: "0.2",
       inputAbove200kUsdPerMillion: "2.5",
       outputAbove200kUsdPerMillion: "5",
       cacheReadAbove200kUsdPerMillion: "0.4",
     });
     expect(resolvePricing("xai/grok-4.20-beta-0309-non-reasoning")).toMatchObject({
-      modelId: "grok-4.20-beta-0309-non-reasoning",
+      modelId: "xai/grok-4.20-beta-0309-non-reasoning",
       inputUsdPerMillion: "1.25",
       outputUsdPerMillion: "2.5",
-      cacheReadUsdPerMillion: "0.20",
+      cacheReadUsdPerMillion: "0.2",
       inputAbove200kUsdPerMillion: "2.5",
     });
     expect(resolvePricing("xai/grok-4.20-multi-agent-0309")).toMatchObject({
-      modelId: "grok-4.20-multi-agent-0309",
+      modelId: "xai/grok-4.20-multi-agent-0309",
       inputUsdPerMillion: "1.25",
       outputUsdPerMillion: "2.5",
     });
     expect(resolvePricing("xai/grok-4.5")).toMatchObject({
-      modelId: "grok-4.5",
+      modelId: "xai/grok-4.5",
       inputUsdPerMillion: "2",
       outputUsdPerMillion: "6",
-      cacheReadUsdPerMillion: "0.30",
+      cacheReadUsdPerMillion: "0.3",
       cacheReadAbove200kUsdPerMillion: "0.6",
     });
     expect(resolvePricing("xai/grok-code-fast-1-0825")).toMatchObject({
-      modelId: "grok-code-fast-1-0825",
+      modelId: "xai/grok-code-fast-1-0825",
       inputUsdPerMillion: "1",
       outputUsdPerMillion: "2",
-      cacheReadUsdPerMillion: "0.20",
+      cacheReadUsdPerMillion: "0.2",
       outputAbove200kUsdPerMillion: "4",
     });
     expect(resolvePricing("grok-4.3")).toMatchObject({
       modelId: "grok-4.3",
       inputUsdPerMillion: "1.25",
-      outputUsdPerMillion: "2.50",
-      cacheReadUsdPerMillion: "0.125",
-      cacheCreationUsdPerMillion: "1.25",
+      outputUsdPerMillion: "2.5",
+      cacheReadUsdPerMillion: "0.2",
+      cacheCreationUsdPerMillion: "1.5625",
     });
     expect(resolvePricing("azure_ai/grok-4.3")).toMatchObject({
       modelId: "azure_ai/grok-4.3",
       inputUsdPerMillion: "1.25",
       outputUsdPerMillion: "2.5",
-      cacheReadUsdPerMillion: "0.20",
+      cacheReadUsdPerMillion: "0.2",
       cacheCreationUsdPerMillion: "1.5625",
     });
     expect(normalizeAgentModelForUsage("opencode", "azure_ai/grok-4.3")).toMatchObject({
@@ -571,45 +571,45 @@ describe("pricing", () => {
       pricingModel: "azure_ai/grok-4.3",
     });
     expect(resolvePricing("xai/grok-4.6")).toMatchObject({
-      modelId: "grok-4.6",
+      modelId: "xai/grok-4.6",
       inputUsdPerMillion: "2",
       outputUsdPerMillion: "6",
-      cacheReadUsdPerMillion: "0.50",
+      cacheReadUsdPerMillion: "0.5",
       cacheCreationUsdPerMillion: "2.5",
       inputAbove200kUsdPerMillion: "4",
       outputAbove200kUsdPerMillion: "12",
       cacheReadAbove200kUsdPerMillion: "1",
     });
     expect(resolvePricing("zai/glm-4.5-airx")).toMatchObject({
-      modelId: "glm-4.5-airx",
-      inputUsdPerMillion: "1.10",
-      outputUsdPerMillion: "4.50",
-      cacheReadUsdPerMillion: "0.22",
+      modelId: "zai/glm-4.5-airx",
+      inputUsdPerMillion: "1.1",
+      outputUsdPerMillion: "4.5",
+      cacheReadUsdPerMillion: "0.11",
     });
     expect(resolvePricing("glm-5-turbo")).toMatchObject({
       modelId: "glm-5-turbo",
-      inputUsdPerMillion: "1.20",
-      outputUsdPerMillion: "4.00",
+      inputUsdPerMillion: "1.2",
+      outputUsdPerMillion: "4",
       cacheReadUsdPerMillion: "0.24",
     });
     expect(resolvePricing("glm-4.7")).toMatchObject({
       modelId: "glm-4.7",
-      inputUsdPerMillion: "0.60",
-      outputUsdPerMillion: "2.20",
+      inputUsdPerMillion: "0.6",
+      outputUsdPerMillion: "2.2",
       cacheReadUsdPerMillion: "0.11",
     });
     expect(resolvePricing("glm-4.6")).toMatchObject({
       modelId: "glm-4.6",
-      inputUsdPerMillion: "0.60",
-      outputUsdPerMillion: "2.20",
+      inputUsdPerMillion: "0.6",
+      outputUsdPerMillion: "2.2",
       cacheReadUsdPerMillion: "0.11",
     });
     expect(resolvePricing("replicate/openai/gpt-oss-20b")).toMatchObject({
       modelId: "replicate/openai/gpt-oss-20b",
       inputUsdPerMillion: "0.09",
       outputUsdPerMillion: "0.36",
-      cacheReadUsdPerMillion: "0",
-      cacheCreationUsdPerMillion: "0",
+      cacheReadUsdPerMillion: "0.009",
+      cacheCreationUsdPerMillion: "0.1125",
     });
   });
 
@@ -622,14 +622,14 @@ describe("pricing", () => {
       cacheCreationUsdPerMillion: "0",
     });
     expect(resolvePricing("mistral/mistral-small-2603")).toMatchObject({
-      modelId: "mistral-small-2603",
+      modelId: "mistral/mistral-small-2603",
       inputUsdPerMillion: "0.15",
       outputUsdPerMillion: "0.6",
-      cacheReadUsdPerMillion: "0",
-      cacheCreationUsdPerMillion: "0",
+      cacheReadUsdPerMillion: "0.015",
+      cacheCreationUsdPerMillion: "0.1875",
     });
     expect(resolvePricing("gemini/gemini-3.7-flash")).toMatchObject({
-      modelId: "gemini-3.7-flash",
+      modelId: "gemini/gemini-3.7-flash",
       inputUsdPerMillion: "0.75",
       outputUsdPerMillion: "3.75",
       cacheReadUsdPerMillion: "0.075",
@@ -648,14 +648,14 @@ describe("pricing", () => {
     });
     expect(resolvePricing("meta/muse-spark-1.2-contributor")).toMatchObject({
       modelId: "meta/muse-spark-1.2-contributor",
-      inputUsdPerMillion: "0.10",
-      outputUsdPerMillion: "0.20",
+      inputUsdPerMillion: "0.1",
+      outputUsdPerMillion: "0.2",
       cacheReadUsdPerMillion: "0.002",
       cacheCreationUsdPerMillion: "0.125",
     });
     expect(resolvePricing("groq/qwen/qwen3.6-27b")).toMatchObject({
       modelId: "groq/qwen/qwen3.6-27b",
-      inputUsdPerMillion: "0.60",
+      inputUsdPerMillion: "0.6",
       outputUsdPerMillion: "3",
       cacheReadUsdPerMillion: "0.06",
       cacheCreationUsdPerMillion: "0.75",
@@ -663,24 +663,36 @@ describe("pricing", () => {
   });
 
   it("resolves ccusage models.dev pricing rows updated after v20.0.20", () => {
+    expect(resolvePricing("gpt-5.6")).toMatchObject({
+      modelId: "gpt-5.6",
+      inputUsdPerMillion: "4",
+      outputUsdPerMillion: "20",
+      cacheReadUsdPerMillion: "0.4",
+      cacheCreationUsdPerMillion: "5",
+      inputAbove200kUsdPerMillion: "8",
+      outputAbove200kUsdPerMillion: "30",
+      cacheReadAbove200kUsdPerMillion: "0.8",
+      cacheCreationAbove200kUsdPerMillion: "10",
+      longContextThresholdTokens: 272_000,
+    });
     expect(resolvePricing("global.openai.gpt-5.6-sol")).toMatchObject({
       modelId: "global.openai.gpt-5.6-sol",
-      inputUsdPerMillion: "5.5",
-      outputUsdPerMillion: "33",
-      cacheReadUsdPerMillion: "0.55",
-      cacheCreationUsdPerMillion: "6.875",
-      inputAbove200kUsdPerMillion: "11",
-      outputAbove200kUsdPerMillion: "49.5",
-      cacheReadAbove200kUsdPerMillion: "1.1",
-      cacheCreationAbove200kUsdPerMillion: "13.75",
+      inputUsdPerMillion: "4",
+      outputUsdPerMillion: "20",
+      cacheReadUsdPerMillion: "0.4",
+      cacheCreationUsdPerMillion: "5",
+      inputAbove200kUsdPerMillion: "8",
+      outputAbove200kUsdPerMillion: "30",
+      cacheReadAbove200kUsdPerMillion: "0.8",
+      cacheCreationAbove200kUsdPerMillion: "10",
       longContextThresholdTokens: 272_000,
     });
     expect(resolvePricing("deepseek-v4-pro-0813")).toMatchObject({
       modelId: "deepseek-v4-pro-0813",
-      inputUsdPerMillion: "1.32",
-      outputUsdPerMillion: "3.96",
-      cacheReadUsdPerMillion: "0.044",
-      cacheCreationUsdPerMillion: "1.65",
+      inputUsdPerMillion: "0.6918",
+      outputUsdPerMillion: "2.0754",
+      cacheReadUsdPerMillion: "0.023058",
+      cacheCreationUsdPerMillion: "0.86475",
     });
     expect(resolvePricing("deepseek/deepseek-v4-pro")).toMatchObject({
       modelId: "deepseek/deepseek-v4-pro",
@@ -691,10 +703,10 @@ describe("pricing", () => {
     });
     expect(resolvePricing("qwen/deepseek-v4-pro-0813")).toMatchObject({
       modelId: "qwen/deepseek-v4-pro-0813",
-      inputUsdPerMillion: "0.726",
-      outputUsdPerMillion: "2.178",
-      cacheReadUsdPerMillion: "0.0726",
-      cacheCreationUsdPerMillion: "0.9075",
+      inputUsdPerMillion: "0.5808",
+      outputUsdPerMillion: "1.7424",
+      cacheReadUsdPerMillion: "0.05808",
+      cacheCreationUsdPerMillion: "0.726",
     });
     expect(resolvePricing("deepseek-ai/deepseek-v3.1-maas")).toMatchObject({
       modelId: "deepseek-ai/deepseek-v3.1-maas",
@@ -705,10 +717,10 @@ describe("pricing", () => {
     });
     expect(resolvePricing("qwen/deepseek-v4-flash-0731")).toMatchObject({
       modelId: "qwen/deepseek-v4-flash-0731",
-      inputUsdPerMillion: "0.242",
-      outputUsdPerMillion: "0.726",
-      cacheReadUsdPerMillion: "0.0242",
-      cacheCreationUsdPerMillion: "0.3025",
+      inputUsdPerMillion: "0.176",
+      outputUsdPerMillion: "0.528",
+      cacheReadUsdPerMillion: "0.0176",
+      cacheCreationUsdPerMillion: "0.22",
     });
     expect(resolvePricing("deepseek/deepseek-v4-flash-latest")).toMatchObject({
       modelId: "deepseek/deepseek-v4-flash-latest",
@@ -740,10 +752,10 @@ describe("pricing", () => {
     });
     expect(resolvePricing("qwen3.8-27b:thinking")).toMatchObject({
       modelId: "qwen3.8-27b:thinking",
-      inputUsdPerMillion: "0.2",
-      outputUsdPerMillion: "1.4",
+      inputUsdPerMillion: "0.15",
+      outputUsdPerMillion: "0.7",
       cacheReadUsdPerMillion: "0.04",
-      cacheCreationUsdPerMillion: "0.25",
+      cacheCreationUsdPerMillion: "0.1875",
     });
     expect(normalizeAgentModelForUsage("qwen", "qwen3.8-27b:thinking")).toMatchObject({
       model: "qwen3.8-27b",
@@ -751,10 +763,10 @@ describe("pricing", () => {
     });
     expect(resolvePricing("qwen3.8-27b")).toMatchObject({
       modelId: "qwen3.8-27b",
-      inputUsdPerMillion: "0.334",
-      outputUsdPerMillion: "2.451",
-      cacheReadUsdPerMillion: "0.111",
-      cacheCreationUsdPerMillion: "0.4175",
+      inputUsdPerMillion: "0.3",
+      outputUsdPerMillion: "2.2",
+      cacheReadUsdPerMillion: "0.1",
+      cacheCreationUsdPerMillion: "0.375",
     });
     expect(resolvePricing("qwen3-8-27b")).toBeNull();
     expect(resolvePricing("qwen-3-8-27b")).toMatchObject({
@@ -773,10 +785,43 @@ describe("pricing", () => {
     });
     expect(resolvePricing("Qwen/Qwen3.8-27B-TEE")).toMatchObject({
       modelId: "Qwen/Qwen3.8-27B-TEE",
-      inputUsdPerMillion: "0.4",
-      outputUsdPerMillion: "3",
-      cacheReadUsdPerMillion: "0.04",
-      cacheCreationUsdPerMillion: "0.5",
+      inputUsdPerMillion: "0.32",
+      outputUsdPerMillion: "2.5",
+      cacheReadUsdPerMillion: "0.032",
+      cacheCreationUsdPerMillion: "0.4",
+    });
+    expect(resolvePricing("Qwen3.8-Flash-Next")).toMatchObject({
+      modelId: "Qwen3.8-Flash-Next",
+      inputUsdPerMillion: "0.15",
+      outputUsdPerMillion: "0.47",
+      cacheReadUsdPerMillion: "0.016",
+      cacheCreationUsdPerMillion: "0.1875",
+      exactOnly: true,
+    });
+    expect(resolvePricing("MiniMaxAI/MiniMax-M2.5")).toMatchObject({
+      modelId: "MiniMaxAI/MiniMax-M2.5",
+      inputUsdPerMillion: "0.15",
+      outputUsdPerMillion: "1.15",
+      cacheReadUsdPerMillion: "0.03",
+      cacheCreationUsdPerMillion: "0.1875",
+    });
+    expect(resolvePricing("MiniMaxAI/MiniMax-M3")).toMatchObject({
+      modelId: "MiniMaxAI/MiniMax-M3",
+      inputUsdPerMillion: "0.6",
+      outputUsdPerMillion: "2.4",
+      cacheReadUsdPerMillion: "0.12",
+      cacheCreationUsdPerMillion: "0.75",
+      inputAbove200kUsdPerMillion: "1.2",
+      outputAbove200kUsdPerMillion: "4.8",
+      cacheReadAbove200kUsdPerMillion: "0.24",
+      longContextThresholdTokens: 512_000,
+    });
+    expect(resolvePricing("-cf/zai-org/glm-5.3")).toMatchObject({
+      modelId: "-cf/zai-org/glm-5.3",
+      inputUsdPerMillion: "1.4",
+      outputUsdPerMillion: "4.4",
+      cacheReadUsdPerMillion: "0.26",
+      cacheCreationUsdPerMillion: "1.75",
     });
     expect(resolvePricing("@cf/qwen/qwen3.8-27b")).toMatchObject({
       modelId: "-cf/qwen/qwen3.8-27b",
@@ -794,10 +839,10 @@ describe("pricing", () => {
     });
     expect(resolvePricing("alibaba/qwen3.8-27b")).toMatchObject({
       modelId: "alibaba/qwen3.8-27b",
-      inputUsdPerMillion: "0.55",
-      outputUsdPerMillion: "3.3",
-      cacheReadUsdPerMillion: "0.11",
-      cacheCreationUsdPerMillion: "0.6875",
+      inputUsdPerMillion: "0.5",
+      outputUsdPerMillion: "3",
+      cacheReadUsdPerMillion: "0.1",
+      cacheCreationUsdPerMillion: "0.625",
     });
     expect(resolvePricing("qwen/qwen3-vl-235b-a22b-thinking")).toMatchObject({
       modelId: "qwen/qwen3-vl-235b-a22b-thinking",
@@ -829,16 +874,16 @@ describe("pricing", () => {
       longContextThresholdTokens: 272_000,
     });
     expect(resolvePricing("mimo/mimo-v2.5-pro")).toMatchObject({
-      modelId: "mimo-v2.5-pro",
+      modelId: "mimo/mimo-v2.5-pro",
       inputUsdPerMillion: "0.435",
       outputUsdPerMillion: "0.87",
     });
     expect(resolvePricing("~deepseek/deepseek-v4-flash-latest")).toMatchObject({
       modelId: "~deepseek/deepseek-v4-flash-latest",
-      inputUsdPerMillion: "0.065",
-      outputUsdPerMillion: "0.14",
-      cacheReadUsdPerMillion: "0.014",
-      cacheCreationUsdPerMillion: "0.08125",
+      inputUsdPerMillion: "0.05",
+      outputUsdPerMillion: "0.16",
+      cacheReadUsdPerMillion: "0.013",
+      cacheCreationUsdPerMillion: "0.0625",
     });
     expect(resolvePricing("tensorx/deepseek/deepseek-v4-flash-0731")).toMatchObject({
       modelId: "tensorx/deepseek/deepseek-v4-flash-0731",
@@ -870,37 +915,37 @@ describe("pricing", () => {
     });
     expect(resolvePricing("openai/gpt-5.6-sol-fast")).toMatchObject({
       modelId: "openai/gpt-5.6-sol-fast",
-      inputUsdPerMillion: "5",
-      outputUsdPerMillion: "30",
-      cacheReadUsdPerMillion: "0.5",
-      cacheCreationUsdPerMillion: "3.125",
+      inputUsdPerMillion: "4",
+      outputUsdPerMillion: "20",
+      cacheReadUsdPerMillion: "0.4",
+      cacheCreationUsdPerMillion: "2.5",
     });
     expect(resolvePricing("openai/gpt-chat-latest")).toMatchObject({
       modelId: "openai/gpt-chat-latest",
-      inputUsdPerMillion: "2.5",
-      outputUsdPerMillion: "15",
-      cacheReadUsdPerMillion: "0.25",
-      cacheCreationUsdPerMillion: "3.125",
+      inputUsdPerMillion: "2",
+      outputUsdPerMillion: "10",
+      cacheReadUsdPerMillion: "0.2",
+      cacheCreationUsdPerMillion: "2.5",
     });
     expect(resolvePricing("~openai/gpt-latest")).toMatchObject({
       modelId: "~openai/gpt-latest",
-      inputUsdPerMillion: "2.5",
-      outputUsdPerMillion: "15",
-      cacheReadUsdPerMillion: "0.25",
-      cacheCreationUsdPerMillion: "3.125",
-      inputAbove200kUsdPerMillion: "5",
-      outputAbove200kUsdPerMillion: "22.5",
-      cacheReadAbove200kUsdPerMillion: "0.5",
-      cacheCreationAbove200kUsdPerMillion: "6.25",
+      inputUsdPerMillion: "2",
+      outputUsdPerMillion: "10",
+      cacheReadUsdPerMillion: "0.2",
+      cacheCreationUsdPerMillion: "2.5",
+      inputAbove200kUsdPerMillion: "4",
+      outputAbove200kUsdPerMillion: "15",
+      cacheReadAbove200kUsdPerMillion: "0.4",
+      cacheCreationAbove200kUsdPerMillion: "5",
       longContextThresholdTokens: 272_000,
     });
     expect(resolvePricing("openai/gpt-5.6-sol-pro")).toMatchObject({
       modelId: "openai/gpt-5.6-sol-pro",
-      inputUsdPerMillion: "2.5",
-      outputUsdPerMillion: "15",
-      cacheReadUsdPerMillion: "0.25",
-      inputAbove200kUsdPerMillion: "5",
-      outputAbove200kUsdPerMillion: "22.5",
+      inputUsdPerMillion: "2",
+      outputUsdPerMillion: "10",
+      cacheReadUsdPerMillion: "0.2",
+      inputAbove200kUsdPerMillion: "4",
+      outputAbove200kUsdPerMillion: "15",
     });
     expect(resolvePricing("openai/gpt-5.6-terra-pro")).toMatchObject({
       modelId: "openai/gpt-5.6-terra-pro",
@@ -916,45 +961,45 @@ describe("pricing", () => {
     });
     expect(resolvePricing("glm-5.2-fast")).toMatchObject({
       modelId: "glm-5.2-fast",
-      inputUsdPerMillion: "1.99",
-      outputUsdPerMillion: "6.16",
-      cacheReadUsdPerMillion: "0.4",
-      cacheCreationUsdPerMillion: "2.4875",
+      inputUsdPerMillion: "2.31",
+      outputUsdPerMillion: "7.26",
+      cacheReadUsdPerMillion: "0.231",
+      cacheCreationUsdPerMillion: "2.8875",
     });
     expect(resolvePricing("ionos/openai/gpt-oss-120b")).toMatchObject({
       modelId: "ionos/openai/gpt-oss-120b",
-      inputUsdPerMillion: "0.175215",
-      outputUsdPerMillion: "0.759265",
-      cacheReadUsdPerMillion: "0.0175215",
-      cacheCreationUsdPerMillion: "0.21901875",
+      inputUsdPerMillion: "0.17367",
+      outputUsdPerMillion: "0.75257",
+      cacheReadUsdPerMillion: "0.017367",
+      cacheCreationUsdPerMillion: "0.2170875",
     });
     expect(resolvePricing("ionos/meta-llama/Llama-3.3-70B-Instruct")).toMatchObject({
       modelId: "ionos/meta-llama/Llama-3.3-70B-Instruct",
-      inputUsdPerMillion: "0.759265",
-      outputUsdPerMillion: "0.759265",
-      cacheReadUsdPerMillion: "0.0759265",
-      cacheCreationUsdPerMillion: "0.94908125",
+      inputUsdPerMillion: "0.75257",
+      outputUsdPerMillion: "0.75257",
+      cacheReadUsdPerMillion: "0.075257",
+      cacheCreationUsdPerMillion: "0.9407125",
     });
     expect(resolvePricing("scaleway/deepseek-v4-flash-0731")).toMatchObject({
       modelId: "scaleway/deepseek-v4-flash-0731",
-      inputUsdPerMillion: "0.46724",
-      outputUsdPerMillion: "0.93448",
-      cacheReadUsdPerMillion: "0.046724",
-      cacheCreationUsdPerMillion: "0.58405",
+      inputUsdPerMillion: "0.4",
+      outputUsdPerMillion: "0.8",
+      cacheReadUsdPerMillion: "0.08",
+      cacheCreationUsdPerMillion: "0.5",
     });
     expect(resolvePricing("scaleway/gpt-oss-120b")).toMatchObject({
       modelId: "scaleway/gpt-oss-120b",
-      inputUsdPerMillion: "0.175215",
-      outputUsdPerMillion: "0.70086",
-      cacheReadUsdPerMillion: "0.0175215",
-      cacheCreationUsdPerMillion: "0.21901875",
+      inputUsdPerMillion: "0.17367",
+      outputUsdPerMillion: "0.69468",
+      cacheReadUsdPerMillion: "0.017367",
+      cacheCreationUsdPerMillion: "0.2170875",
     });
     expect(resolvePricing("scaleway/llama-3.3-70b-instruct")).toMatchObject({
       modelId: "scaleway/llama-3.3-70b-instruct",
-      inputUsdPerMillion: "1.05129",
-      outputUsdPerMillion: "1.05129",
-      cacheReadUsdPerMillion: "0.105129",
-      cacheCreationUsdPerMillion: "1.3141125",
+      inputUsdPerMillion: "1.04202",
+      outputUsdPerMillion: "1.04202",
+      cacheReadUsdPerMillion: "0.104202",
+      cacheCreationUsdPerMillion: "1.302525",
     });
     expect(resolvePricing("nebius/openai/gpt-oss-120b")).toMatchObject({
       modelId: "nebius/openai/gpt-oss-120b",
@@ -1009,7 +1054,7 @@ describe("pricing", () => {
       modelId: "ornith-ai/ornith-1.5-35b-a3b:thinking",
       inputUsdPerMillion: "0.1",
       outputUsdPerMillion: "0.4",
-      cacheReadUsdPerMillion: "0.01",
+      cacheReadUsdPerMillion: "0.05",
       cacheCreationUsdPerMillion: "0.125",
     });
     expect(resolvePricing("tencent/hy-mt2-30b-a3b")).toMatchObject({
@@ -1063,10 +1108,10 @@ describe("pricing", () => {
     });
     expect(resolvePricing("TEE/deepseek-v4-pro-0813")).toMatchObject({
       modelId: "deepseek-v4-pro-0813",
-      inputUsdPerMillion: "1.32",
-      outputUsdPerMillion: "3.96",
-      cacheReadUsdPerMillion: "0.044",
-      cacheCreationUsdPerMillion: "1.65",
+      inputUsdPerMillion: "0.6918",
+      outputUsdPerMillion: "2.0754",
+      cacheReadUsdPerMillion: "0.023058",
+      cacheCreationUsdPerMillion: "0.86475",
     });
     expect(resolvePricing("qwen/qwen3.8-27b")).toMatchObject({
       modelId: "qwen/qwen3.8-27b",
@@ -1077,17 +1122,17 @@ describe("pricing", () => {
     });
     expect(resolvePricing("Qwen/Qwen3.8-27B-TEE")).toMatchObject({
       modelId: "Qwen/Qwen3.8-27B-TEE",
-      inputUsdPerMillion: "0.4",
-      outputUsdPerMillion: "3",
-      cacheReadUsdPerMillion: "0.04",
-      cacheCreationUsdPerMillion: "0.5",
+      inputUsdPerMillion: "0.32",
+      outputUsdPerMillion: "2.5",
+      cacheReadUsdPerMillion: "0.032",
+      cacheCreationUsdPerMillion: "0.4",
     });
     expect(resolvePricing("google/gemini-3.7-flash")).toMatchObject({
       modelId: "google/gemini-3.7-flash",
-      inputUsdPerMillion: "1.5",
-      outputUsdPerMillion: "7.5",
-      cacheReadUsdPerMillion: "0.15",
-      cacheCreationUsdPerMillion: "0.083333",
+      inputUsdPerMillion: "0.75",
+      outputUsdPerMillion: "3.75",
+      cacheReadUsdPerMillion: "0.075",
+      cacheCreationUsdPerMillion: "0.041667",
     });
     expect(resolvePricing("grok-4.2-beta")).toMatchObject({
       modelId: "grok-4.2-beta",
@@ -1106,7 +1151,7 @@ describe("pricing", () => {
       inputUsdPerMillion: "1.75",
       outputUsdPerMillion: "14",
       cacheReadUsdPerMillion: "0.175",
-      cacheCreationUsdPerMillion: "2.1875",
+      cacheCreationUsdPerMillion: "1.75",
     });
     expect(resolvePricing("echo")).toMatchObject({
       modelId: "echo",
@@ -1124,14 +1169,14 @@ describe("pricing", () => {
 
   it("resolves ccusage embedded models.dev Moonshot/Kimi pricing", () => {
     expect(resolvePricing("moonshot/kimi-k3")).toMatchObject({
-      modelId: "kimi-k3",
+      modelId: "moonshot/kimi-k3",
       inputUsdPerMillion: "3",
       outputUsdPerMillion: "15",
       cacheReadUsdPerMillion: "0.3",
       cacheCreationUsdPerMillion: "3.75",
     });
     expect(resolvePricing("Pro/moonshotai/Kimi-K2.5")).toMatchObject({
-      modelId: "pro/moonshotai/kimi-k2.5",
+      modelId: "Pro/moonshotai/Kimi-K2.5",
       inputUsdPerMillion: "0.45",
       outputUsdPerMillion: "2.25",
       cacheReadUsdPerMillion: "0.07",
@@ -1157,7 +1202,7 @@ describe("pricing", () => {
     });
     expect(resolvePricing("TEE/kimi-k2.5")).toMatchObject({
       modelId: "kimi-k2.5",
-      cacheReadUsdPerMillion: "0.10",
+      cacheReadUsdPerMillion: "0.1",
     });
     expect(resolvePricing("TEE/kimi-k2.5-thinking")).toBeNull();
     expect(resolvePricing("moonshotai/kimi-k2.6:thinking")).toMatchObject({
@@ -1211,8 +1256,8 @@ describe("pricing", () => {
       cacheCreationUsdPerMillion: "2.375",
     });
     expect(resolvePricing("moonshotai/kimi-k2.7-code-highspeed")).toMatchObject({
-      modelId: "kimi-k2.7-code-highspeed",
-      inputUsdPerMillion: "1.90",
+      modelId: "moonshotai/kimi-k2.7-code-highspeed",
+      inputUsdPerMillion: "1.9",
       outputUsdPerMillion: "8",
       cacheReadUsdPerMillion: "0.38",
     });
@@ -1238,14 +1283,14 @@ describe("pricing", () => {
       cacheCreationUsdPerMillion: "5.625",
     });
     expect(resolvePricing("moonshotai/Kimi-K3-TEE")).toMatchObject({
-      modelId: "moonshotai/kimi-k3-tee",
+      modelId: "moonshotai/Kimi-K3-TEE",
       inputUsdPerMillion: "3",
       outputUsdPerMillion: "15",
       cacheReadUsdPerMillion: "0.3",
       cacheCreationUsdPerMillion: "3.75",
     });
     expect(resolvePricing("TEE/kimi-k3")).toMatchObject({
-      modelId: "tee/kimi-k3",
+      modelId: "TEE/kimi-k3",
       inputUsdPerMillion: "3",
       outputUsdPerMillion: "15",
       cacheReadUsdPerMillion: "1.5",
@@ -1259,20 +1304,20 @@ describe("pricing", () => {
       cacheCreationUsdPerMillion: "1.25",
     });
     expect(resolvePricing("moonshot-ai/kimi-k3")).toMatchObject({
-      modelId: "kimi-k3",
+      modelId: "moonshot-ai/kimi-k3",
       inputUsdPerMillion: "3",
       outputUsdPerMillion: "15",
       cacheReadUsdPerMillion: "0.3",
     });
     expect(resolvePricing("moonshot-ai/kimi-k2.7-code")).toMatchObject({
-      modelId: "kimi-k2.7-code",
+      modelId: "moonshot-ai/kimi-k2.7-code",
       inputUsdPerMillion: "0.95",
       outputUsdPerMillion: "4",
       cacheReadUsdPerMillion: "0.19",
     });
     expect(resolvePricing("moonshot/kimi-k2.7-code-highspeed")).toMatchObject({
-      modelId: "kimi-k2.7-code-highspeed",
-      inputUsdPerMillion: "1.90",
+      modelId: "moonshot/kimi-k2.7-code-highspeed",
+      inputUsdPerMillion: "1.9",
       outputUsdPerMillion: "8",
       cacheReadUsdPerMillion: "0.38",
     });
@@ -1280,7 +1325,7 @@ describe("pricing", () => {
       modelId: "kimi-k2.7-code-1100b",
       inputUsdPerMillion: "0.86",
       outputUsdPerMillion: "3",
-      cacheReadUsdPerMillion: "0.086",
+      cacheReadUsdPerMillion: "0.18",
       cacheCreationUsdPerMillion: "1.075",
     });
     expect(resolvePricing("moonshotai/Kimi-K2.6-Fast")).toMatchObject({
@@ -1294,7 +1339,7 @@ describe("pricing", () => {
       pricingModel: "moonshotai/Kimi-K2.6",
     });
     expect(resolvePricing("moonshotai/Kimi-K2.6-TEE")).toMatchObject({
-      modelId: "moonshotai/kimi-k2.6-tee",
+      modelId: "moonshotai/Kimi-K2.6-TEE",
       inputUsdPerMillion: "0.58",
       outputUsdPerMillion: "3.4",
       cacheReadUsdPerMillion: "0.058",
@@ -1330,10 +1375,10 @@ describe("pricing", () => {
     });
     expect(resolvePricing("moonshotai/kimi-latest")).toMatchObject({
       modelId: "moonshotai/kimi-latest",
-      inputUsdPerMillion: "2.5",
-      outputUsdPerMillion: "13.5",
-      cacheReadUsdPerMillion: "0.25",
-      cacheCreationUsdPerMillion: "3.125",
+      inputUsdPerMillion: "2",
+      outputUsdPerMillion: "10",
+      cacheReadUsdPerMillion: "0.2",
+      cacheCreationUsdPerMillion: "2.5",
     });
     expect(resolvePricing("kimi-latest")).toMatchObject({
       modelId: "kimi-latest",
@@ -1344,10 +1389,10 @@ describe("pricing", () => {
     });
     expect(resolvePricing("~moonshotai/kimi-latest")).toMatchObject({
       modelId: "~moonshotai/kimi-latest",
-      inputUsdPerMillion: "2.6",
-      outputUsdPerMillion: "13",
-      cacheReadUsdPerMillion: "0.29",
-      cacheCreationUsdPerMillion: "3.25",
+      inputUsdPerMillion: "2.55",
+      outputUsdPerMillion: "12.75",
+      cacheReadUsdPerMillion: "0.256",
+      cacheCreationUsdPerMillion: "3.1875",
     });
     expect(resolvePricing("deepinfra/moonshotai/Kimi-K2.5")).toMatchObject({
       modelId: "deepinfra/moonshotai/Kimi-K2.5",
@@ -1377,7 +1422,7 @@ describe("pricing", () => {
       modelId: "claude-opus-5",
       inputUsdPerMillion: "5",
       outputUsdPerMillion: "25",
-      cacheReadUsdPerMillion: "0.50",
+      cacheReadUsdPerMillion: "0.5",
       cacheCreationUsdPerMillion: "6.25",
     });
     expect(resolvePricing("claude-opus-5-fast")).toMatchObject({
@@ -1395,14 +1440,14 @@ describe("pricing", () => {
       cacheCreationUsdPerMillion: "12.5",
     });
     expect(resolvePricing("anthropic/claude-sonnet-latest")).toMatchObject({
-      modelId: "claude-sonnet-latest",
+      modelId: "anthropic/claude-sonnet-latest",
       inputUsdPerMillion: "2",
       outputUsdPerMillion: "10",
       cacheReadUsdPerMillion: "0.2",
       cacheCreationUsdPerMillion: "2.5",
     });
     expect(resolvePricing("anthropic/claude-sonnet-5:thinking")).toMatchObject({
-      modelId: "claude-sonnet-5",
+      modelId: "anthropic/claude-sonnet-5:thinking",
       inputUsdPerMillion: "2",
       outputUsdPerMillion: "10",
       cacheReadUsdPerMillion: "0.2",
@@ -1440,7 +1485,7 @@ describe("pricing", () => {
 
   it("resolves ccusage LiteLLM Gemini Robotics pricing", () => {
     expect(resolvePricing("gemini/gemini-robotics-er-2-preview")).toMatchObject({
-      modelId: "gemini-robotics-er-2-preview",
+      modelId: "gemini/gemini-robotics-er-2-preview",
       inputUsdPerMillion: "2",
       outputUsdPerMillion: "10",
       cacheReadUsdPerMillion: "0.2",

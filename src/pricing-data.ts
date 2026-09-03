@@ -1,4 +1,5 @@
 import type { PricingProfile } from "./types.js";
+import { CCUSAGE_SNAPSHOT_PRICING } from "./ccusage-pricing-data.js";
 
 const p = (
   modelId: string,
@@ -52,7 +53,7 @@ const claudeOpusModelsDevContextTier = {
   ...modelsDevContextTier,
 };
 
-export const BUILTIN_PRICING: PricingProfile[] = [
+const BASE_BUILTIN_PRICING: PricingProfile[] = [
   p("claude-fable-5", "Claude Fable 5", "10", "50", "1", "12.50"),
   p("claude-fable-latest", "Claude Fable Latest", "10", "50", "1", "12.5"),
   p("claude-mythos-5", "Claude Mythos 5", "10", "50", "1", "12.5"),
@@ -701,4 +702,9 @@ export const BUILTIN_PRICING: PricingProfile[] = [
   p("databricks/databricks-gpt-5-4", "GPT-5.4 (Databricks)", "2.49998", "15.00002", "0.249998", "3.124975"),
   p("databricks/databricks-gpt-5-4-mini", "GPT-5.4 Mini (Databricks)", "0.74998", "4.50002", "0.074998", "0.937475"),
   p("databricks/databricks-gpt-5-4-nano", "GPT-5.4 Nano (Databricks)", "0.19999", "1.24999", "0.019999", "0.2499875"),
+];
+
+export const BUILTIN_PRICING: PricingProfile[] = [
+  ...BASE_BUILTIN_PRICING,
+  ...CCUSAGE_SNAPSHOT_PRICING,
 ];

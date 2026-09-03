@@ -184,10 +184,10 @@ describe("usage buckets", () => {
       outputTokens: 800,
       pricingStatus: "priced",
       cost: {
-        inputUsd: "2.850000",
-        cacheReadUsd: "0.045000",
-        outputUsd: "0.031500",
-        totalUsd: "2.926500",
+        inputUsd: "2.280000",
+        cacheReadUsd: "0.036000",
+        outputUsd: "0.021000",
+        totalUsd: "2.337000",
       },
     });
   });

@@ -86,6 +86,6 @@ describe("Kimi parser", () => {
     )[0];
 
     expect(event.model).toBe("kimi-k3");
-    expect(event.pricingModel).toBe("moonshotai/kimi-k3");
+    expect(event.pricingModel).toBe("moonshotai/Kimi-K3");
   });
 });

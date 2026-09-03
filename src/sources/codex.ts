@@ -187,7 +187,7 @@ function effectiveServiceTier(
 
 function codexFastMultiplier(model: UsageModelNormalization): string | null {
   const pricingModel = model.pricingModel || model.originalModel || model.model;
-  return resolvePricing(pricingModel)?.fastMultiplier || null;
+  return resolvePricing(pricingModel)?.fastMultiplier || resolvePricing(model.model)?.fastMultiplier || null;
 }
 
 function codexServiceTierFromSettings(payload: Record<string, unknown> | null): CodexServiceTier | null | undefined {
