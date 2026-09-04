@@ -596,7 +596,6 @@ const BASE_BUILTIN_PRICING: PricingProfile[] = [
   p("meta/muse-glimmer-30b", "Muse Glimmer 30B (Meta)", "0.3", "1.1", "0.04", "0.375"),
   p("meta/muse-spark-1.2", "Muse Spark 1.2 (Meta)", "1.25", "4.25", "0.15", "1.5625"),
   p("meta/muse-spark-1.2-contributor", "Muse Spark 1.2 Contributor (Meta)", "0.10", "0.20", "0.002", "0.125"),
-  p("dots-studio/dots-3-note-preview", "Dots 3 Note Preview (Dots Studio)", "0.1", "0.2", "0.05", "0.125"),
   p("nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16", "Nemotron 3.5 Lightning 30B (NVIDIA)", "0.5", "0.5", "0.5", "0.5"),
   p("nemotron-3-ultra-550b", "Nemotron 3 Ultra 550B", "0.5", "2.2", "0.1", "0.625"),
   p("ornith-ai/ornith-1.5-35b-a3b", "Ornith 1.5 35B A3B (Ornith AI)", "0.1", "0.4", "0.01", "0.125"),
