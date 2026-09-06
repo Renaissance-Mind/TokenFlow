@@ -239,14 +239,14 @@ describe("pricing", () => {
   it("resolves ccusage GPT-5.6 pricing with OpenAI long-context tiers", () => {
     expect(resolvePricing("openai/gpt-5.6-sol")).toMatchObject({
       modelId: "openai/gpt-5.6-sol",
-      inputUsdPerMillion: "5",
-      outputUsdPerMillion: "30",
-      cacheCreationUsdPerMillion: "6.25",
-      cacheReadUsdPerMillion: "0.5",
-      inputAbove200kUsdPerMillion: "10",
-      outputAbove200kUsdPerMillion: "45",
-      cacheCreationAbove200kUsdPerMillion: "12.5",
-      cacheReadAbove200kUsdPerMillion: "1",
+      inputUsdPerMillion: "4",
+      outputUsdPerMillion: "20",
+      cacheCreationUsdPerMillion: "5",
+      cacheReadUsdPerMillion: "0.4",
+      inputAbove200kUsdPerMillion: "8",
+      outputAbove200kUsdPerMillion: "30",
+      cacheCreationAbove200kUsdPerMillion: "10",
+      cacheReadAbove200kUsdPerMillion: "0.8",
       longContextThresholdTokens: 272_000,
     });
     expect(resolvePricing("gpt-5.6-terra")).toMatchObject({
@@ -918,7 +918,7 @@ describe("pricing", () => {
       inputUsdPerMillion: "4",
       outputUsdPerMillion: "20",
       cacheReadUsdPerMillion: "0.4",
-      cacheCreationUsdPerMillion: "2.5",
+      cacheCreationUsdPerMillion: "5",
     });
     expect(resolvePricing("openai/gpt-chat-latest")).toMatchObject({
       modelId: "openai/gpt-chat-latest",
@@ -1202,10 +1202,10 @@ describe("pricing", () => {
     });
     expect(resolvePricing("~moonshotai/kimi-latest")).toMatchObject({
       modelId: "~moonshotai/kimi-latest",
-      inputUsdPerMillion: "2.5",
-      outputUsdPerMillion: "14",
-      cacheReadUsdPerMillion: "0.29",
-      cacheCreationUsdPerMillion: "3.125",
+      inputUsdPerMillion: "2.55",
+      outputUsdPerMillion: "12.75",
+      cacheReadUsdPerMillion: "0.256",
+      cacheCreationUsdPerMillion: "3.1875",
     });
     expect(resolvePricing("azure_ai/grok-4.6")).toMatchObject({
       modelId: "azure_ai/grok-4.6",
@@ -1236,10 +1236,10 @@ describe("pricing", () => {
     });
     expect(resolvePricing("consensusprotocol/deepseek-v4-flash")).toMatchObject({
       modelId: "consensusprotocol/deepseek-v4-flash",
-      inputUsdPerMillion: "0.08",
-      outputUsdPerMillion: "0.16",
-      cacheReadUsdPerMillion: "0.02",
-      cacheCreationUsdPerMillion: "0.1",
+      inputUsdPerMillion: "0.05",
+      outputUsdPerMillion: "0.1",
+      cacheReadUsdPerMillion: "0.01",
+      cacheCreationUsdPerMillion: "0.0625",
     });
     expect(resolvePricing("accounts/fireworks/models/qwen3p8-2p4t-a95b")).toMatchObject({
       modelId: "accounts/fireworks/models/qwen3p8-2p4t-a95b",
@@ -1248,6 +1248,58 @@ describe("pricing", () => {
       cacheReadUsdPerMillion: "0.25",
       cacheCreationUsdPerMillion: "2.5",
     });
+    expect(resolvePricing("openai-gpt-6-astra")).toMatchObject({
+      modelId: "openai-gpt-6-astra",
+      inputUsdPerMillion: "10",
+      outputUsdPerMillion: "50",
+      cacheReadUsdPerMillion: "1",
+      cacheCreationUsdPerMillion: "12.5",
+      inputAbove200kUsdPerMillion: "20",
+      outputAbove200kUsdPerMillion: "75",
+      cacheReadAbove200kUsdPerMillion: "2",
+      cacheCreationAbove200kUsdPerMillion: "25",
+      longContextThresholdTokens: 272_000,
+    });
+    expect(resolvePricing("openai-gpt-6-astra-pro")).toMatchObject({
+      modelId: "openai-gpt-6-astra-pro",
+      inputUsdPerMillion: "12.5",
+      outputUsdPerMillion: "62.5",
+      cacheReadUsdPerMillion: "1.25",
+      cacheCreationUsdPerMillion: "15.625",
+    });
+    expect(resolvePricing("openai/gpt-5.6-sol-fast")).toMatchObject({
+      modelId: "openai/gpt-5.6-sol-fast",
+      cacheCreationUsdPerMillion: "5",
+    });
+    expect(resolvePricing("openai/gpt-latest")).toMatchObject({
+      modelId: "openai/gpt-latest",
+      inputUsdPerMillion: "10",
+      outputUsdPerMillion: "50",
+      cacheCreationAbove200kUsdPerMillion: "25",
+      exactOnly: true,
+    });
+    expect(resolvePricing("azure/us/gpt-6-astra")).toMatchObject({
+      modelId: "azure/us/gpt-6-astra",
+      inputUsdPerMillion: "11",
+      outputUsdPerMillion: "55",
+      cacheReadUsdPerMillion: "1.1",
+      cacheCreationUsdPerMillion: "13.75",
+    });
+    expect(resolvePricing("qwen/qwen3.8-max-0902")).toMatchObject({
+      modelId: "qwen/qwen3.8-max-0902",
+      inputUsdPerMillion: "2",
+      outputUsdPerMillion: "6",
+      cacheReadUsdPerMillion: "0.25",
+      cacheCreationUsdPerMillion: "2.5",
+    });
+    expect(resolvePricing("runware/kimi-k3")).toMatchObject({
+      modelId: "runware/kimi-k3",
+      inputUsdPerMillion: "3",
+      outputUsdPerMillion: "15",
+      cacheReadUsdPerMillion: "0.3",
+      cacheCreationUsdPerMillion: "3.75",
+    });
+    expect(resolvePricing("NousResearch/Hermes-4-70B:thinking")).toBeNull();
   });
 
   it("does not invent per-token pricing for Kimi For Coding plan quotas", () => {
@@ -1476,10 +1528,10 @@ describe("pricing", () => {
     });
     expect(resolvePricing("~moonshotai/kimi-latest")).toMatchObject({
       modelId: "~moonshotai/kimi-latest",
-      inputUsdPerMillion: "2.5",
-      outputUsdPerMillion: "14",
-      cacheReadUsdPerMillion: "0.29",
-      cacheCreationUsdPerMillion: "3.125",
+      inputUsdPerMillion: "2.55",
+      outputUsdPerMillion: "12.75",
+      cacheReadUsdPerMillion: "0.256",
+      cacheCreationUsdPerMillion: "3.1875",
     });
     expect(resolvePricing("deepinfra/moonshotai/Kimi-K2.5")).toMatchObject({
       modelId: "deepinfra/moonshotai/Kimi-K2.5",
