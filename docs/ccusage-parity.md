@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-09-07
+Last checked: 2026-09-08
 
-Reference ccusage commit: `2defd55 chore(pricing): update models.dev snapshot`
+Reference ccusage commit: `dbc36ef chore(pricing): update LiteLLM snapshot`
 
 ## Summary
 
@@ -74,6 +74,8 @@ The 2026-09-06 parity pass found ccusage main still packaged as `v20.0.20` at `a
 
 The 2026-09-07 parity pass found ccusage main still packaged as `v20.0.20` at `2defd55 chore(pricing): update models.dev snapshot`. Its LiteLLM pin moved to `02522a5441a1aabc7791304a31a9cdcae6db4a37` and its models.dev snapshot moved to `e7afb6dfec9a06fe69db0e907cfcef4417cdd987`, adding directly migratable token-pricing rows for `TheDrummer/Artemis-v1.1`, `azure_ai/gpt-6-astra`, and Vertex AI Lyria zero-token rows; updating DeepInfra DeepSeek V4 Flash 0731, Kimi K2 0905 preview/thinking/turbo pricing, OpenAI GPT-5.6 Luna/Sol/Terra family prices and 272K tiers, preview DeepSeek V4 Flash Latest, and preview Z.ai GLM Latest; and removing the stale direct `kimi-k2-0711-preview` row while keeping the unchanged `moonshot/kimi-k2-0711-preview` LiteLLM row. TokenFlow now ships 5,509 generated ccusage snapshot pricing rows from the new pins. The newly added ccusage weekly documentation link-check workflow and `flake.lock` movement remain report-only workflow/generator drift; no ccusage adapter, source parser, loader path, environment variable, telemetry requirement, permission, login, or privacy surface changed in this range.
 
+The 2026-09-08 parity pass found ccusage main still packaged as `v20.0.20` at `dbc36ef chore(pricing): update LiteLLM snapshot`. Its LiteLLM pin moved to `cd681a573fd9f5b6f15a1355f46178e4e9d374d2` with no embedded token-pricing field changes, and its models.dev snapshot moved to `872d94d546231e442ecb5b353acda85ce88aeabd`. The models.dev snapshot updates Qwen-hosted DeepSeek V4 Flash 0731 and Pro 0813 rates, preview DeepSeek V4 Flash Latest rates, and preview Z.ai GLM Flash Latest and GLM Latest rates; removes stale exact rows for `cosmos3-super-reasoner`, `deepinfra/kimi-k2.5`, `llama-3.1-nemotron-ultra-253b-v1`, and `nvidia-nemotron-3-nano-omni`; and adds `global.xai.grok-4.6` and `us.xai.grok-4.6` rows already covered by the unchanged LiteLLM snapshot side of TokenFlow's generated table. TokenFlow now ships 5,505 generated ccusage snapshot pricing rows from the new pins. The remaining `flake.lock` movement is report-only generator/dependency drift; no ccusage adapter, source parser, loader path, environment variable, telemetry requirement, permission, login, or privacy surface changed in this range.
+
 The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. The 2026-07-30 pass also found ccusage's new experimental Antigravity adapter, which scans `~/.gemini/antigravity-cli/conversations/**/*.db` or `ANTIGRAVITY_DATA_DIR` conversation databases through a new SQLite/protobuf parser. Those changes were not copied because they are adapter, parser, loader, path, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 
 The 2026-08-01 pass also observed dependency/workflow-only upstream drift in `.github/workflows/pullfrog.yml`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, and `rust/Cargo.toml`; those changes were not copied because they do not affect TokenFlow pricing behavior. The 2026-08-02 pass also observed docs, agent-skill, workflow, lockfile, and Rust dependency churn outside TokenFlow's pricing surface; those changes were left report-only. The 2026-08-04 pass observed `8028fd4 revert(antigravity): remove the Antigravity adapter until #1487 lands (#1569)` plus docs/schema/CLI help changes, dependency bumps, and workflow churn; only pricing-table and pricing-resolution behavior was migrated.
@@ -96,6 +98,7 @@ The 2026-09-04 pass also observed only `flake.lock` movement and models.dev cata
 The 2026-09-05 pass also observed `51bc865 fix(nix): use agent-skills quiet shell hook (#1691)`, `flake.lock` movement, and models.dev catalog-rule additions for `gpt-6-astra` and `gpt-6-astra-fast`; those generator/dependency changes were left report-only outside the migrated pricing rows.
 The 2026-09-06 pass also observed only `flake.lock` movement outside the migrated LiteLLM/models.dev pricing rows.
 The 2026-09-07 pass also observed only a weekly documentation link-check workflow and `flake.lock` movement outside the migrated LiteLLM/models.dev pricing rows.
+The 2026-09-08 pass also observed only `flake.lock` movement outside the migrated models.dev pricing rows; the LiteLLM pin moved but its embedded token-pricing fields were unchanged.
 
 ## Source Adapter Matrix
 
