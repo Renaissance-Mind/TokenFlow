@@ -1,7 +1,7 @@
 import type { PricingProfile } from "./types.js";
 
-// Generated from ccusage dbc36ef7f4dcec753ebe42b1107f15147a82f677.
-// LiteLLM snapshot: cd681a573fd9f5b6f15a1355f46178e4e9d374d2.
+// Generated from ccusage 59c249fa954aa199e98aacaffda3ac6267f69734.
+// LiteLLM snapshot: 754a2afe12891f0fc9e8b20fbf17f7504d71215a.
 // models.dev snapshot: 872d94d546231e442ecb5b353acda85ce88aeabd.
 // Regenerate during the daily ccusage pricing parity automation; do not edit by hand.
 export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[]).concat(
@@ -1644,7 +1644,6 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"eu.meta.llama3-2-1b-instruct-v1:0","displayName":"Eu Meta Llama3 2 1b Instruct V1 0","inputUsdPerMillion":"0.13","outputUsdPerMillion":"0.13","cacheReadUsdPerMillion":"0.013","cacheCreationUsdPerMillion":"0.1625"},
   {"modelId":"eu.meta.llama3-2-3b-instruct-v1:0","displayName":"Eu Meta Llama3 2 3b Instruct V1 0","inputUsdPerMillion":"0.19","outputUsdPerMillion":"0.19","cacheReadUsdPerMillion":"0.019","cacheCreationUsdPerMillion":"0.2375"},
   {"modelId":"eu.mistral.pixtral-large-2502-v1:0","displayName":"Eu Mistral Pixtral Large 2502 V1 0","inputUsdPerMillion":"2","outputUsdPerMillion":"6","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"2.5"},
-  {"modelId":"eu.twelvelabs.marengo-embed-2-7-v1:0","displayName":"Eu Twelvelabs Marengo Embed 2 7 V1 0","inputUsdPerMillion":"70","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"7","cacheCreationUsdPerMillion":"87.5"},
   {"modelId":"EVA-UNIT-01/EVA-LLaMA-3.33-70B-v0.0","displayName":"EVA LLaMA 3 33 70B V0 0","inputUsdPerMillion":"2.006","outputUsdPerMillion":"2.006","cacheReadUsdPerMillion":"1.003","cacheCreationUsdPerMillion":"2.5075"},
   {"modelId":"EVA-UNIT-01/EVA-LLaMA-3.33-70B-v0.1","displayName":"EVA LLaMA 3 33 70B V0 1","inputUsdPerMillion":"2.006","outputUsdPerMillion":"2.006","cacheReadUsdPerMillion":"1.003","cacheCreationUsdPerMillion":"2.5075"},
   {"modelId":"EVA-UNIT-01/EVA-Qwen2.5-32B-v0.2","displayName":"EVA Qwen2 5 32B V0 2","inputUsdPerMillion":"0.799","outputUsdPerMillion":"0.799","cacheReadUsdPerMillion":"0.3995","cacheCreationUsdPerMillion":"0.99875"},
@@ -4880,7 +4879,6 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"tongyi-intent-detect-v3","displayName":"Tongyi Intent Detect V3","inputUsdPerMillion":"0.058","outputUsdPerMillion":"0.144","cacheReadUsdPerMillion":"0.0058","cacheCreationUsdPerMillion":"0.0725"},
   {"modelId":"trendyol-asure-12b","displayName":"Trendyol Asure 12b","inputUsdPerMillion":"0.1","outputUsdPerMillion":"0.5","cacheReadUsdPerMillion":"0.025","cacheCreationUsdPerMillion":"0.125"},
   {"modelId":"trinity-large-thinking","displayName":"Trinity Large Thinking","inputUsdPerMillion":"0.25","outputUsdPerMillion":"0.8","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.3125","exactOnly":true},
-  {"modelId":"twelvelabs.marengo-embed-2-7-v1:0","displayName":"Twelvelabs Marengo Embed 2 7 V1 0","inputUsdPerMillion":"70","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"7","cacheCreationUsdPerMillion":"87.5"},
   {"modelId":"umans-coder","displayName":"Umans Coder","inputUsdPerMillion":"0.95","outputUsdPerMillion":"4","cacheReadUsdPerMillion":"0.19","cacheCreationUsdPerMillion":"1.1875","exactOnly":true},
   {"modelId":"umans-deepseek-v4-flash-0731","displayName":"Umans Deepseek V4 Flash 0731","inputUsdPerMillion":"0.14","outputUsdPerMillion":"0.28","cacheReadUsdPerMillion":"0.028","cacheCreationUsdPerMillion":"0.175"},
   {"modelId":"umans-deepseek-v4-pro-0813","displayName":"Umans Deepseek V4 Pro 0813","inputUsdPerMillion":"1.32","outputUsdPerMillion":"3.96","cacheReadUsdPerMillion":"0.044","cacheCreationUsdPerMillion":"1.65"},
@@ -4956,7 +4954,6 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"us.openai.gpt-5.6-luna","displayName":"Us Openai Gpt 5 6 Luna","inputUsdPerMillion":"0.22","outputUsdPerMillion":"1.32","cacheReadUsdPerMillion":"0.022","cacheCreationUsdPerMillion":"0.275"},
   {"modelId":"us.openai.gpt-5.6-sol","displayName":"Us Openai Gpt 5 6 Sol","inputUsdPerMillion":"4.4","outputUsdPerMillion":"22","cacheReadUsdPerMillion":"0.44","cacheCreationUsdPerMillion":"5.5"},
   {"modelId":"us.openai.gpt-5.6-terra","displayName":"Us Openai Gpt 5 6 Terra","inputUsdPerMillion":"2.2","outputUsdPerMillion":"13.2","cacheReadUsdPerMillion":"0.22","cacheCreationUsdPerMillion":"2.75"},
-  {"modelId":"us.twelvelabs.marengo-embed-2-7-v1:0","displayName":"Us Twelvelabs Marengo Embed 2 7 V1 0","inputUsdPerMillion":"70","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"7","cacheCreationUsdPerMillion":"87.5"},
   {"modelId":"us.writer.palmyra-x4-v1:0","displayName":"Us Writer Palmyra X4 V1 0","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125"},
   {"modelId":"us.writer.palmyra-x5-v1:0","displayName":"Us Writer Palmyra X5 V1 0","inputUsdPerMillion":"0.6","outputUsdPerMillion":"6","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.75"},
   {"modelId":"us.xai.grok-4.6","displayName":"Us Xai Grok 4 6","inputUsdPerMillion":"2.2","outputUsdPerMillion":"6.6","cacheReadUsdPerMillion":"0.55","cacheCreationUsdPerMillion":"2.75"},

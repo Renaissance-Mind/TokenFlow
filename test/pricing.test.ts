@@ -1274,6 +1274,10 @@ describe("pricing", () => {
       cacheReadUsdPerMillion: "1.25",
       cacheCreationUsdPerMillion: "15.625",
     });
+    expect(resolvePricing("twelvelabs.marengo-embed-2-7-v1:0")).toBeNull();
+    expect(resolvePricing("eu.twelvelabs.marengo-embed-2-7-v1:0")).toBeNull();
+    expect(resolvePricing("us.twelvelabs.marengo-embed-2-7-v1:0")).toBeNull();
+    expect(resolvePricing("twelvelabs.marengo-embed-3-0-v1:0")).toBeNull();
     expect(resolvePricing("openai-gpt-56-sol")).toMatchObject({
       modelId: "openai-gpt-56-sol",
       inputUsdPerMillion: "2.5",
