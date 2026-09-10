@@ -660,6 +660,53 @@ describe("pricing", () => {
       cacheReadUsdPerMillion: "0.06",
       cacheCreationUsdPerMillion: "0.75",
     });
+    expect(resolvePricing("azure_ai/codex-mini")).toMatchObject({
+      modelId: "azure_ai/codex-mini",
+      inputUsdPerMillion: "1.5",
+      outputUsdPerMillion: "6",
+      cacheReadUsdPerMillion: "0.375",
+      cacheCreationUsdPerMillion: "1.875",
+    });
+    expect(resolvePricing("azure_ai/cohere-command-a")).toMatchObject({
+      modelId: "azure_ai/cohere-command-a",
+      inputUsdPerMillion: "2.5",
+      outputUsdPerMillion: "10",
+      cacheReadUsdPerMillion: "0.25",
+      cacheCreationUsdPerMillion: "3.125",
+    });
+    expect(resolvePricing("azure_ai/gpt-chat-latest")).toMatchObject({
+      modelId: "azure_ai/gpt-chat-latest",
+      inputUsdPerMillion: "5",
+      outputUsdPerMillion: "30",
+      cacheReadUsdPerMillion: "0.5",
+      cacheCreationUsdPerMillion: "6.25",
+    });
+    expect(resolvePricing("azure_ai/grok-4-20-non-reasoning")).toMatchObject({
+      modelId: "azure_ai/grok-4-20-non-reasoning",
+      inputUsdPerMillion: "1.25",
+      outputUsdPerMillion: "2.5",
+      cacheReadUsdPerMillion: "1.25",
+      cacheCreationUsdPerMillion: "1.5625",
+    });
+    expect(resolvePricing("azure_ai/grok-4-20-reasoning")).toMatchObject({
+      modelId: "azure_ai/grok-4-20-reasoning",
+      inputUsdPerMillion: "1.25",
+      outputUsdPerMillion: "2.5",
+      cacheReadUsdPerMillion: "1.25",
+      cacheCreationUsdPerMillion: "1.5625",
+    });
+    expect(resolvePricing("azure_ai/model-router")).toMatchObject({
+      modelId: "azure_ai/model-router",
+      inputUsdPerMillion: "0.14",
+      outputUsdPerMillion: "0",
+      cacheReadUsdPerMillion: "0.014",
+      cacheCreationUsdPerMillion: "0.175",
+    });
+    expect(resolvePricing("azure_ai/whisper")).toBeNull();
+    expect(normalizeAgentModelForUsage("opencode", "azure_ai/grok-4-20-reasoning")).toMatchObject({
+      model: "grok-4-20-reasoning",
+      pricingModel: "azure_ai/grok-4-20-reasoning",
+    });
   });
 
   it("resolves ccusage models.dev pricing rows updated after v20.0.20", () => {

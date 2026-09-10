@@ -1,7 +1,7 @@
 import type { PricingProfile } from "./types.js";
 
-// Generated from ccusage 59c249fa954aa199e98aacaffda3ac6267f69734.
-// LiteLLM snapshot: 754a2afe12891f0fc9e8b20fbf17f7504d71215a.
+// Generated from ccusage 05cd43670fe2388a888812257f1d154b2d8870fe.
+// LiteLLM snapshot: ee7c7e14f3dd7c4c3930a423440ec26427e2c554.
 // models.dev snapshot: 872d94d546231e442ecb5b353acda85ce88aeabd.
 // Regenerate during the daily ccusage pricing parity automation; do not edit by hand.
 export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[]).concat(
@@ -424,6 +424,11 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"azure_ai/Meta-Llama-3.1-405B-Instruct","displayName":"Meta Llama 3 1 405B Instruct","inputUsdPerMillion":"5.33","outputUsdPerMillion":"16","cacheReadUsdPerMillion":"0.533","cacheCreationUsdPerMillion":"6.6625"},
   {"modelId":"azure_ai/Meta-Llama-3.1-70B-Instruct","displayName":"Meta Llama 3 1 70B Instruct","inputUsdPerMillion":"2.68","outputUsdPerMillion":"3.54","cacheReadUsdPerMillion":"0.268","cacheCreationUsdPerMillion":"3.35"},
   {"modelId":"azure_ai/Meta-Llama-3.1-8B-Instruct","displayName":"Meta Llama 3 1 8B Instruct","inputUsdPerMillion":"0.3","outputUsdPerMillion":"0.61","cacheReadUsdPerMillion":"0.03","cacheCreationUsdPerMillion":"0.375"},
+  {"modelId":"azure_ai/codex-mini","displayName":"Codex Mini","inputUsdPerMillion":"1.5","outputUsdPerMillion":"6","cacheReadUsdPerMillion":"0.375","cacheCreationUsdPerMillion":"1.875"},
+  {"modelId":"azure_ai/cohere-command-a","displayName":"Cohere Command A","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125"},
+  {"modelId":"azure_ai/gpt-chat-latest","displayName":"Gpt Chat Latest","inputUsdPerMillion":"5","outputUsdPerMillion":"30","cacheReadUsdPerMillion":"0.5","cacheCreationUsdPerMillion":"6.25"},
+  {"modelId":"azure_ai/grok-4-20-non-reasoning","displayName":"Grok 4 20 Non Reasoning","inputUsdPerMillion":"1.25","outputUsdPerMillion":"2.5","cacheReadUsdPerMillion":"1.25","cacheCreationUsdPerMillion":"1.5625"},
+  {"modelId":"azure_ai/grok-4-20-reasoning","displayName":"Grok 4 20 Reasoning","inputUsdPerMillion":"1.25","outputUsdPerMillion":"2.5","cacheReadUsdPerMillion":"1.25","cacheCreationUsdPerMillion":"1.5625"},
   {"modelId":"azure_ai/ministral-3b","displayName":"Ministral 3b","inputUsdPerMillion":"0.04","outputUsdPerMillion":"0.04","cacheReadUsdPerMillion":"0.004","cacheCreationUsdPerMillion":"0.05"},
   {"modelId":"azure_ai/mistral-large","displayName":"Mistral Large","inputUsdPerMillion":"4","outputUsdPerMillion":"12","cacheReadUsdPerMillion":"0.4","cacheCreationUsdPerMillion":"5"},
   {"modelId":"azure_ai/mistral-large-2407","displayName":"Mistral Large 2407","inputUsdPerMillion":"2","outputUsdPerMillion":"6","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"2.5"},
@@ -433,6 +438,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"azure_ai/mistral-nemo","displayName":"Mistral Nemo","inputUsdPerMillion":"0.15","outputUsdPerMillion":"0.15","cacheReadUsdPerMillion":"0.015","cacheCreationUsdPerMillion":"0.1875"},
   {"modelId":"azure_ai/mistral-small","displayName":"Mistral Small","inputUsdPerMillion":"1","outputUsdPerMillion":"3","cacheReadUsdPerMillion":"0.1","cacheCreationUsdPerMillion":"1.25"},
   {"modelId":"azure_ai/mistral-small-2503","displayName":"Mistral Small 2503","inputUsdPerMillion":"0.1","outputUsdPerMillion":"0.3","cacheReadUsdPerMillion":"0.01","cacheCreationUsdPerMillion":"0.125"},
+  {"modelId":"azure_ai/model-router","displayName":"Model Router","inputUsdPerMillion":"0.14","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0.014","cacheCreationUsdPerMillion":"0.175"},
   {"modelId":"azure_ai/model_router","displayName":"Model Router","inputUsdPerMillion":"0.14","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0.014","cacheCreationUsdPerMillion":"0.175"},
   {"modelId":"azure_ai/Phi-3-medium-128k-instruct","displayName":"Phi 3 Medium 128k Instruct","inputUsdPerMillion":"0.17","outputUsdPerMillion":"0.68","cacheReadUsdPerMillion":"0.017","cacheCreationUsdPerMillion":"0.2125"},
   {"modelId":"azure_ai/Phi-3-medium-4k-instruct","displayName":"Phi 3 Medium 4k Instruct","inputUsdPerMillion":"0.17","outputUsdPerMillion":"0.68","cacheReadUsdPerMillion":"0.017","cacheCreationUsdPerMillion":"0.2125"},
