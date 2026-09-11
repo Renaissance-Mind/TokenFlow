@@ -702,6 +702,20 @@ describe("pricing", () => {
       cacheReadUsdPerMillion: "0.014",
       cacheCreationUsdPerMillion: "0.175",
     });
+    expect(resolvePricing("openrouter/openai/gpt-5.6-sol")).toMatchObject({
+      modelId: "openrouter/openai/gpt-5.6-sol",
+      inputUsdPerMillion: "2",
+      outputUsdPerMillion: "10",
+      cacheReadUsdPerMillion: "0.2",
+      cacheCreationUsdPerMillion: "2.5",
+    });
+    expect(resolvePricing("eu.anthropic.claude-3-5-haiku-20241022-v1:0")).toMatchObject({
+      modelId: "eu.anthropic.claude-3-5-haiku-20241022-v1:0",
+      inputUsdPerMillion: "0.8",
+      outputUsdPerMillion: "4",
+      cacheReadUsdPerMillion: "0.08",
+      cacheCreationUsdPerMillion: "1",
+    });
     expect(resolvePricing("azure_ai/whisper")).toBeNull();
     expect(normalizeAgentModelForUsage("opencode", "azure_ai/grok-4-20-reasoning")).toMatchObject({
       model: "grok-4-20-reasoning",

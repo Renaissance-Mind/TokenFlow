@@ -1,7 +1,7 @@
 import type { PricingProfile } from "./types.js";
 
-// Generated from ccusage 05cd43670fe2388a888812257f1d154b2d8870fe.
-// LiteLLM snapshot: ee7c7e14f3dd7c4c3930a423440ec26427e2c554.
+// Generated from ccusage 2feea4da2a8f2a8002db7fc297a78c0cdb4c0027.
+// LiteLLM snapshot: 8a4fae0e174799ce2d3858a55473be0d6247a2a4.
 // models.dev snapshot: 872d94d546231e442ecb5b353acda85ce88aeabd.
 // Regenerate during the daily ccusage pricing parity automation; do not edit by hand.
 export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[]).concat(
@@ -1625,7 +1625,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"eu.amazon.nova-lite-v1:0","displayName":"Eu Amazon Nova Lite V1 0","inputUsdPerMillion":"0.078","outputUsdPerMillion":"0.312","cacheReadUsdPerMillion":"0.0078","cacheCreationUsdPerMillion":"0.0975"},
   {"modelId":"eu.amazon.nova-micro-v1:0","displayName":"Eu Amazon Nova Micro V1 0","inputUsdPerMillion":"0.046","outputUsdPerMillion":"0.184","cacheReadUsdPerMillion":"0.0046","cacheCreationUsdPerMillion":"0.0575"},
   {"modelId":"eu.amazon.nova-pro-v1:0","displayName":"Eu Amazon Nova Pro V1 0","inputUsdPerMillion":"1.05","outputUsdPerMillion":"4.2","cacheReadUsdPerMillion":"0.105","cacheCreationUsdPerMillion":"1.3125"},
-  {"modelId":"eu.anthropic.claude-3-5-haiku-20241022-v1:0","displayName":"Eu Anthropic Claude 3 5 Haiku 20241022 V1 0","inputUsdPerMillion":"0.25","outputUsdPerMillion":"1.25","cacheReadUsdPerMillion":"0.025","cacheCreationUsdPerMillion":"0.3125"},
+  {"modelId":"eu.anthropic.claude-3-5-haiku-20241022-v1:0","displayName":"Eu Anthropic Claude 3 5 Haiku 20241022 V1 0","inputUsdPerMillion":"0.8","outputUsdPerMillion":"4","cacheReadUsdPerMillion":"0.08","cacheCreationUsdPerMillion":"1"},
   {"modelId":"eu.anthropic.claude-3-5-sonnet-20240620-v1:0","displayName":"Eu Anthropic Claude 3 5 Sonnet 20240620 V1 0","inputUsdPerMillion":"3","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75"},
   {"modelId":"eu.anthropic.claude-3-5-sonnet-20241022-v2:0","displayName":"Eu Anthropic Claude 3 5 Sonnet 20241022 V2 0","inputUsdPerMillion":"3","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75"},
   {"modelId":"eu.anthropic.claude-3-7-sonnet-20250219-v1:0","displayName":"Eu Anthropic Claude 3 7 Sonnet 20250219 V1 0","inputUsdPerMillion":"3","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75"},
@@ -3933,6 +3933,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"openrouter/openai/gpt-5.5","displayName":"Gpt 5 5","inputUsdPerMillion":"5","outputUsdPerMillion":"30","cacheReadUsdPerMillion":"0.5","cacheCreationUsdPerMillion":"6.25"},
   {"modelId":"openrouter/openai/gpt-5.5-pro","displayName":"Gpt 5 5 Pro","inputUsdPerMillion":"30","outputUsdPerMillion":"180","cacheReadUsdPerMillion":"3","cacheCreationUsdPerMillion":"37.5"},
   {"modelId":"openrouter/openai/gpt-5.6-luna","displayName":"Gpt 5 6 Luna","inputUsdPerMillion":"0.2","outputUsdPerMillion":"1.2","cacheReadUsdPerMillion":"0.02","cacheCreationUsdPerMillion":"0.25"},
+  {"modelId":"openrouter/openai/gpt-5.6-sol","displayName":"Gpt 5 6 Sol","inputUsdPerMillion":"2","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"2.5"},
   {"modelId":"openrouter/openai/gpt-5.6-terra","displayName":"Gpt 5 6 Terra","inputUsdPerMillion":"2","outputUsdPerMillion":"12","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"2.5"},
   {"modelId":"openrouter/openai/gpt-6-astra","displayName":"Gpt 6 Astra","inputUsdPerMillion":"10","outputUsdPerMillion":"50","cacheReadUsdPerMillion":"1","cacheCreationUsdPerMillion":"12.5"},
   {"modelId":"openrouter/openai/gpt-audio","displayName":"Gpt Audio","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125"},

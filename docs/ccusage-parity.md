@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-09-10
+Last checked: 2026-09-11
 
-Reference ccusage commit: `05cd436 chore(pricing): update LiteLLM snapshot`
+Reference ccusage commit: `2feea4d chore(pricing): update LiteLLM snapshot`
 
 ## Summary
 
@@ -79,6 +79,8 @@ The 2026-09-08 parity pass found ccusage main still packaged as `v20.0.20` at `d
 The 2026-09-09 parity pass found ccusage main still packaged as `v20.0.20` at `59c249f chore(pricing): update LiteLLM snapshot`. Its LiteLLM pin moved to `754a2afe12891f0fc9e8b20fbf17f7504d71215a` while the models.dev snapshot stayed at `872d94d546231e442ecb5b353acda85ce88aeabd`. The LiteLLM snapshot changed TwelveLabs Marengo embedding entries from token input pricing to per-query/media pricing: `twelvelabs.marengo-embed-2-7-v1:0` and its `eu.`/`us.` Bedrock variants no longer carry the input/output token pair ccusage requires, and new `marengo-embed-3-0` rows also remain per-query/media-only. TokenFlow removed those stale Marengo token rows and now ships 5,502 generated ccusage snapshot pricing rows from the new pins. No ccusage adapter, source parser, loader path, environment variable, telemetry requirement, permission, login, or privacy surface changed in this range.
 
 The 2026-09-10 parity pass found ccusage main still packaged as `v20.0.20` at `05cd436 chore(pricing): update LiteLLM snapshot`. Its LiteLLM pin moved to `ee7c7e14f3dd7c4c3930a423440ec26427e2c554` while the models.dev snapshot stayed at `872d94d546231e442ecb5b353acda85ce88aeabd`, adding directly migratable Azure AI token-pricing rows for `azure_ai/codex-mini`, `azure_ai/cohere-command-a`, `azure_ai/gpt-chat-latest`, `azure_ai/grok-4-20-non-reasoning`, `azure_ai/grok-4-20-reasoning`, and the hyphenated `azure_ai/model-router` catalog key. TokenFlow now ships 5,508 generated ccusage snapshot pricing rows from the new pins. The new `azure_ai/whisper` entry is per-second audio transcription pricing and remains outside TokenFlow's local token-bucket pricing model. The remaining `flake.lock` movement is report-only generator/dependency drift; no ccusage adapter, source parser, loader path, environment variable, telemetry requirement, permission, login, or privacy surface changed in this range.
+
+The 2026-09-11 parity pass found ccusage main still packaged as `v20.0.20` at `2feea4d chore(pricing): update LiteLLM snapshot`. Its LiteLLM pin moved to `8a4fae0e174799ce2d3858a55473be0d6247a2a4` while the models.dev snapshot stayed at `872d94d546231e442ecb5b353acda85ce88aeabd`, adding directly migratable token pricing for `openrouter/openai/gpt-5.6-sol` and increasing `eu.anthropic.claude-3-5-haiku-20241022-v1:0` to `0.8` input / `4` output / `0.08` cache-read / `1` cache-creation USD per million tokens. TokenFlow now ships 5,509 generated ccusage snapshot pricing rows from the new pins. The upstream repository diff itself is only `flake.lock`; no ccusage adapter, source parser, loader path, environment variable, telemetry requirement, permission, login, or privacy surface changed in this range.
 
 The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. The 2026-07-30 pass also found ccusage's new experimental Antigravity adapter, which scans `~/.gemini/antigravity-cli/conversations/**/*.db` or `ANTIGRAVITY_DATA_DIR` conversation databases through a new SQLite/protobuf parser. Those changes were not copied because they are adapter, parser, loader, path, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 
