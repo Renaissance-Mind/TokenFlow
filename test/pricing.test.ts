@@ -99,7 +99,7 @@ describe("pricing", () => {
     });
     expect(resolvePricingAt("deepseek/deepseek-v4-flash", "2026-08-16T15:59:59.000Z")).toMatchObject({
       modelId: "deepseek/deepseek-v4-flash",
-      inputUsdPerMillion: "0.44",
+      inputUsdPerMillion: "0.3",
       cacheCreationUsdPerMillion: "0",
     });
 
@@ -182,7 +182,7 @@ describe("pricing", () => {
     });
     expect(resolvePricing("deepseek-v4-flash")).toMatchObject({
       modelId: "deepseek-v4-flash",
-      cacheReadUsdPerMillion: "0.014",
+      cacheReadUsdPerMillion: "0.006",
     });
     expect(resolvePricing("glm-5.1")).toMatchObject({
       modelId: "glm-5.1",
@@ -708,6 +708,38 @@ describe("pricing", () => {
       outputUsdPerMillion: "10",
       cacheReadUsdPerMillion: "0.2",
       cacheCreationUsdPerMillion: "2.5",
+    });
+    expect(resolvePricing("deepseek-v4-flash")).toMatchObject({
+      modelId: "deepseek-v4-flash",
+      inputUsdPerMillion: "0.3",
+      outputUsdPerMillion: "1.2",
+      cacheReadUsdPerMillion: "0.006",
+      cacheCreationUsdPerMillion: "0",
+    });
+    expect(resolvePricing("openrouter/openai/gpt-6-astra-pro")).toMatchObject({
+      modelId: "openrouter/openai/gpt-6-astra-pro",
+      inputUsdPerMillion: "10",
+      outputUsdPerMillion: "50",
+      cacheReadUsdPerMillion: "1",
+      cacheCreationUsdPerMillion: "12.5",
+      inputAbove200kUsdPerMillion: "20",
+      outputAbove200kUsdPerMillion: "75",
+      cacheReadAbove200kUsdPerMillion: "2",
+      longContextThresholdTokens: 272_000,
+    });
+    expect(resolvePricing("openrouter/qwen/qwen3.8-max-0902")).toMatchObject({
+      modelId: "openrouter/qwen/qwen3.8-max-0902",
+      inputUsdPerMillion: "2",
+      outputUsdPerMillion: "6",
+      cacheReadUsdPerMillion: "0.25",
+      cacheCreationUsdPerMillion: "2.5",
+    });
+    expect(resolvePricing("vertex_ai/mistral-small-2503")).toMatchObject({
+      modelId: "vertex_ai/mistral-small-2503",
+      inputUsdPerMillion: "0.1",
+      outputUsdPerMillion: "0.3",
+      cacheReadUsdPerMillion: "0.01",
+      cacheCreationUsdPerMillion: "0.125",
     });
     expect(resolvePricing("eu.anthropic.claude-3-5-haiku-20241022-v1:0")).toMatchObject({
       modelId: "eu.anthropic.claude-3-5-haiku-20241022-v1:0",
