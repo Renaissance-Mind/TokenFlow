@@ -1464,6 +1464,21 @@ describe("pricing", () => {
       cacheReadUsdPerMillion: "0.208",
       cacheCreationUsdPerMillion: "1.4",
     });
+    expect(resolvePricing("fireworks_ai/accounts/fireworks/models/deepseek-v4p1-flash")).toMatchObject({
+      modelId: "fireworks_ai/accounts/fireworks/models/deepseek-v4p1-flash",
+      inputUsdPerMillion: "0.22",
+      outputUsdPerMillion: "0.66",
+      cacheReadUsdPerMillion: "0.007",
+      cacheCreationUsdPerMillion: "0.275",
+    });
+    expect(resolvePricing("fireworks_ai/deepseek-v4p1-flash")).toMatchObject({
+      modelId: "fireworks_ai/deepseek-v4p1-flash",
+      inputUsdPerMillion: "0.22",
+      outputUsdPerMillion: "0.66",
+      cacheReadUsdPerMillion: "0.007",
+      cacheCreationUsdPerMillion: "0.275",
+    });
+    expect(resolvePricing("meta/muse-voice-transcribe-1.0")).toBeNull();
     expect(resolvePricing("cosmos3-super-reasoner")).toBeNull();
     expect(resolvePricing("llama-3.1-nemotron-ultra-253b-v1")).toBeNull();
     expect(resolvePricing("nvidia-nemotron-3-nano-omni")).toBeNull();

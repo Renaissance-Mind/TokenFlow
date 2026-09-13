@@ -14,7 +14,7 @@ describe("npm package", () => {
     };
 
     expect(pkg.name).toBe("@renaissancemind/tokenflow");
-    expect(pkg.version).toBe("0.2.47");
+    expect(pkg.version).toBe("0.2.48");
     expect(pkg.bin?.tokenflow).toBe("dist/cli.js");
     expect(pkg.bin?.tokenusage).toBe("dist/cli.js");
     expect(pkg.files).toContain("dist");

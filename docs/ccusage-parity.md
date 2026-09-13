@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-09-12
+Last checked: 2026-09-13
 
-Reference ccusage commit: `c3216ec chore(pricing): update LiteLLM snapshot`
+Reference ccusage commit: `48dfe97 chore(pricing): update LiteLLM snapshot`
 
 ## Summary
 
@@ -84,6 +84,8 @@ The 2026-09-11 parity pass found ccusage main still packaged as `v20.0.20` at `2
 
 The 2026-09-12 parity pass found ccusage main still packaged as `v20.0.20` at `c3216ec chore(pricing): update LiteLLM snapshot`. Its LiteLLM pin moved to `22c60ef9e762725f8e02551097541f24d664084e` while the models.dev snapshot stayed at `872d94d546231e442ecb5b353acda85ce88aeabd`, adding or changing directly migratable token-pricing rows for DeepSeek Flash/V4 Flash, Cerebras Qwen 3.8, OpenRouter DeepSeek/Kimi/Qwen/Z.ai/OpenAI rows including GPT-6 Astra Pro and GPT-5.6 Pro variants, Together AI Qwen/MiniMax/DeepSeek/Mistral/Kimi/NVIDIA/Z.ai rows, Inception Mercury 2.5, and Vertex AI Mistral/GPT-OSS rows. TokenFlow now ships 5,538 generated ccusage snapshot pricing rows from the new pins. The upstream repository diff itself is only `flake.lock`; non-token pricing such as `gpt-live-1` per-second pricing remains outside TokenFlow's local token-bucket pricing model, and no ccusage adapter, source parser, loader path, environment variable, telemetry requirement, permission, login, or privacy surface changed in this range.
 
+The 2026-09-13 parity pass found ccusage main still packaged as `v20.0.20` at `48dfe97 chore(pricing): update LiteLLM snapshot`. Its LiteLLM pin moved to `9d984371fdb91854ca94ffd26c76baabb32fbef1` while the models.dev snapshot stayed at `872d94d546231e442ecb5b353acda85ce88aeabd`, adding directly migratable token-pricing rows for `fireworks_ai/accounts/fireworks/models/deepseek-v4p1-flash` and `fireworks_ai/deepseek-v4p1-flash`. TokenFlow now ships 5,540 generated ccusage snapshot pricing rows from the new pins. The new `meta/muse-voice-transcribe-1.0` entry is per-second transcription pricing and remains outside TokenFlow's local token-bucket pricing model. The other upstream changes in this range are issue-gate, pullfrog, agent-skills, and `flake.lock` drift; no ccusage adapter, source parser, loader path, environment variable, telemetry requirement, permission, login, or privacy surface changed.
+
 The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. The 2026-07-30 pass also found ccusage's new experimental Antigravity adapter, which scans `~/.gemini/antigravity-cli/conversations/**/*.db` or `ANTIGRAVITY_DATA_DIR` conversation databases through a new SQLite/protobuf parser. Those changes were not copied because they are adapter, parser, loader, path, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 
 The 2026-08-01 pass also observed dependency/workflow-only upstream drift in `.github/workflows/pullfrog.yml`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, and `rust/Cargo.toml`; those changes were not copied because they do not affect TokenFlow pricing behavior. The 2026-08-02 pass also observed docs, agent-skill, workflow, lockfile, and Rust dependency churn outside TokenFlow's pricing surface; those changes were left report-only. The 2026-08-04 pass observed `8028fd4 revert(antigravity): remove the Antigravity adapter until #1487 lands (#1569)` plus docs/schema/CLI help changes, dependency bumps, and workflow churn; only pricing-table and pricing-resolution behavior was migrated.
@@ -110,6 +112,7 @@ The 2026-09-08 pass also observed only `flake.lock` movement outside the migrate
 The 2026-09-09 pass also observed only `flake.lock` movement outside the migrated LiteLLM pricing-row removals; the new TwelveLabs Marengo 3.0 entries are per-query/media pricing and remain outside TokenFlow's local token-bucket pricing model.
 The 2026-09-10 pass also observed only `flake.lock` movement outside the migrated Azure AI token rows; `azure_ai/whisper` is per-second audio pricing and was left report-only.
 The 2026-09-12 pass also observed only `flake.lock` movement outside the migrated LiteLLM token rows; `gpt-live-1` is per-second realtime pricing and was left report-only.
+The 2026-09-13 pass also observed issue-gate, pullfrog, agent-skills, and `flake.lock` drift outside the migrated LiteLLM token rows; `meta/muse-voice-transcribe-1.0` is per-second transcription pricing and was left report-only.
 
 ## Source Adapter Matrix
 

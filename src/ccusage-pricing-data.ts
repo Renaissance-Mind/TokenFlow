@@ -1,7 +1,7 @@
 import type { PricingProfile } from "./types.js";
 
-// Generated from ccusage c3216eccd09c1e7504cd978dd879f2c39e30882a.
-// LiteLLM snapshot: 22c60ef9e762725f8e02551097541f24d664084e.
+// Generated from ccusage 48dfe97f336ae6f7912b4b386116e962e246ae47.
+// LiteLLM snapshot: 9d984371fdb91854ca94ffd26c76baabb32fbef1.
 // models.dev snapshot: 872d94d546231e442ecb5b353acda85ce88aeabd.
 // Regenerate during the daily ccusage pricing parity automation; do not edit by hand.
 export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[]).concat(
@@ -1723,6 +1723,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"fireworks_ai/accounts/fireworks/models/deepseek-v4-flash-vision-exp","displayName":"Deepseek V4 Flash Vision Exp","inputUsdPerMillion":"0.22","outputUsdPerMillion":"0.66","cacheReadUsdPerMillion":"0.007","cacheCreationUsdPerMillion":"0.275"},
   {"modelId":"fireworks_ai/accounts/fireworks/models/deepseek-v4-pro","displayName":"Deepseek V4 Pro","inputUsdPerMillion":"1.74","outputUsdPerMillion":"3.48","cacheReadUsdPerMillion":"0.145","cacheCreationUsdPerMillion":"2.175"},
   {"modelId":"fireworks_ai/accounts/fireworks/models/deepseek-v4-pro-0813","displayName":"Deepseek V4 Pro 0813","inputUsdPerMillion":"1.32","outputUsdPerMillion":"3.96","cacheReadUsdPerMillion":"0.044","cacheCreationUsdPerMillion":"1.65"},
+  {"modelId":"fireworks_ai/accounts/fireworks/models/deepseek-v4p1-flash","displayName":"Deepseek V4p1 Flash","inputUsdPerMillion":"0.22","outputUsdPerMillion":"0.66","cacheReadUsdPerMillion":"0.007","cacheCreationUsdPerMillion":"0.275"},
   {"modelId":"fireworks_ai/accounts/fireworks/models/devstral-small-2505","displayName":"Devstral Small 2505","inputUsdPerMillion":"0.9","outputUsdPerMillion":"0.9","cacheReadUsdPerMillion":"0.09","cacheCreationUsdPerMillion":"1.125"},
   {"modelId":"fireworks_ai/accounts/fireworks/models/dobby-mini-unhinged-plus-llama-3-1-8b","displayName":"Dobby Mini Unhinged Plus Llama 3 1 8b","inputUsdPerMillion":"0.2","outputUsdPerMillion":"0.2","cacheReadUsdPerMillion":"0.02","cacheCreationUsdPerMillion":"0.25"},
   {"modelId":"fireworks_ai/accounts/fireworks/models/dobby-unhinged-llama-3-3-70b-new","displayName":"Dobby Unhinged Llama 3 3 70b New","inputUsdPerMillion":"0.9","outputUsdPerMillion":"0.9","cacheReadUsdPerMillion":"0.09","cacheCreationUsdPerMillion":"1.125"},
@@ -1956,6 +1957,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"fireworks_ai/deepseek-v4-flash","displayName":"Deepseek V4 Flash","inputUsdPerMillion":"0.14","outputUsdPerMillion":"0.28","cacheReadUsdPerMillion":"0.028","cacheCreationUsdPerMillion":"0.175"},
   {"modelId":"fireworks_ai/deepseek-v4-flash-0731","displayName":"Deepseek V4 Flash 0731","inputUsdPerMillion":"0.22","outputUsdPerMillion":"0.66","cacheReadUsdPerMillion":"0.007","cacheCreationUsdPerMillion":"0.275"},
   {"modelId":"fireworks_ai/deepseek-v4-flash-vision-exp","displayName":"Deepseek V4 Flash Vision Exp","inputUsdPerMillion":"0.22","outputUsdPerMillion":"0.66","cacheReadUsdPerMillion":"0.007","cacheCreationUsdPerMillion":"0.275"},
+  {"modelId":"fireworks_ai/deepseek-v4p1-flash","displayName":"Deepseek V4p1 Flash","inputUsdPerMillion":"0.22","outputUsdPerMillion":"0.66","cacheReadUsdPerMillion":"0.007","cacheCreationUsdPerMillion":"0.275"},
   {"modelId":"fireworks_ai/deepseek-v4-pro","displayName":"Deepseek V4 Pro","inputUsdPerMillion":"1.74","outputUsdPerMillion":"3.48","cacheReadUsdPerMillion":"0.145","cacheCreationUsdPerMillion":"2.175"},
   {"modelId":"fireworks_ai/glm-4p7","displayName":"Glm 4p7","inputUsdPerMillion":"0.6","outputUsdPerMillion":"2.2","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"0.75"},
   {"modelId":"fireworks_ai/glm-5p1","displayName":"Glm 5p1","inputUsdPerMillion":"1.4","outputUsdPerMillion":"4.4","cacheReadUsdPerMillion":"0.26","cacheCreationUsdPerMillion":"1.75"},
