@@ -1478,6 +1478,27 @@ describe("pricing", () => {
       cacheReadUsdPerMillion: "0.007",
       cacheCreationUsdPerMillion: "0.275",
     });
+    expect(resolvePricing("friendliai/google/gemma-4-31B-it")).toMatchObject({
+      modelId: "friendliai/google/gemma-4-31B-it",
+      inputUsdPerMillion: "0.14",
+      outputUsdPerMillion: "0.4",
+      cacheReadUsdPerMillion: "0.014",
+      cacheCreationUsdPerMillion: "0.175",
+    });
+    expect(resolvePricing("friendliai/zai-org/GLM-5.2")).toMatchObject({
+      modelId: "friendliai/zai-org/GLM-5.2",
+      inputUsdPerMillion: "1.4",
+      outputUsdPerMillion: "4.4",
+      cacheReadUsdPerMillion: "0.26",
+      cacheCreationUsdPerMillion: "1.75",
+    });
+    expect(resolvePricing("friendliai/deepseek-ai/DeepSeek-V3.2")).toMatchObject({
+      modelId: "friendliai/deepseek-ai/DeepSeek-V3.2",
+      inputUsdPerMillion: "0.5",
+      outputUsdPerMillion: "1.5",
+      cacheReadUsdPerMillion: "0.25",
+      cacheCreationUsdPerMillion: "0.625",
+    });
     expect(resolvePricing("meta/muse-voice-transcribe-1.0")).toBeNull();
     expect(resolvePricing("cosmos3-super-reasoner")).toBeNull();
     expect(resolvePricing("llama-3.1-nemotron-ultra-253b-v1")).toBeNull();

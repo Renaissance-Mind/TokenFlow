@@ -1,7 +1,7 @@
 import type { PricingProfile } from "./types.js";
 
-// Generated from ccusage 48dfe97f336ae6f7912b4b386116e962e246ae47.
-// LiteLLM snapshot: 9d984371fdb91854ca94ffd26c76baabb32fbef1.
+// Generated from ccusage 1b4f42314bf9fe2f323436d2dadba18ba9b04970.
+// LiteLLM snapshot: 30f33a949b8a2bb890a2baee18e2ab7ab015a4f7.
 // models.dev snapshot: 872d94d546231e442ecb5b353acda85ce88aeabd.
 // Regenerate during the daily ccusage pricing parity automation; do not edit by hand.
 export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[]).concat(
@@ -2009,8 +2009,14 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"flexai/Muse-Glimmer-30B","displayName":"Muse Glimmer 30B","inputUsdPerMillion":"0.3","outputUsdPerMillion":"1.1","cacheReadUsdPerMillion":"0.03","cacheCreationUsdPerMillion":"0.375"},
   {"modelId":"flexai/Nemotron-3-Super-120B-A12B","displayName":"Nemotron 3 Super 120B A12B","inputUsdPerMillion":"0.085","outputUsdPerMillion":"0.4","cacheReadUsdPerMillion":"0.0085","cacheCreationUsdPerMillion":"0.10625"},
   {"modelId":"flexai/Step-3.7-Flash","displayName":"Step 3 7 Flash","inputUsdPerMillion":"0.2","outputUsdPerMillion":"1.15","cacheReadUsdPerMillion":"0.02","cacheCreationUsdPerMillion":"0.25"},
+  {"modelId":"friendliai/LGAI-EXAONE/K-EXAONE-2.0-750B-A37B","displayName":"K EXAONE 2 0 750B A37B","inputUsdPerMillion":"0.6","outputUsdPerMillion":"2.4","cacheReadUsdPerMillion":"0.12","cacheCreationUsdPerMillion":"0.75"},
+  {"modelId":"friendliai/MiniMaxAI/MiniMax-M2.5","displayName":"MiniMax M2 5","inputUsdPerMillion":"0.3","outputUsdPerMillion":"1.2","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.375"},
+  {"modelId":"friendliai/deepseek-ai/DeepSeek-V3.2","displayName":"DeepSeek V3 2","inputUsdPerMillion":"0.5","outputUsdPerMillion":"1.5","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"0.625"},
+  {"modelId":"friendliai/google/gemma-4-31B-it","displayName":"Gemma 4 31B It","inputUsdPerMillion":"0.14","outputUsdPerMillion":"0.4","cacheReadUsdPerMillion":"0.014","cacheCreationUsdPerMillion":"0.175"},
   {"modelId":"friendliai/meta-llama-3.1-70b-instruct","displayName":"Meta Llama 3 1 70b Instruct","inputUsdPerMillion":"0.6","outputUsdPerMillion":"0.6","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.75"},
   {"modelId":"friendliai/meta-llama-3.1-8b-instruct","displayName":"Meta Llama 3 1 8b Instruct","inputUsdPerMillion":"0.1","outputUsdPerMillion":"0.1","cacheReadUsdPerMillion":"0.01","cacheCreationUsdPerMillion":"0.125"},
+  {"modelId":"friendliai/zai-org/GLM-5.1","displayName":"GLM 5 1","inputUsdPerMillion":"1.4","outputUsdPerMillion":"4.4","cacheReadUsdPerMillion":"0.26","cacheCreationUsdPerMillion":"1.75"},
+  {"modelId":"friendliai/zai-org/GLM-5.2","displayName":"GLM 5 2","inputUsdPerMillion":"1.4","outputUsdPerMillion":"4.4","cacheReadUsdPerMillion":"0.26","cacheCreationUsdPerMillion":"1.75"},
   {"modelId":"friendliai/zai-org/GLM-5.3","displayName":"GLM 5 3","inputUsdPerMillion":"1.26","outputUsdPerMillion":"3.96","cacheReadUsdPerMillion":"0.234","cacheCreationUsdPerMillion":"1.575"},
   {"modelId":"friendliai/zai-org/GLM-5.3-Flash","displayName":"GLM 5 3 Flash","inputUsdPerMillion":"0.15","outputUsdPerMillion":"0.5","cacheReadUsdPerMillion":"0.03","cacheCreationUsdPerMillion":"0.1875"},
   {"modelId":"ft:babbage-002","displayName":"Ft Babbage 002","inputUsdPerMillion":"1.6","outputUsdPerMillion":"1.6","cacheReadUsdPerMillion":"0.16","cacheCreationUsdPerMillion":"2"},
