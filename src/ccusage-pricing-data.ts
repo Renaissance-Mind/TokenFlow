@@ -1,7 +1,7 @@
 import type { PricingProfile } from "./types.js";
 
-// Generated from ccusage 1b4f42314bf9fe2f323436d2dadba18ba9b04970.
-// LiteLLM snapshot: 30f33a949b8a2bb890a2baee18e2ab7ab015a4f7.
+// Generated from ccusage 62b3541cc8c1b3bcb9268d0f4b3760f3a4d49ad4.
+// LiteLLM snapshot: b67137b67fa519594a069393c38c9990fff9d959.
 // models.dev snapshot: 872d94d546231e442ecb5b353acda85ce88aeabd.
 // Regenerate during the daily ccusage pricing parity automation; do not edit by hand.
 export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[]).concat(
@@ -469,6 +469,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"azure-o1","displayName":"Azure O1","inputUsdPerMillion":"15","outputUsdPerMillion":"60","cacheReadUsdPerMillion":"7.5","cacheCreationUsdPerMillion":"18.75"},
   {"modelId":"azure-o3-mini","displayName":"Azure O3 Mini","inputUsdPerMillion":"1.1","outputUsdPerMillion":"4.4","cacheReadUsdPerMillion":"0.55","cacheCreationUsdPerMillion":"1.375"},
   {"modelId":"azure/ada","displayName":"Ada","inputUsdPerMillion":"0.1","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0.01","cacheCreationUsdPerMillion":"0.125"},
+  {"modelId":"azure/chat-latest","displayName":"Chat Latest","inputUsdPerMillion":"5","outputUsdPerMillion":"30","cacheReadUsdPerMillion":"0.5","cacheCreationUsdPerMillion":"6.25"},
   {"modelId":"azure/codex-mini","displayName":"Codex Mini","inputUsdPerMillion":"1.5","outputUsdPerMillion":"6","cacheReadUsdPerMillion":"0.375","cacheCreationUsdPerMillion":"1.875"},
   {"modelId":"azure/command-r-plus","displayName":"Command R Plus","inputUsdPerMillion":"3","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75"},
   {"modelId":"azure/computer-use-preview","displayName":"Computer Use Preview","inputUsdPerMillion":"3","outputUsdPerMillion":"12","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75"},
@@ -598,12 +599,13 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"azure/gpt-audio-2025-08-28","displayName":"Gpt Audio 2025 08 28","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125"},
   {"modelId":"azure/gpt-audio-mini","displayName":"Gpt Audio Mini","inputUsdPerMillion":"0.6","outputUsdPerMillion":"2.4","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.75"},
   {"modelId":"azure/gpt-audio-mini-2025-10-06","displayName":"Gpt Audio Mini 2025 10 06","inputUsdPerMillion":"0.6","outputUsdPerMillion":"2.4","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.75"},
+  {"modelId":"azure/gpt-chat-latest","displayName":"Gpt Chat Latest","inputUsdPerMillion":"5","outputUsdPerMillion":"30","cacheReadUsdPerMillion":"0.5","cacheCreationUsdPerMillion":"6.25"},
   {"modelId":"azure/gpt-oss-120b","displayName":"Gpt Oss 120b","inputUsdPerMillion":"0.15","outputUsdPerMillion":"0.6","cacheReadUsdPerMillion":"0.015","cacheCreationUsdPerMillion":"0.1875"},
-  {"modelId":"azure/gpt-realtime-1.5-2026-02-23","displayName":"Gpt Realtime 1 5 2026 02 23","inputUsdPerMillion":"4","outputUsdPerMillion":"16","cacheReadUsdPerMillion":"4","cacheCreationUsdPerMillion":"5"},
+  {"modelId":"azure/gpt-realtime-1.5-2026-02-23","displayName":"Gpt Realtime 1 5 2026 02 23","inputUsdPerMillion":"4","outputUsdPerMillion":"16","cacheReadUsdPerMillion":"0.4","cacheCreationUsdPerMillion":"5"},
   {"modelId":"azure/gpt-realtime-2","displayName":"Gpt Realtime 2","inputUsdPerMillion":"4","outputUsdPerMillion":"24","cacheReadUsdPerMillion":"0.4","cacheCreationUsdPerMillion":"5"},
   {"modelId":"azure/gpt-realtime-2.1","displayName":"Gpt Realtime 2 1","inputUsdPerMillion":"4","outputUsdPerMillion":"24","cacheReadUsdPerMillion":"0.4","cacheCreationUsdPerMillion":"5"},
   {"modelId":"azure/gpt-realtime-2.1-mini","displayName":"Gpt Realtime 2 1 Mini","inputUsdPerMillion":"0.6","outputUsdPerMillion":"2.4","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.75"},
-  {"modelId":"azure/gpt-realtime-2025-08-28","displayName":"Gpt Realtime 2025 08 28","inputUsdPerMillion":"4","outputUsdPerMillion":"16","cacheReadUsdPerMillion":"4","cacheCreationUsdPerMillion":"5"},
+  {"modelId":"azure/gpt-realtime-2025-08-28","displayName":"Gpt Realtime 2025 08 28","inputUsdPerMillion":"4","outputUsdPerMillion":"16","cacheReadUsdPerMillion":"0.4","cacheCreationUsdPerMillion":"5"},
   {"modelId":"azure/gpt-realtime-mini","displayName":"Gpt Realtime Mini","inputUsdPerMillion":"0.6","outputUsdPerMillion":"2.4","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.75"},
   {"modelId":"azure/gpt-realtime-mini-2025-10-06","displayName":"Gpt Realtime Mini 2025 10 06","inputUsdPerMillion":"0.6","outputUsdPerMillion":"2.4","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.75"},
   {"modelId":"azure/mistral-large-2402","displayName":"Mistral Large 2402","inputUsdPerMillion":"8","outputUsdPerMillion":"24","cacheReadUsdPerMillion":"0.8","cacheCreationUsdPerMillion":"10"},
@@ -655,6 +657,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"azure/us/gpt-5.6-sol","displayName":"Gpt 5 6 Sol","inputUsdPerMillion":"5.5","outputUsdPerMillion":"33","cacheReadUsdPerMillion":"0.55","cacheCreationUsdPerMillion":"6.875"},
   {"modelId":"azure/us/gpt-5.6-terra","displayName":"Gpt 5 6 Terra","inputUsdPerMillion":"2.2","outputUsdPerMillion":"13.2","cacheReadUsdPerMillion":"0.22","cacheCreationUsdPerMillion":"2.75"},
   {"modelId":"azure/us/gpt-6-astra","displayName":"Us Gpt 6 Astra","inputUsdPerMillion":"11","outputUsdPerMillion":"55","cacheReadUsdPerMillion":"1.1","cacheCreationUsdPerMillion":"13.75"},
+  {"modelId":"azure/us/gpt-chat-latest","displayName":"Gpt Chat Latest","inputUsdPerMillion":"5.5","outputUsdPerMillion":"33","cacheReadUsdPerMillion":"0.55","cacheCreationUsdPerMillion":"6.875"},
   {"modelId":"azure/us/o1-2024-12-17","displayName":"O1 2024 12 17","inputUsdPerMillion":"16.5","outputUsdPerMillion":"66","cacheReadUsdPerMillion":"8.25","cacheCreationUsdPerMillion":"20.625"},
   {"modelId":"azure/us/o1-mini-2024-09-12","displayName":"O1 Mini 2024 09 12","inputUsdPerMillion":"1.21","outputUsdPerMillion":"4.84","cacheReadUsdPerMillion":"0.605","cacheCreationUsdPerMillion":"1.5125"},
   {"modelId":"azure/us/o1-preview-2024-09-12","displayName":"O1 Preview 2024 09 12","inputUsdPerMillion":"16.5","outputUsdPerMillion":"66","cacheReadUsdPerMillion":"8.25","cacheCreationUsdPerMillion":"20.625"},
@@ -2438,9 +2441,9 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"gpt-4o-mini-transcribe","displayName":"Gpt 4o Mini Transcribe","inputUsdPerMillion":"1.25","outputUsdPerMillion":"5","cacheReadUsdPerMillion":"0.125","cacheCreationUsdPerMillion":"1.5625"},
   {"modelId":"gpt-4o-mini-transcribe-2025-03-20","displayName":"Gpt 4o Mini Transcribe 2025 03 20","inputUsdPerMillion":"1.25","outputUsdPerMillion":"5","cacheReadUsdPerMillion":"0.125","cacheCreationUsdPerMillion":"1.5625"},
   {"modelId":"gpt-4o-mini-transcribe-2025-12-15","displayName":"Gpt 4o Mini Transcribe 2025 12 15","inputUsdPerMillion":"1.25","outputUsdPerMillion":"5","cacheReadUsdPerMillion":"0.125","cacheCreationUsdPerMillion":"1.5625"},
-  {"modelId":"gpt-4o-mini-tts","displayName":"Gpt 4o Mini Tts","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125"},
-  {"modelId":"gpt-4o-mini-tts-2025-03-20","displayName":"Gpt 4o Mini Tts 2025 03 20","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125"},
-  {"modelId":"gpt-4o-mini-tts-2025-12-15","displayName":"Gpt 4o Mini Tts 2025 12 15","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125"},
+  {"modelId":"gpt-4o-mini-tts","displayName":"Gpt 4o Mini Tts","inputUsdPerMillion":"0.6","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.75"},
+  {"modelId":"gpt-4o-mini-tts-2025-03-20","displayName":"Gpt 4o Mini Tts 2025 03 20","inputUsdPerMillion":"0.6","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.75"},
+  {"modelId":"gpt-4o-mini-tts-2025-12-15","displayName":"Gpt 4o Mini Tts 2025 12 15","inputUsdPerMillion":"0.6","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.75"},
   {"modelId":"gpt-4o-realtime-preview","displayName":"Gpt 4o Realtime Preview","inputUsdPerMillion":"5","outputUsdPerMillion":"20","cacheReadUsdPerMillion":"2.5","cacheCreationUsdPerMillion":"6.25"},
   {"modelId":"gpt-4o-realtime-preview-2024-12-17","displayName":"Gpt 4o Realtime Preview 2024 12 17","inputUsdPerMillion":"5","outputUsdPerMillion":"20","cacheReadUsdPerMillion":"2.5","cacheCreationUsdPerMillion":"6.25"},
   {"modelId":"gpt-4o-realtime-preview-2025-06-03","displayName":"Gpt 4o Realtime Preview 2025 06 03","inputUsdPerMillion":"5","outputUsdPerMillion":"20","cacheReadUsdPerMillion":"2.5","cacheCreationUsdPerMillion":"6.25"},
@@ -2493,6 +2496,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"gpt-5.4-pro-2026-03-05","displayName":"Gpt 5 4 Pro 2026 03 05","inputUsdPerMillion":"30","outputUsdPerMillion":"180","cacheReadUsdPerMillion":"3","cacheCreationUsdPerMillion":"37.5","inputAbove200kUsdPerMillion":"60","outputAbove200kUsdPerMillion":"270","longContextThresholdTokens":272000},
   {"modelId":"gpt-5.5","displayName":"Gpt 5 5","inputUsdPerMillion":"5","outputUsdPerMillion":"30","cacheReadUsdPerMillion":"0.5","cacheCreationUsdPerMillion":"6.25","inputAbove200kUsdPerMillion":"10","outputAbove200kUsdPerMillion":"45","cacheReadAbove200kUsdPerMillion":"1","longContextThresholdTokens":272000,"fastMultiplier":"2.5"},
   {"modelId":"gpt-5.5-2026-04-23","displayName":"Gpt 5 5 2026 04 23","inputUsdPerMillion":"5","outputUsdPerMillion":"30","cacheReadUsdPerMillion":"0.5","cacheCreationUsdPerMillion":"6.25"},
+  {"modelId":"gpt-5.5-cyber","displayName":"Gpt 5 5 Cyber","inputUsdPerMillion":"12.5","outputUsdPerMillion":"75","cacheReadUsdPerMillion":"1.25","cacheCreationUsdPerMillion":"15.625"},
   {"modelId":"gpt-5.5-eu","displayName":"Gpt 5 5 Eu","inputUsdPerMillion":"5","outputUsdPerMillion":"30","cacheReadUsdPerMillion":"0.5","cacheCreationUsdPerMillion":"6.25","inputAbove200kUsdPerMillion":"10","outputAbove200kUsdPerMillion":"45","cacheReadAbove200kUsdPerMillion":"1","longContextThresholdTokens":272000,"exactOnly":true},
   {"modelId":"gpt-5.5-pro","displayName":"Gpt 5 5 Pro","inputUsdPerMillion":"30","outputUsdPerMillion":"180","cacheReadUsdPerMillion":"3","cacheCreationUsdPerMillion":"37.5","inputAbove200kUsdPerMillion":"60","outputAbove200kUsdPerMillion":"270","longContextThresholdTokens":272000},
   {"modelId":"gpt-5.5-pro-2026-04-23","displayName":"Gpt 5 5 Pro 2026 04 23","inputUsdPerMillion":"30","outputUsdPerMillion":"180","cacheReadUsdPerMillion":"3","cacheCreationUsdPerMillion":"37.5","inputAbove200kUsdPerMillion":"60","outputAbove200kUsdPerMillion":"270","longContextThresholdTokens":272000},
@@ -2528,6 +2532,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"gpt-realtime-mini","displayName":"Gpt Realtime Mini","inputUsdPerMillion":"0.6","outputUsdPerMillion":"2.4","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.75"},
   {"modelId":"gpt-realtime-mini-2025-10-06","displayName":"Gpt Realtime Mini 2025 10 06","inputUsdPerMillion":"0.6","outputUsdPerMillion":"2.4","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.75"},
   {"modelId":"gpt-realtime-mini-2025-12-15","displayName":"Gpt Realtime Mini 2025 12 15","inputUsdPerMillion":"0.6","outputUsdPerMillion":"2.4","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.75"},
+  {"modelId":"gpt-rosalind-research","displayName":"Gpt Rosalind Research","inputUsdPerMillion":"5","outputUsdPerMillion":"25","cacheReadUsdPerMillion":"0.5","cacheCreationUsdPerMillion":"6.25"},
   {"modelId":"gradient_ai/anthropic-claude-3-opus","displayName":"Anthropic Claude 3 Opus","inputUsdPerMillion":"15","outputUsdPerMillion":"75","cacheReadUsdPerMillion":"1.5","cacheCreationUsdPerMillion":"18.75"},
   {"modelId":"gradient_ai/anthropic-claude-3.5-haiku","displayName":"Anthropic Claude 3 5 Haiku","inputUsdPerMillion":"0.8","outputUsdPerMillion":"4","cacheReadUsdPerMillion":"0.08","cacheCreationUsdPerMillion":"1"},
   {"modelId":"gradient_ai/anthropic-claude-3.5-sonnet","displayName":"Anthropic Claude 3 5 Sonnet","inputUsdPerMillion":"3","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75"},

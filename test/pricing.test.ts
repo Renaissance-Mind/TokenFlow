@@ -1401,6 +1401,55 @@ describe("pricing", () => {
       cacheReadUsdPerMillion: "1.1",
       cacheCreationUsdPerMillion: "13.75",
     });
+    expect(resolvePricing("azure/chat-latest")).toMatchObject({
+      modelId: "azure/chat-latest",
+      inputUsdPerMillion: "5",
+      outputUsdPerMillion: "30",
+      cacheReadUsdPerMillion: "0.5",
+      cacheCreationUsdPerMillion: "6.25",
+    });
+    expect(resolvePricing("azure/gpt-chat-latest")).toMatchObject({
+      modelId: "azure/gpt-chat-latest",
+      inputUsdPerMillion: "5",
+      outputUsdPerMillion: "30",
+      cacheReadUsdPerMillion: "0.5",
+      cacheCreationUsdPerMillion: "6.25",
+    });
+    expect(resolvePricing("azure/us/gpt-chat-latest")).toMatchObject({
+      modelId: "azure/us/gpt-chat-latest",
+      inputUsdPerMillion: "5.5",
+      outputUsdPerMillion: "33",
+      cacheReadUsdPerMillion: "0.55",
+      cacheCreationUsdPerMillion: "6.875",
+    });
+    expect(resolvePricing("azure/gpt-realtime-1.5-2026-02-23")).toMatchObject({
+      modelId: "azure/gpt-realtime-1.5-2026-02-23",
+      inputUsdPerMillion: "4",
+      outputUsdPerMillion: "16",
+      cacheReadUsdPerMillion: "0.4",
+      cacheCreationUsdPerMillion: "5",
+    });
+    expect(resolvePricing("gpt-4o-mini-tts")).toMatchObject({
+      modelId: "gpt-4o-mini-tts",
+      inputUsdPerMillion: "0.6",
+      outputUsdPerMillion: "10",
+      cacheReadUsdPerMillion: "0.06",
+      cacheCreationUsdPerMillion: "0.75",
+    });
+    expect(resolvePricing("gpt-5.5-cyber")).toMatchObject({
+      modelId: "gpt-5.5-cyber",
+      inputUsdPerMillion: "12.5",
+      outputUsdPerMillion: "75",
+      cacheReadUsdPerMillion: "1.25",
+      cacheCreationUsdPerMillion: "15.625",
+    });
+    expect(resolvePricing("gpt-rosalind-research")).toMatchObject({
+      modelId: "gpt-rosalind-research",
+      inputUsdPerMillion: "5",
+      outputUsdPerMillion: "25",
+      cacheReadUsdPerMillion: "0.5",
+      cacheCreationUsdPerMillion: "6.25",
+    });
     expect(resolvePricing("azure_ai/gpt-6-astra")).toMatchObject({
       modelId: "azure_ai/gpt-6-astra",
       inputUsdPerMillion: "10",

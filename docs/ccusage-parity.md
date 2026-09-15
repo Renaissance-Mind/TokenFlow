@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-09-14
+Last checked: 2026-09-15
 
-Reference ccusage commit: `1b4f423 chore(pricing): update LiteLLM snapshot`
+Reference ccusage commit: `62b3541 chore(pricing): update LiteLLM snapshot`
 
 ## Summary
 
@@ -88,6 +88,8 @@ The 2026-09-13 parity pass found ccusage main still packaged as `v20.0.20` at `4
 
 The 2026-09-14 parity pass found ccusage main still packaged as `v20.0.20` at `1b4f423 chore(pricing): update LiteLLM snapshot`. Its LiteLLM pin moved to `30f33a949b8a2bb890a2baee18e2ab7ab015a4f7` while the models.dev snapshot stayed at `872d94d546231e442ecb5b353acda85ce88aeabd`, adding directly migratable token-pricing rows for FriendliAI-hosted `google/gemma-4-31B-it`, `zai-org/GLM-5.1`, `zai-org/GLM-5.2`, `LGAI-EXAONE/K-EXAONE-2.0-750B-A37B`, `deepseek-ai/DeepSeek-V3.2`, and `MiniMaxAI/MiniMax-M2.5`. TokenFlow now ships 5,546 generated ccusage snapshot pricing rows from the new pins. The upstream repository diff itself is only `flake.lock`; no ccusage adapter, source parser, loader path, environment variable, telemetry requirement, permission, login, or privacy surface changed.
 
+The 2026-09-15 parity pass found ccusage main still packaged as `v20.0.20` at `62b3541 chore(pricing): update LiteLLM snapshot`. Its LiteLLM pin moved to `b67137b67fa519594a069393c38c9990fff9d959` while the models.dev snapshot stayed at `872d94d546231e442ecb5b353acda85ce88aeabd`, adding embedded token-pricing rows for `azure/chat-latest`, `azure/gpt-chat-latest`, `azure/us/gpt-chat-latest`, `gpt-5.5-cyber`, and `gpt-rosalind-research`; lowering `gpt-4o-mini-tts` and dated variants from `2.5`/`10`/`0.25`/`3.125` to `0.6`/`10`/`0.06`/`0.75` USD per million tokens; and correcting Azure GPT realtime cache-read rates from `4` to `0.4` USD per million tokens. TokenFlow now ships 5,551 generated ccusage snapshot pricing rows from the new pins. The upstream repository diff itself is only `flake.lock`; no ccusage adapter, source parser, loader path, environment variable, telemetry requirement, permission, login, or privacy surface changed.
+
 The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. The 2026-07-30 pass also found ccusage's new experimental Antigravity adapter, which scans `~/.gemini/antigravity-cli/conversations/**/*.db` or `ANTIGRAVITY_DATA_DIR` conversation databases through a new SQLite/protobuf parser. Those changes were not copied because they are adapter, parser, loader, path, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 
 The 2026-08-01 pass also observed dependency/workflow-only upstream drift in `.github/workflows/pullfrog.yml`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, and `rust/Cargo.toml`; those changes were not copied because they do not affect TokenFlow pricing behavior. The 2026-08-02 pass also observed docs, agent-skill, workflow, lockfile, and Rust dependency churn outside TokenFlow's pricing surface; those changes were left report-only. The 2026-08-04 pass observed `8028fd4 revert(antigravity): remove the Antigravity adapter until #1487 lands (#1569)` plus docs/schema/CLI help changes, dependency bumps, and workflow churn; only pricing-table and pricing-resolution behavior was migrated.
@@ -116,6 +118,7 @@ The 2026-09-10 pass also observed only `flake.lock` movement outside the migrate
 The 2026-09-12 pass also observed only `flake.lock` movement outside the migrated LiteLLM token rows; `gpt-live-1` is per-second realtime pricing and was left report-only.
 The 2026-09-13 pass also observed issue-gate, pullfrog, agent-skills, and `flake.lock` drift outside the migrated LiteLLM token rows; `meta/muse-voice-transcribe-1.0` is per-second transcription pricing and was left report-only.
 The 2026-09-14 pass also observed only `flake.lock` movement outside the migrated LiteLLM token rows.
+The 2026-09-15 pass also observed only `flake.lock` movement outside the migrated LiteLLM token rows. New or changed raw LiteLLM rows outside ccusage's embedded LiteLLM prefix set, plus per-second, per-character, audio-token, and transcription-only fields, were left report-only because TokenFlow's parity snapshot follows ccusage's embedded token-pricing surface for local collection.
 
 ## Source Adapter Matrix
 
