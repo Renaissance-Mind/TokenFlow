@@ -1,7 +1,7 @@
 import type { PricingProfile } from "./types.js";
 
-// Generated from ccusage 62b3541cc8c1b3bcb9268d0f4b3760f3a4d49ad4.
-// LiteLLM snapshot: b67137b67fa519594a069393c38c9990fff9d959.
+// Generated from ccusage ef300c97bc532af251a79c305f6f1603e72039f3.
+// LiteLLM snapshot: 878716f80669299a25c8ac06ee41c6b46aa2f73e.
 // models.dev snapshot: 872d94d546231e442ecb5b353acda85ce88aeabd.
 // Regenerate during the daily ccusage pricing parity automation; do not edit by hand.
 export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[]).concat(
@@ -396,7 +396,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"azure_ai/gpt-5.4-pro-2026-03-05","displayName":"Gpt 5 4 Pro 2026 03 05","inputUsdPerMillion":"30","outputUsdPerMillion":"180","cacheReadUsdPerMillion":"3","cacheCreationUsdPerMillion":"37.5"},
   {"modelId":"azure_ai/gpt-5.5","displayName":"Gpt 5 5","inputUsdPerMillion":"5","outputUsdPerMillion":"30","cacheReadUsdPerMillion":"0.5","cacheCreationUsdPerMillion":"6.25"},
   {"modelId":"azure_ai/gpt-5.5-2026-04-23","displayName":"Gpt 5 5 2026 04 23","inputUsdPerMillion":"5","outputUsdPerMillion":"30","cacheReadUsdPerMillion":"0.5","cacheCreationUsdPerMillion":"6.25"},
-  {"modelId":"azure_ai/gpt-6-astra","displayName":"Gpt 6 Astra","inputUsdPerMillion":"10","outputUsdPerMillion":"50","cacheReadUsdPerMillion":"1","cacheCreationUsdPerMillion":"12.5"},
+  {"modelId":"azure_ai/gpt-6-astra","displayName":"Gpt 6 Astra","inputUsdPerMillion":"10","outputUsdPerMillion":"50","cacheReadUsdPerMillion":"1","cacheCreationUsdPerMillion":"12.5","fastMultiplier":"2"},
   {"modelId":"azure_ai/gpt-oss-120b","displayName":"Gpt Oss 120b","inputUsdPerMillion":"0.15","outputUsdPerMillion":"0.6","cacheReadUsdPerMillion":"0.015","cacheCreationUsdPerMillion":"0.1875"},
   {"modelId":"azure_ai/grok-3","displayName":"Grok 3","inputUsdPerMillion":"3","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75"},
   {"modelId":"azure_ai/grok-3-mini","displayName":"Grok 3 Mini","inputUsdPerMillion":"0.25","outputUsdPerMillion":"1.27","cacheReadUsdPerMillion":"0.025","cacheCreationUsdPerMillion":"0.3125"},
@@ -594,7 +594,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"azure/gpt-5.6-luna","displayName":"Gpt 5 6 Luna","inputUsdPerMillion":"0.2","outputUsdPerMillion":"1.2","cacheReadUsdPerMillion":"0.02","cacheCreationUsdPerMillion":"0.25"},
   {"modelId":"azure/gpt-5.6-sol","displayName":"Gpt 5 6 Sol","inputUsdPerMillion":"5","outputUsdPerMillion":"30","cacheReadUsdPerMillion":"0.5","cacheCreationUsdPerMillion":"6.25"},
   {"modelId":"azure/gpt-5.6-terra","displayName":"Gpt 5 6 Terra","inputUsdPerMillion":"2","outputUsdPerMillion":"12","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"2.5"},
-  {"modelId":"azure/gpt-6-astra","displayName":"Gpt 6 Astra","inputUsdPerMillion":"10","outputUsdPerMillion":"50","cacheReadUsdPerMillion":"1","cacheCreationUsdPerMillion":"12.5"},
+  {"modelId":"azure/gpt-6-astra","displayName":"Gpt 6 Astra","inputUsdPerMillion":"10","outputUsdPerMillion":"50","cacheReadUsdPerMillion":"1","cacheCreationUsdPerMillion":"12.5","fastMultiplier":"2"},
   {"modelId":"azure/gpt-audio-1.5-2026-02-23","displayName":"Gpt Audio 1 5 2026 02 23","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125"},
   {"modelId":"azure/gpt-audio-2025-08-28","displayName":"Gpt Audio 2025 08 28","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125"},
   {"modelId":"azure/gpt-audio-mini","displayName":"Gpt Audio Mini","inputUsdPerMillion":"0.6","outputUsdPerMillion":"2.4","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.75"},
@@ -656,7 +656,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"azure/us/gpt-5.6-luna","displayName":"Gpt 5 6 Luna","inputUsdPerMillion":"0.22","outputUsdPerMillion":"1.32","cacheReadUsdPerMillion":"0.022","cacheCreationUsdPerMillion":"0.275"},
   {"modelId":"azure/us/gpt-5.6-sol","displayName":"Gpt 5 6 Sol","inputUsdPerMillion":"5.5","outputUsdPerMillion":"33","cacheReadUsdPerMillion":"0.55","cacheCreationUsdPerMillion":"6.875"},
   {"modelId":"azure/us/gpt-5.6-terra","displayName":"Gpt 5 6 Terra","inputUsdPerMillion":"2.2","outputUsdPerMillion":"13.2","cacheReadUsdPerMillion":"0.22","cacheCreationUsdPerMillion":"2.75"},
-  {"modelId":"azure/us/gpt-6-astra","displayName":"Us Gpt 6 Astra","inputUsdPerMillion":"11","outputUsdPerMillion":"55","cacheReadUsdPerMillion":"1.1","cacheCreationUsdPerMillion":"13.75"},
+  {"modelId":"azure/us/gpt-6-astra","displayName":"Us Gpt 6 Astra","inputUsdPerMillion":"11","outputUsdPerMillion":"55","cacheReadUsdPerMillion":"1.1","cacheCreationUsdPerMillion":"13.75","fastMultiplier":"2"},
   {"modelId":"azure/us/gpt-chat-latest","displayName":"Gpt Chat Latest","inputUsdPerMillion":"5.5","outputUsdPerMillion":"33","cacheReadUsdPerMillion":"0.55","cacheCreationUsdPerMillion":"6.875"},
   {"modelId":"azure/us/o1-2024-12-17","displayName":"O1 2024 12 17","inputUsdPerMillion":"16.5","outputUsdPerMillion":"66","cacheReadUsdPerMillion":"8.25","cacheCreationUsdPerMillion":"20.625"},
   {"modelId":"azure/us/o1-mini-2024-09-12","displayName":"O1 Mini 2024 09 12","inputUsdPerMillion":"1.21","outputUsdPerMillion":"4.84","cacheReadUsdPerMillion":"0.605","cacheCreationUsdPerMillion":"1.5125"},
@@ -2508,7 +2508,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"gpt-5.6-sol-eu","displayName":"Gpt 5 6 Sol Eu","inputUsdPerMillion":"5.5","outputUsdPerMillion":"33","cacheReadUsdPerMillion":"0.55","cacheCreationUsdPerMillion":"6.875","exactOnly":true},
   {"modelId":"gpt-5.6-terra","displayName":"Gpt 5 6 Terra","inputUsdPerMillion":"2","outputUsdPerMillion":"12","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"2.5","inputAbove200kUsdPerMillion":"4","outputAbove200kUsdPerMillion":"18","cacheReadAbove200kUsdPerMillion":"0.4","cacheCreationAbove200kUsdPerMillion":"5","longContextThresholdTokens":272000,"fastMultiplier":"2"},
   {"modelId":"gpt-5.6-terra-eu","displayName":"Gpt 5 6 Terra Eu","inputUsdPerMillion":"2.2","outputUsdPerMillion":"13.2","cacheReadUsdPerMillion":"0.22","cacheCreationUsdPerMillion":"2.75","exactOnly":true},
-  {"modelId":"gpt-6-astra","displayName":"Gpt 6 Astra","inputUsdPerMillion":"10","outputUsdPerMillion":"50","cacheReadUsdPerMillion":"1","cacheCreationUsdPerMillion":"12.5","inputAbove200kUsdPerMillion":"20","outputAbove200kUsdPerMillion":"75","cacheReadAbove200kUsdPerMillion":"2","cacheCreationAbove200kUsdPerMillion":"25","longContextThresholdTokens":272000},
+  {"modelId":"gpt-6-astra","displayName":"Gpt 6 Astra","inputUsdPerMillion":"10","outputUsdPerMillion":"50","cacheReadUsdPerMillion":"1","cacheCreationUsdPerMillion":"12.5","inputAbove200kUsdPerMillion":"20","outputAbove200kUsdPerMillion":"75","cacheReadAbove200kUsdPerMillion":"2","cacheCreationAbove200kUsdPerMillion":"25","longContextThresholdTokens":272000,"fastMultiplier":"2"},
   {"modelId":"gpt-audio","displayName":"Gpt Audio","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125"},
   {"modelId":"gpt-audio-1.5","displayName":"Gpt Audio 1 5","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125"},
   {"modelId":"gpt-audio-2025-08-28","displayName":"Gpt Audio 2025 08 28","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125"},
@@ -3764,7 +3764,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"openai/gpt-5.6-terra","displayName":"Gpt 5 6 Terra","inputUsdPerMillion":"2","outputUsdPerMillion":"12","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"2.5","inputAbove200kUsdPerMillion":"4","outputAbove200kUsdPerMillion":"18","cacheReadAbove200kUsdPerMillion":"0.4","cacheCreationAbove200kUsdPerMillion":"5","longContextThresholdTokens":272000},
   {"modelId":"openai/gpt-5.6-terra-fast","displayName":"Gpt 5 6 Terra Fast","inputUsdPerMillion":"4","outputUsdPerMillion":"24","cacheReadUsdPerMillion":"0.4","cacheCreationUsdPerMillion":"5"},
   {"modelId":"openai/gpt-5.6-terra-pro","displayName":"Gpt 5 6 Terra Pro","inputUsdPerMillion":"2","outputUsdPerMillion":"12","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"2.5","inputAbove200kUsdPerMillion":"4","outputAbove200kUsdPerMillion":"18","cacheReadAbove200kUsdPerMillion":"0.4","cacheCreationAbove200kUsdPerMillion":"5","longContextThresholdTokens":272000},
-  {"modelId":"openai/gpt-6-astra","displayName":"Gpt 6 Astra","inputUsdPerMillion":"10","outputUsdPerMillion":"50","cacheReadUsdPerMillion":"1","cacheCreationUsdPerMillion":"12.5","inputAbove200kUsdPerMillion":"20","outputAbove200kUsdPerMillion":"75","cacheReadAbove200kUsdPerMillion":"2","cacheCreationAbove200kUsdPerMillion":"25","longContextThresholdTokens":272000},
+  {"modelId":"openai/gpt-6-astra","displayName":"Gpt 6 Astra","inputUsdPerMillion":"10","outputUsdPerMillion":"50","cacheReadUsdPerMillion":"1","cacheCreationUsdPerMillion":"12.5","inputAbove200kUsdPerMillion":"20","outputAbove200kUsdPerMillion":"75","cacheReadAbove200kUsdPerMillion":"2","cacheCreationAbove200kUsdPerMillion":"25","longContextThresholdTokens":272000,"fastMultiplier":"2"},
   {"modelId":"openai/gpt-6-astra-fast","displayName":"Gpt 6 Astra Fast","inputUsdPerMillion":"20","outputUsdPerMillion":"100","cacheReadUsdPerMillion":"2","cacheCreationUsdPerMillion":"25","inputAbove200kUsdPerMillion":"40","outputAbove200kUsdPerMillion":"150","cacheReadAbove200kUsdPerMillion":"4","cacheCreationAbove200kUsdPerMillion":"25","longContextThresholdTokens":272001},
   {"modelId":"openai/gpt-6-astra-pro","displayName":"Gpt 6 Astra Pro","inputUsdPerMillion":"10","outputUsdPerMillion":"50","cacheReadUsdPerMillion":"1","cacheCreationUsdPerMillion":"12.5","inputAbove200kUsdPerMillion":"20","outputAbove200kUsdPerMillion":"75","cacheReadAbove200kUsdPerMillion":"2","cacheCreationAbove200kUsdPerMillion":"25","longContextThresholdTokens":272000},
   {"modelId":"openai/gpt-chat-latest","displayName":"Gpt Chat Latest","inputUsdPerMillion":"2","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"2.5","exactOnly":true},
@@ -3956,7 +3956,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"openrouter/openai/gpt-5.6-sol-pro","displayName":"Gpt 5 6 Sol Pro","inputUsdPerMillion":"2","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"2.5","inputAbove200kUsdPerMillion":"4","outputAbove200kUsdPerMillion":"15","cacheReadAbove200kUsdPerMillion":"0.4","longContextThresholdTokens":272000},
   {"modelId":"openrouter/openai/gpt-5.6-terra","displayName":"Gpt 5 6 Terra","inputUsdPerMillion":"2","outputUsdPerMillion":"12","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"2.5"},
   {"modelId":"openrouter/openai/gpt-5.6-terra-pro","displayName":"Gpt 5 6 Terra Pro","inputUsdPerMillion":"2","outputUsdPerMillion":"12","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"2.5","inputAbove200kUsdPerMillion":"4","outputAbove200kUsdPerMillion":"18","cacheReadAbove200kUsdPerMillion":"0.4","longContextThresholdTokens":272000},
-  {"modelId":"openrouter/openai/gpt-6-astra","displayName":"Gpt 6 Astra","inputUsdPerMillion":"10","outputUsdPerMillion":"50","cacheReadUsdPerMillion":"1","cacheCreationUsdPerMillion":"12.5"},
+  {"modelId":"openrouter/openai/gpt-6-astra","displayName":"Gpt 6 Astra","inputUsdPerMillion":"10","outputUsdPerMillion":"50","cacheReadUsdPerMillion":"1","cacheCreationUsdPerMillion":"12.5","fastMultiplier":"2"},
   {"modelId":"openrouter/openai/gpt-6-astra-pro","displayName":"Gpt 6 Astra Pro","inputUsdPerMillion":"10","outputUsdPerMillion":"50","cacheReadUsdPerMillion":"1","cacheCreationUsdPerMillion":"12.5","inputAbove200kUsdPerMillion":"20","outputAbove200kUsdPerMillion":"75","cacheReadAbove200kUsdPerMillion":"2","longContextThresholdTokens":272000},
   {"modelId":"openrouter/openai/gpt-audio","displayName":"Gpt Audio","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125"},
   {"modelId":"openrouter/openai/gpt-audio-mini","displayName":"Gpt Audio Mini","inputUsdPerMillion":"0.6","outputUsdPerMillion":"2.4","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.75"},

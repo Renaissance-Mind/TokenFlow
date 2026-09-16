@@ -285,6 +285,43 @@ describe("Codex JSONL parser", () => {
     expect(events[0].costMultiplier).toBeUndefined();
   });
 
+  it("applies ccusage GPT-6 Astra fast pricing for Codex priority turns", () => {
+    const lines = [
+      JSON.stringify({ type: "session_meta", payload: { session_id: "s1" } }),
+      JSON.stringify({ type: "turn_context", payload: { model: "OpenAI/GPT-6-Astra" } }),
+      JSON.stringify({
+        type: "event_msg",
+        timestamp: "2026-09-16T01:05:00.000Z",
+        payload: {
+          type: "token_count",
+          info: {
+            total_token_usage: {
+              input_tokens: 1_000_000,
+              cached_input_tokens: 0,
+              output_tokens: 0,
+            },
+          },
+        },
+      }),
+    ].join("\n");
+
+    const events = parseCodexJsonl(lines, { sourcePath: "/tmp/rollout.jsonl", serviceTier: "priority" });
+    const buckets = aggregateEvents(events);
+
+    expect(events[0]).toMatchObject({
+      model: "gpt-6-astra",
+      costMultiplier: "2",
+    });
+    expect(buckets[0]).toMatchObject({
+      model: "gpt-6-astra",
+      costMultiplier: "2",
+      cost: {
+        inputUsd: "40.000000",
+        totalUsd: "40.000000",
+      },
+    });
+  });
+
   it("uses recorded Codex service tier changes for following usage", () => {
     const lines = [
       JSON.stringify({ type: "session_meta", payload: { session_id: "s1" } }),

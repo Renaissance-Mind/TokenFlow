@@ -1318,6 +1318,7 @@ describe("pricing", () => {
       cacheReadAbove200kUsdPerMillion: "2",
       cacheCreationAbove200kUsdPerMillion: "25",
       longContextThresholdTokens: 272_000,
+      fastMultiplier: "2",
     });
     expect(resolvePricing("dots-studio/dots-3-note-preview")).toBeNull();
     expect(resolvePricing("TheDrummer/Artemis-v1.1")).toMatchObject({
@@ -1400,6 +1401,7 @@ describe("pricing", () => {
       outputUsdPerMillion: "55",
       cacheReadUsdPerMillion: "1.1",
       cacheCreationUsdPerMillion: "13.75",
+      fastMultiplier: "2",
     });
     expect(resolvePricing("azure/chat-latest")).toMatchObject({
       modelId: "azure/chat-latest",
@@ -1456,6 +1458,23 @@ describe("pricing", () => {
       outputUsdPerMillion: "50",
       cacheReadUsdPerMillion: "1",
       cacheCreationUsdPerMillion: "12.5",
+      fastMultiplier: "2",
+    });
+    expect(resolvePricing("openai/gpt-6-astra")).toMatchObject({
+      modelId: "openai/gpt-6-astra",
+      inputUsdPerMillion: "10",
+      outputUsdPerMillion: "50",
+      cacheReadUsdPerMillion: "1",
+      cacheCreationUsdPerMillion: "12.5",
+      fastMultiplier: "2",
+    });
+    expect(resolvePricing("openrouter/openai/gpt-6-astra")).toMatchObject({
+      modelId: "openrouter/openai/gpt-6-astra",
+      inputUsdPerMillion: "10",
+      outputUsdPerMillion: "50",
+      cacheReadUsdPerMillion: "1",
+      cacheCreationUsdPerMillion: "12.5",
+      fastMultiplier: "2",
     });
     expect(resolvePricing("vertex_ai/lyria-3-pro-preview")).toMatchObject({
       modelId: "vertex_ai/lyria-3-pro-preview",
