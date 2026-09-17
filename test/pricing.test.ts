@@ -142,6 +142,15 @@ describe("pricing", () => {
       fastMultiplier: "2",
       longContextThresholdTokens: 272_000,
     });
+    expect(resolvePricing("gpt-reserve")).toMatchObject({
+      modelId: "gpt-5.6-luna",
+      inputUsdPerMillion: "0.2",
+      outputUsdPerMillion: "1.2",
+      cacheReadUsdPerMillion: "0.02",
+      cacheCreationUsdPerMillion: "0.25",
+      fastMultiplier: "2",
+      longContextThresholdTokens: 272_000,
+    });
     expect(resolvePricing("gpt-5.6-terra")).toMatchObject({
       modelId: "gpt-5.6-terra",
       fastMultiplier: "2",
@@ -1402,6 +1411,28 @@ describe("pricing", () => {
       cacheReadUsdPerMillion: "1.1",
       cacheCreationUsdPerMillion: "13.75",
       fastMultiplier: "2",
+    });
+    expect(resolvePricing("azure/eu/gpt-5.6-sol")).toMatchObject({
+      modelId: "azure/eu/gpt-5.6-sol",
+      inputUsdPerMillion: "4.4",
+      outputUsdPerMillion: "22",
+      cacheReadUsdPerMillion: "0.44",
+      cacheCreationUsdPerMillion: "5.5",
+      fastMultiplier: "2",
+    });
+    expect(resolvePricing("azure/us/gpt-5.2")).toMatchObject({
+      modelId: "azure/us/gpt-5.2",
+      inputUsdPerMillion: "1.925",
+      outputUsdPerMillion: "15.4",
+      cacheReadUsdPerMillion: "0.1925",
+      cacheCreationUsdPerMillion: "2.40625",
+    });
+    expect(resolvePricing("azure/gpt-6-astra-2026-09-03")).toMatchObject({
+      modelId: "azure/gpt-6-astra-2026-09-03",
+      inputUsdPerMillion: "10",
+      outputUsdPerMillion: "50",
+      cacheReadUsdPerMillion: "1",
+      cacheCreationUsdPerMillion: "12.5",
     });
     expect(resolvePricing("azure/chat-latest")).toMatchObject({
       modelId: "azure/chat-latest",

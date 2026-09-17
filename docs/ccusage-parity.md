@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-09-16
+Last checked: 2026-09-17
 
-Reference ccusage commit: `ef300c9 chore(pricing): update LiteLLM snapshot`
+Reference ccusage commit: `4644c7c chore(pricing): update LiteLLM snapshot`
 
 ## Summary
 
@@ -92,6 +92,8 @@ The 2026-09-15 parity pass found ccusage main still packaged as `v20.0.20` at `6
 
 The 2026-09-16 parity pass found ccusage main still packaged as `v20.0.20` at `ef300c9 chore(pricing): update LiteLLM snapshot`. Its LiteLLM pin moved to `878716f80669299a25c8ac06ee41c6b46aa2f73e`, but the compact embedded LiteLLM pricing surface did not gain TokenFlow-migratable token rows; the new raw LiteLLM token rows are `aihubmix/...` provider rows outside ccusage's embedded prefix set. The directly migratable pricing behavior was `9762e09 fix(codex): apply GPT-6 Astra fast multiplier (#1726)`: ccusage now applies a `2x` fast multiplier to `gpt-6-astra` and slash-qualified pricing keys whose model segment is exactly `gpt-6-astra`. TokenFlow now mirrors that behavior for Codex fast/priority usage while leaving explicit `gpt-6-astra-fast`, `openai-gpt-6-astra`, and `*-pro` token-rate rows unchanged. TokenFlow still ships 5,551 generated ccusage snapshot pricing rows from the new pins.
 
+The 2026-09-17 parity pass found ccusage main still packaged as `v20.0.20` at `4644c7c chore(pricing): update LiteLLM snapshot`. Its LiteLLM pin moved to `a86be37aa6be05823085ccd5b7f2cbcdbf312bb5`, adding 58 embedded token-pricing rows and changing regional Azure/OpenAI token rates for rows such as `azure/eu/gpt-5.6-sol`, `azure/us/gpt-5.2`, `azure/gpt-6-astra-2026-09-03`, GPT-5.1/5.2/5.3/5.4 Azure US/EU variants, and date-qualified GPT-5.6/GPT-6 Astra rows. TokenFlow now ships 5,609 generated ccusage snapshot pricing rows from the new pins. The directly migratable Codex pricing behavior was `4be84d6 fix(codex): price GPT Reserve usage as GPT-5.6 Luna (#1739)`: TokenFlow now resolves `gpt-reserve` through `gpt-5.6-luna` for pricing while preserving `gpt-reserve` as the displayed Codex bucket model and applying the Luna fast multiplier when Codex priority/fast usage is recorded.
+
 The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. The 2026-07-30 pass also found ccusage's new experimental Antigravity adapter, which scans `~/.gemini/antigravity-cli/conversations/**/*.db` or `ANTIGRAVITY_DATA_DIR` conversation databases through a new SQLite/protobuf parser. Those changes were not copied because they are adapter, parser, loader, path, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 
 The 2026-08-01 pass also observed dependency/workflow-only upstream drift in `.github/workflows/pullfrog.yml`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, and `rust/Cargo.toml`; those changes were not copied because they do not affect TokenFlow pricing behavior. The 2026-08-02 pass also observed docs, agent-skill, workflow, lockfile, and Rust dependency churn outside TokenFlow's pricing surface; those changes were left report-only. The 2026-08-04 pass observed `8028fd4 revert(antigravity): remove the Antigravity adapter until #1487 lands (#1569)` plus docs/schema/CLI help changes, dependency bumps, and workflow churn; only pricing-table and pricing-resolution behavior was migrated.
@@ -122,6 +124,7 @@ The 2026-09-13 pass also observed issue-gate, pullfrog, agent-skills, and `flake
 The 2026-09-14 pass also observed only `flake.lock` movement outside the migrated LiteLLM token rows.
 The 2026-09-15 pass also observed only `flake.lock` movement outside the migrated LiteLLM token rows. New or changed raw LiteLLM rows outside ccusage's embedded LiteLLM prefix set, plus per-second, per-character, audio-token, and transcription-only fields, were left report-only because TokenFlow's parity snapshot follows ccusage's embedded token-pricing surface for local collection.
 The 2026-09-16 pass also observed Codex/shared-table `--breakdown` reporting changes, Copilot resumed-session history preservation, OpenClaw per-agent SQLite transcript stores, Claude null-model parsing, Pi empty-report and subagent-artifact filtering, unified report sorting changes, docs, and lockfile drift. Those are adapter, parser, loader, report, documentation, or dependency changes and were left report-only outside the migrated GPT-6 Astra fast-pricing behavior.
+The 2026-09-17 pass also observed Antigravity Gemini Flash effort-variant parser/model-normalization changes, Claude CLI session-id deduplication coverage, stricter `--timezone` and date-range CLI validation, and docs updates. Those are parser, source-adapter, CLI validation, test, or documentation drift and were left report-only outside the migrated LiteLLM token rows and GPT Reserve pricing alias.
 
 ## Source Adapter Matrix
 

@@ -314,6 +314,9 @@ export function normalizeAgentModelForUsage(
     providerPricing.modelId !== originalModel
       ? providerPricing.modelId
       : null;
+  const displayPricing = resolvePricing(displayModel);
+  const resolvedDisplayPricingModel =
+    displayPricing && displayPricing.modelId !== displayModel ? displayPricing.modelId : null;
 
   const useOriginalPricing =
     displayModel !== originalModel && originalModel !== "unknown" && resolvePricing(originalModel) !== null;
@@ -324,6 +327,8 @@ export function normalizeAgentModelForUsage(
       ? { pricingModel: resolvedProviderPricingModel }
       : useOriginalPricing
         ? { pricingModel: originalModel }
+        : resolvedDisplayPricingModel
+          ? { pricingModel: resolvedDisplayPricingModel }
         : {}),
   };
 }
@@ -375,6 +380,7 @@ function pricingCandidatesForCleanedModel(cleaned: string): string[] {
 }
 
 function builtinPricingAlias(model: string): string | null {
+  if (model === "gpt-reserve") return "gpt-5.6-luna";
   if (model === "gpt-5.6") return "gpt-5.6-sol";
   if (model === "gpt-5.3-spark") return "gpt-5.3-codex-spark";
   return null;
