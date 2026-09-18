@@ -121,12 +121,13 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
 
       const bucketStart = toUtcHalfHourStart(timestamp);
       if (!bucketStart) return;
+      const eventModel = codexModelForEvent(currentModel, timestamp);
 
       events.push({
         agent: "codex",
-        model: currentModel.model,
-        ...(currentModel.pricingModel ? { pricingModel: currentModel.pricingModel } : {}),
-        ...codexPricingFields(currentModel, effectiveServiceTier(currentServiceTier, options.serviceTier)),
+        model: eventModel.model,
+        ...(eventModel.pricingModel ? { pricingModel: eventModel.pricingModel } : {}),
+        ...codexPricingFields(eventModel, effectiveServiceTier(currentServiceTier, options.serviceTier)),
         sessionId,
         sourcePath: options.sourcePath,
         timestamp,
@@ -153,6 +154,33 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
       return events.map(({ codexServiceTier, ...event }) => event);
     },
   };
+}
+
+const CODEX_AUTO_REVIEW_FALLBACKS = [
+  { releasedOn: "2026-07-30T00:00:00.000Z", model: "gpt-5.6-luna" },
+  { releasedOn: "2026-03-05T00:00:00.000Z", model: "gpt-5.4" },
+  { releasedOn: "2026-02-05T00:00:00.000Z", model: "gpt-5.3-codex" },
+  { releasedOn: "2025-12-11T00:00:00.000Z", model: "gpt-5.2-codex" },
+  { releasedOn: "2025-11-13T00:00:00.000Z", model: "gpt-5.1-codex" },
+  { releasedOn: "2025-09-15T00:00:00.000Z", model: "gpt-5-codex" },
+  { releasedOn: "2025-08-07T00:00:00.000Z", model: "gpt-5" },
+] as const;
+
+function codexModelForEvent(model: UsageModelNormalization, timestamp: string): UsageModelNormalization {
+  if (model.model !== "codex-auto-review" && model.originalModel !== "codex-auto-review") return model;
+  return {
+    ...model,
+    pricingModel: codexAutoReviewPricingModel(timestamp),
+  };
+}
+
+function codexAutoReviewPricingModel(timestamp: string): string {
+  const millis = Date.parse(timestamp);
+  if (!Number.isFinite(millis)) return "gpt-5";
+  for (const fallback of CODEX_AUTO_REVIEW_FALLBACKS) {
+    if (millis >= Date.parse(fallback.releasedOn)) return fallback.model;
+  }
+  return CODEX_AUTO_REVIEW_FALLBACKS[CODEX_AUTO_REVIEW_FALLBACKS.length - 1].model;
 }
 
 function isSubagentSession(payload: Record<string, unknown>): boolean {

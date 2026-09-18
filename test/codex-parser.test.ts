@@ -361,6 +361,57 @@ describe("Codex JSONL parser", () => {
     });
   });
 
+  it("prices Codex auto-review through ccusage's dated fallback timeline", () => {
+    const lines = [
+      JSON.stringify({ type: "session_meta", payload: { session_id: "s1" } }),
+      JSON.stringify({ type: "turn_context", payload: { model: "codex-auto-review" } }),
+      JSON.stringify({
+        type: "event_msg",
+        timestamp: "2026-07-29T23:59:59.999Z",
+        payload: {
+          type: "token_count",
+          info: {
+            last_token_usage: {
+              input_tokens: 1_000_000,
+              cached_input_tokens: 0,
+              output_tokens: 0,
+            },
+          },
+        },
+      }),
+      JSON.stringify({
+        type: "event_msg",
+        timestamp: "2026-07-30T00:00:00.000Z",
+        payload: {
+          type: "token_count",
+          info: {
+            last_token_usage: {
+              input_tokens: 1_000_000,
+              cached_input_tokens: 0,
+              output_tokens: 0,
+            },
+          },
+        },
+      }),
+    ].join("\n");
+
+    const events = parseCodexJsonl(lines, { sourcePath: "/tmp/rollout.jsonl", serviceTier: "priority" });
+    const buckets = aggregateEvents(events);
+
+    expect(events).toHaveLength(2);
+    expect(events[0]).toMatchObject({
+      model: "codex-auto-review",
+      pricingModel: "gpt-5.4",
+      costMultiplier: "2",
+    });
+    expect(events[1]).toMatchObject({
+      model: "codex-auto-review",
+      pricingModel: "gpt-5.6-luna",
+      costMultiplier: "2",
+    });
+    expect(buckets.map((bucket) => bucket.cost.totalUsd)).toEqual(["10.000000", "0.800000"]);
+  });
+
   it("uses recorded Codex service tier changes for following usage", () => {
     const lines = [
       JSON.stringify({ type: "session_meta", payload: { session_id: "s1" } }),
