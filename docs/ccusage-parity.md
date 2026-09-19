@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-09-18
+Last checked: 2026-09-19
 
-Reference ccusage commit: `de4b5f4 chore(deps): update pnpm to v12 (#1758)`
+Reference ccusage commit: `0d17362 chore(pricing): update models.dev snapshot`
 
 ## Summary
 
@@ -96,6 +96,8 @@ The 2026-09-17 parity pass found ccusage main still packaged as `v20.0.20` at `4
 
 The 2026-09-18 parity pass found ccusage main packaged as `v20.0.22` at `de4b5f4 chore(deps): update pnpm to v12 (#1758)`. The directly migratable Codex pricing behavior was `da31b19 fix(codex): map auto-review to Luna from July 30 (#1753)`: ccusage replaced its `codex-auto-review` fallback from `gpt-5.5` with a manually curated timeline that prices records from `2026-07-30T00:00:00Z` onward as `gpt-5.6-luna`, keeps `2026-03-05` through `2026-07-29` on `gpt-5.4`, and leaves older fallback boundaries unchanged. TokenFlow now mirrors that pricing timeline while preserving `codex-auto-review` as the displayed bucket model and storing the dated fallback in `pricingModel`. The LiteLLM pin moved to `87650bfe67ede800c243665f90fec773fa9d786a`, but the embedded ccusage prefix-set token-pricing fields were unchanged, so TokenFlow still ships 5,609 generated ccusage snapshot pricing rows.
 
+The 2026-09-19 parity pass found ccusage main packaged as `v20.0.23` at `0d17362 chore(pricing): update models.dev snapshot`. The LiteLLM pin moved to `ec05cd01282807ceed577f8b19165852bc10145e`, and the models.dev snapshot moved to `6b5d1eaa97c36e23adaa4584640d60651f5fce94`. TokenFlow now ships 6,041 generated ccusage snapshot pricing rows, including the broad LiteLLM/models.dev token-pricing refresh for MiniCPM5-2B replacing MiniCPM5-1B, updated `@cf/...` Workers AI ids, preview OpenAI rows such as `~openai/gpt-astra/latest`, and new or updated DeepSeek, Qwen, Kimi, Z.ai, IONOS, Scaleway, and Gemini Robotics token rows. TokenFlow also preserves ccusage's effective exact-only fallback behavior so exact pricing tiers and aliases, such as Claude Opus 5 Fast, are not shadowed by a fuzzy base-model match.
+
 The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. The 2026-07-30 pass also found ccusage's new experimental Antigravity adapter, which scans `~/.gemini/antigravity-cli/conversations/**/*.db` or `ANTIGRAVITY_DATA_DIR` conversation databases through a new SQLite/protobuf parser. Those changes were not copied because they are adapter, parser, loader, path, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 
 The 2026-08-01 pass also observed dependency/workflow-only upstream drift in `.github/workflows/pullfrog.yml`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, and `rust/Cargo.toml`; those changes were not copied because they do not affect TokenFlow pricing behavior. The 2026-08-02 pass also observed docs, agent-skill, workflow, lockfile, and Rust dependency churn outside TokenFlow's pricing surface; those changes were left report-only. The 2026-08-04 pass observed `8028fd4 revert(antigravity): remove the Antigravity adapter until #1487 lands (#1569)` plus docs/schema/CLI help changes, dependency bumps, and workflow churn; only pricing-table and pricing-resolution behavior was migrated.
@@ -128,6 +130,7 @@ The 2026-09-15 pass also observed only `flake.lock` movement outside the migrate
 The 2026-09-16 pass also observed Codex/shared-table `--breakdown` reporting changes, Copilot resumed-session history preservation, OpenClaw per-agent SQLite transcript stores, Claude null-model parsing, Pi empty-report and subagent-artifact filtering, unified report sorting changes, docs, and lockfile drift. Those are adapter, parser, loader, report, documentation, or dependency changes and were left report-only outside the migrated GPT-6 Astra fast-pricing behavior.
 The 2026-09-17 pass also observed Antigravity Gemini Flash effort-variant parser/model-normalization changes, Claude CLI session-id deduplication coverage, stricter `--timezone` and date-range CLI validation, and docs updates. Those are parser, source-adapter, CLI validation, test, or documentation drift and were left report-only outside the migrated LiteLLM token rows and GPT Reserve pricing alias.
 The 2026-09-18 pass also observed ccusage JSON/table reporting for models with missing pricing, release/package/dependency churn, docs updates, pnpm v12 metadata, Nix/Bun regeneration workflow changes, and Rust dependency updates. Those are reporting, documentation, release, workflow, or dependency drift and were left report-only outside the migrated `codex-auto-review` pricing timeline.
+The 2026-09-19 pass also observed ccusage `v20.0.23` release, package, workflow, Nix, pnpm, and dependency churn; AGENTS.md consolidation; Claude copied-request dedupe; Hermes parser drift; and performance-script changes. Those remain report-only outside the migrated pricing snapshot and exact-only resolution behavior.
 
 ## Source Adapter Matrix
 
