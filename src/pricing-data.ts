@@ -662,7 +662,6 @@ const BASE_BUILTIN_PRICING: PricingProfile[] = [
   p("nemotron-lightning-3.5-30b-a3b", "Nemotron Lightning 3.5 30B A3B", "0.05", "0.2", "0.01", "0.0625"),
   p("nvidia-nemotron-3-super-120b-a12b", "NVIDIA Nemotron 3 Super 120B A12B", "0.1", "0.5", "0.01", "0.125"),
   p("nvidia-nemotron-3-ultra", "NVIDIA Nemotron 3 Ultra", "0.5", "2.5", "0.05", "0.625"),
-  p("openai/gpt-5.6-sol-discounted", "GPT-5.6 Sol Discounted (OpenAI)", "2.5", "15", "0.25", "3.125"),
   p("qwen/qwen3.8-27b", "Qwen3.8 27B (Qwen)", "0.5", "3", "0.1", "0.625"),
   p("ring-2.6-1t", "Ring 2.6 1T", "0.3", "2.5", "0.03", "0.375"),
   p("seed-1.8", "Seed 1.8", "0.25", "2", "0.05", "0.3125"),
