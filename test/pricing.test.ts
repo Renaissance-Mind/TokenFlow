@@ -979,7 +979,7 @@ describe("pricing", () => {
     expect(resolvePricing("~deepseek/deepseek-v4-flash-latest")).toMatchObject({
       modelId: "~deepseek/deepseek-v4-flash-latest",
       inputUsdPerMillion: "0.04",
-      outputUsdPerMillion: "0.08",
+      outputUsdPerMillion: "0.16",
       cacheReadUsdPerMillion: "0.016",
       cacheCreationUsdPerMillion: "0.05",
     });
@@ -1516,6 +1516,27 @@ describe("pricing", () => {
       cacheReadUsdPerMillion: "0.25",
       cacheCreationUsdPerMillion: "2.5",
     });
+    expect(resolvePricing("baidu/deepseek-v4-flash")).toMatchObject({
+      modelId: "baidu/deepseek-v4-flash",
+      inputUsdPerMillion: "0.44",
+      outputUsdPerMillion: "1.32",
+      cacheReadUsdPerMillion: "0.014",
+      cacheCreationUsdPerMillion: "0.55",
+    });
+    expect(resolvePricing("baidu/deepseek-v4.1-flash")).toMatchObject({
+      modelId: "baidu/deepseek-v4.1-flash",
+      inputUsdPerMillion: "0.3",
+      outputUsdPerMillion: "1.2",
+      cacheReadUsdPerMillion: "0.006",
+      cacheCreationUsdPerMillion: "0.375",
+    });
+    expect(resolvePricing("openrouter/deepseek/deepseek-v4-pro-0813")).toMatchObject({
+      modelId: "openrouter/deepseek/deepseek-v4-pro-0813",
+      inputUsdPerMillion: "1.32",
+      outputUsdPerMillion: "3.96",
+      cacheReadUsdPerMillion: "0.044",
+      cacheCreationUsdPerMillion: "1.65",
+    });
     expect(resolvePricing("runware/kimi-k3")).toMatchObject({
       modelId: "runware/kimi-k3",
       inputUsdPerMillion: "3",
@@ -1542,7 +1563,7 @@ describe("pricing", () => {
     expect(resolvePricing("~deepseek/deepseek-v4-flash-latest")).toMatchObject({
       modelId: "~deepseek/deepseek-v4-flash-latest",
       inputUsdPerMillion: "0.04",
-      outputUsdPerMillion: "0.08",
+      outputUsdPerMillion: "0.16",
       cacheReadUsdPerMillion: "0.016",
       cacheCreationUsdPerMillion: "0.05",
     });
@@ -1555,10 +1576,10 @@ describe("pricing", () => {
     });
     expect(resolvePricing("~z-ai/glm-latest")).toMatchObject({
       modelId: "~z-ai/glm-latest",
-      inputUsdPerMillion: "0.8442",
-      outputUsdPerMillion: "2.6532",
-      cacheReadUsdPerMillion: "0.15678",
-      cacheCreationUsdPerMillion: "1.05525",
+      inputUsdPerMillion: "0.7728",
+      outputUsdPerMillion: "2.4288",
+      cacheReadUsdPerMillion: "0.14352",
+      cacheCreationUsdPerMillion: "0.966",
     });
     expect(resolvePricing("fireworks_ai/accounts/fireworks/models/deepseek-v4p1-flash")).toMatchObject({
       modelId: "fireworks_ai/accounts/fireworks/models/deepseek-v4p1-flash",
