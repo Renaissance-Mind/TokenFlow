@@ -1,8 +1,8 @@
 # ccusage Parity Status
 
-Last checked: 2026-09-24
+Last checked: 2026-09-25
 
-Reference ccusage commit: `57d73eb chore(pricing): update models.dev snapshot`
+Reference ccusage commit: `ef06007 chore(pricing): update models.dev snapshot`
 
 ## Summary
 
@@ -108,6 +108,8 @@ The 2026-09-23 parity pass found ccusage main still packaged as `v20.0.25` at `a
 
 The 2026-09-24 parity pass found ccusage main still packaged as `v20.0.25` at `57d73eb chore(pricing): update models.dev snapshot`. The LiteLLM pin moved to `eb7eeb54199968aaf9eaee3d89c65f2e47752cd9`, and the models.dev snapshot moved to `fb5b6fbc47bf0540f5db2e991460b4b1bfa47b21`. TokenFlow now ships 5,934 generated ccusage snapshot pricing rows, including Aion 3.5 rows, Azure and Global OpenAI GPT-6 Sol/Luna rows, DeepSeek latest rate refreshes, Fastino PII and GLiNER rows, Cline Mimo v2.6 rows, Fireworks DeepSeek/Kimi/Ember updates, Gemini preview cache-write adjustments, and updated Bedrock, Cohere, Anthropic, Moonshot, Z.ai, IONOS, and Scaleway token rates.
 
+The 2026-09-25 parity pass found ccusage main still packaged as `v20.0.25` at `ef06007 chore(pricing): update models.dev snapshot`. The LiteLLM pin moved to `0d115ad8b50f32443a5785407addf4f0e5cb2693`, and the models.dev snapshot moved to `34c9793e4e84ff839a0c15bb605d143a482477f1`. TokenFlow now ships 6,489 generated ccusage snapshot pricing rows, including refreshed DeepSeek V4/V4.1 and DeepSeek latest rates, lowered Z.ai GLM Flash latest pricing, updated preview Kimi latest rates, OpenRouter/IONOS/Scaleway provider refreshes, Anthropic Claude Opus 5.5 exact provider resolution, and new provider token rows such as Fireworks Ember 1 and Alibaba Qwen3.8 Max Prime.
+
 The 2026-07-10 pass also showed non-pricing drift in Kimi Code paths and `usage.record` parsing, Pi named store configuration, unified report `--sections`/`--by-agent` output, Codex fork replay filtering, JSON model breakdown reporting, statusline display text, release automation, and pricing lookup caching. The 2026-07-30 pass also found ccusage's new experimental Antigravity adapter, which scans `~/.gemini/antigravity-cli/conversations/**/*.db` or `ANTIGRAVITY_DATA_DIR` conversation databases through a new SQLite/protobuf parser. Those changes were not copied because they are adapter, parser, loader, path, reporting, performance, or release-surface changes rather than directly migratable pricing behavior for TokenFlow's local collector model.
 
 The 2026-08-01 pass also observed dependency/workflow-only upstream drift in `.github/workflows/pullfrog.yml`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, and `rust/Cargo.toml`; those changes were not copied because they do not affect TokenFlow pricing behavior. The 2026-08-02 pass also observed docs, agent-skill, workflow, lockfile, and Rust dependency churn outside TokenFlow's pricing surface; those changes were left report-only. The 2026-08-04 pass observed `8028fd4 revert(antigravity): remove the Antigravity adapter until #1487 lands (#1569)` plus docs/schema/CLI help changes, dependency bumps, and workflow churn; only pricing-table and pricing-resolution behavior was migrated.
@@ -146,6 +148,7 @@ The 2026-09-21 pass also observed only `flake.lock` movement outside the migrate
 The 2026-09-22 pass also observed ccusage `v20.0.24`/`v20.0.25` release metadata, GitHub workflow/contribution-gate updates, pnpm v12.5.0 metadata, session-report CLI docs, Antigravity zero-byte SQLite snapshot skipping, and Codex session-report filtering by id. Those are release, workflow, documentation, adapter/parser/loader, or CLI-reporting changes and were left report-only outside the migrated LiteLLM/models.dev token-pricing rows.
 The 2026-09-23 pass observed only `flake.lock` and models.dev catalog-rule movement outside the migrated LiteLLM/models.dev token-pricing rows. No ccusage adapter, source parser, loader path, environment variable, telemetry requirement, permission, login, or privacy surface changed.
 The 2026-09-24 pass observed only `flake.lock` movement outside the migrated models.dev token-pricing rows. No ccusage adapter, source parser, loader path, environment variable, telemetry requirement, permission, login, or privacy surface changed.
+The 2026-09-25 pass observed only `flake.lock`, `package.json` pnpm metadata, and models.dev catalog-rule movement outside the migrated LiteLLM/models.dev token-pricing rows. No ccusage adapter, source parser, loader path, environment variable, telemetry requirement, permission, login, or privacy surface changed.
 
 ## Source Adapter Matrix
 
