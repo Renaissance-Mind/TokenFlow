@@ -1,8 +1,8 @@
 import type { PricingProfile } from "./types.js";
 
-// Generated from ccusage 0f1023c70abd78a76e465dda2d96846546b7bced.
-// LiteLLM snapshot: 2ef3250ec3bdd275dae3281d1e0f2347d995e5fe.
-// models.dev snapshot: c2c8d89908d1c1ecfbbc60c085d3aa926157539f.
+// Generated from ccusage 4417ea3346529bb70667a124e51d0d747a37edc9.
+// LiteLLM snapshot: e73abe6c72785ad91d4927da26de3a5d1b54300b.
+// models.dev snapshot: 2db28a75d49f2f1ec61b7bc7a3e8212012c20bae.
 // Regenerate during the daily ccusage pricing parity automation; do not edit by hand.
 export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[]).concat(
 [
@@ -38,11 +38,11 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"~anthropic/claude-opus-latest","displayName":"Claude Opus Latest","inputUsdPerMillion":"4","outputUsdPerMillion":"20","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"5","exactOnly":true},
   {"modelId":"~anthropic/claude-sonnet-latest","displayName":"Claude Sonnet Latest","inputUsdPerMillion":"2","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"2.5","exactOnly":true},
   {"modelId":"~deepseek/deepseek-flash-latest","displayName":"Deepseek Flash Latest","inputUsdPerMillion":"0.035","outputUsdPerMillion":"0.29","cacheReadUsdPerMillion":"0.001","cacheCreationUsdPerMillion":"0.04375","exactOnly":true},
-  {"modelId":"~deepseek/deepseek-pro-latest","displayName":"Deepseek Pro Latest","inputUsdPerMillion":"0.25","outputUsdPerMillion":"3.5","cacheReadUsdPerMillion":"0.249","cacheCreationUsdPerMillion":"0.3125","exactOnly":true},
+  {"modelId":"~deepseek/deepseek-pro-latest","displayName":"Deepseek Pro Latest","inputUsdPerMillion":"0.24816","outputUsdPerMillion":"0.74448","cacheReadUsdPerMillion":"0.007896","cacheCreationUsdPerMillion":"0.3102","exactOnly":true},
   {"modelId":"~deepseek/deepseek-v4-flash-latest","displayName":"Deepseek V4 Flash Latest","inputUsdPerMillion":"0.021","outputUsdPerMillion":"0.32","cacheReadUsdPerMillion":"0.016","cacheCreationUsdPerMillion":"0.02625"},
   {"modelId":"~google/gemini-flash-latest","displayName":"Gemini Flash Latest","inputUsdPerMillion":"0.75","outputUsdPerMillion":"3.75","cacheReadUsdPerMillion":"0.075","cacheCreationUsdPerMillion":"0.041667","exactOnly":true},
   {"modelId":"~google/gemini-pro-latest","displayName":"Gemini Pro Latest","inputUsdPerMillion":"2","outputUsdPerMillion":"12","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"0.375","inputAbove200kUsdPerMillion":"4","outputAbove200kUsdPerMillion":"18","cacheReadAbove200kUsdPerMillion":"0.4","longContextThresholdTokens":200000,"exactOnly":true},
-  {"modelId":"~moonshotai/kimi-latest","displayName":"Kimi Latest","inputUsdPerMillion":"1.0301","outputUsdPerMillion":"9.043","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"1.287625","exactOnly":true},
+  {"modelId":"~moonshotai/kimi-latest","displayName":"Kimi Latest","inputUsdPerMillion":"1","outputUsdPerMillion":"9","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"1.25","exactOnly":true},
   {"modelId":"~openai/gpt-astra-latest","displayName":"Gpt Astra Latest","inputUsdPerMillion":"10","outputUsdPerMillion":"50","cacheReadUsdPerMillion":"1","cacheCreationUsdPerMillion":"12.5","inputAbove200kUsdPerMillion":"20","outputAbove200kUsdPerMillion":"75","cacheReadAbove200kUsdPerMillion":"2","cacheCreationAbove200kUsdPerMillion":"25","longContextThresholdTokens":272000,"exactOnly":true},
   {"modelId":"~openai/gpt-luna-latest","displayName":"Gpt Luna Latest","inputUsdPerMillion":"0.1","outputUsdPerMillion":"0.5","cacheReadUsdPerMillion":"0.01","cacheCreationUsdPerMillion":"0.125","inputAbove200kUsdPerMillion":"0.2","outputAbove200kUsdPerMillion":"0.75","cacheReadAbove200kUsdPerMillion":"0.02","cacheCreationAbove200kUsdPerMillion":"0.25","longContextThresholdTokens":272000,"exactOnly":true},
   {"modelId":"~openai/gpt-mini-latest","displayName":"Gpt Mini Latest","inputUsdPerMillion":"0.75","outputUsdPerMillion":"4.5","cacheReadUsdPerMillion":"0.075","cacheCreationUsdPerMillion":"0.9375","exactOnly":true},
@@ -50,7 +50,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"~openai/gpt-terra-latest","displayName":"Gpt Terra Latest","inputUsdPerMillion":"2","outputUsdPerMillion":"12","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"2.5","inputAbove200kUsdPerMillion":"4","outputAbove200kUsdPerMillion":"18","cacheReadAbove200kUsdPerMillion":"0.4","cacheCreationAbove200kUsdPerMillion":"5","longContextThresholdTokens":272000,"exactOnly":true},
   {"modelId":"~x-ai/grok-latest","displayName":"Grok Latest","inputUsdPerMillion":"1.6","outputUsdPerMillion":"4.8","cacheReadUsdPerMillion":"0.4","cacheCreationUsdPerMillion":"2","inputAbove200kUsdPerMillion":"3.2","outputAbove200kUsdPerMillion":"9.6","cacheReadAbove200kUsdPerMillion":"0.8","longContextThresholdTokens":200000,"exactOnly":true},
   {"modelId":"~z-ai/glm-flash-latest","displayName":"Glm Flash Latest","inputUsdPerMillion":"0.04","outputUsdPerMillion":"0.5","cacheReadUsdPerMillion":"0.015","cacheCreationUsdPerMillion":"0.05","exactOnly":true},
-  {"modelId":"~z-ai/glm-latest","displayName":"Glm Latest","inputUsdPerMillion":"0.4746","outputUsdPerMillion":"1.4916","cacheReadUsdPerMillion":"0.08814","cacheCreationUsdPerMillion":"0.59325","exactOnly":true},
+  {"modelId":"~z-ai/glm-latest","displayName":"Glm Latest","inputUsdPerMillion":"0.3794","outputUsdPerMillion":"1.1924","cacheReadUsdPerMillion":"0.07046","cacheCreationUsdPerMillion":"0.47425","exactOnly":true},
   {"modelId":"abacusai/Dracarys-72B-Instruct","displayName":"Dracarys 72B Instruct","inputUsdPerMillion":"0.493","outputUsdPerMillion":"0.493","cacheReadUsdPerMillion":"0.2465","cacheCreationUsdPerMillion":"0.61625"},
   {"modelId":"abliterated-model","displayName":"Abliterated Model","inputUsdPerMillion":"3","outputUsdPerMillion":"3","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75","exactOnly":true},
   {"modelId":"abliterated-model-large","displayName":"Abliterated Model Large","inputUsdPerMillion":"5","outputUsdPerMillion":"5","cacheReadUsdPerMillion":"0.5","cacheCreationUsdPerMillion":"6.25","exactOnly":true},
@@ -58,30 +58,19 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"abliteration-ai/abliterated-model","displayName":"Abliterated Model","inputUsdPerMillion":"1","outputUsdPerMillion":"3","cacheReadUsdPerMillion":"0.1","cacheCreationUsdPerMillion":"1.25","exactOnly":true},
   {"modelId":"abliteration-ai/abliterated-model-large","displayName":"Abliterated Model Large","inputUsdPerMillion":"3","outputUsdPerMillion":"5","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75","exactOnly":true},
   {"modelId":"abliteration-ai/abliterated-model-large-v2","displayName":"Abliterated Model Large V2","inputUsdPerMillion":"3","outputUsdPerMillion":"5","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75"},
-  {"modelId":"accounts/fireworks/models/deepseek-v4-flash-0731","displayName":"Deepseek V4 Flash 0731","inputUsdPerMillion":"0.22","outputUsdPerMillion":"0.66","cacheReadUsdPerMillion":"0.007","cacheCreationUsdPerMillion":"0.275"},
-  {"modelId":"accounts/fireworks/models/deepseek-v4-flash-vision-exp","displayName":"Deepseek V4 Flash Vision Exp","inputUsdPerMillion":"0.22","outputUsdPerMillion":"0.66","cacheReadUsdPerMillion":"0.007","cacheCreationUsdPerMillion":"0.275"},
-  {"modelId":"accounts/fireworks/models/deepseek-v4-pro","displayName":"Deepseek V4 Pro","inputUsdPerMillion":"1.2","outputUsdPerMillion":"1.2","cacheReadUsdPerMillion":"0.6","cacheCreationUsdPerMillion":"1.5"},
-  {"modelId":"accounts/fireworks/models/deepseek-v4-pro-0813","displayName":"Deepseek V4 Pro 0813","inputUsdPerMillion":"1.32","outputUsdPerMillion":"3.96","cacheReadUsdPerMillion":"0.044","cacheCreationUsdPerMillion":"1.65"},
   {"modelId":"accounts/fireworks/models/deepseek-v4p1-flash","displayName":"Deepseek V4p1 Flash","inputUsdPerMillion":"0.22","outputUsdPerMillion":"0.66","cacheReadUsdPerMillion":"0.007","cacheCreationUsdPerMillion":"0.275"},
   {"modelId":"accounts/fireworks/models/ember-1","displayName":"Ember 1","inputUsdPerMillion":"3","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75"},
-  {"modelId":"accounts/fireworks/models/glm-5p2","displayName":"Glm 5p2","inputUsdPerMillion":"1.4","outputUsdPerMillion":"4.4","cacheReadUsdPerMillion":"0.14","cacheCreationUsdPerMillion":"1.75"},
   {"modelId":"accounts/fireworks/models/glm-5p3","displayName":"Glm 5p3","inputUsdPerMillion":"1.4","outputUsdPerMillion":"4.4","cacheReadUsdPerMillion":"0.26","cacheCreationUsdPerMillion":"1.75"},
   {"modelId":"accounts/fireworks/models/glm-5p3-flash","displayName":"Glm 5p3 Flash","inputUsdPerMillion":"0.15","outputUsdPerMillion":"0.5","cacheReadUsdPerMillion":"0.03","cacheCreationUsdPerMillion":"0.1875"},
   {"modelId":"accounts/fireworks/models/gpt-oss-120b","displayName":"Gpt Oss 120b","inputUsdPerMillion":"0.15","outputUsdPerMillion":"0.6","cacheReadUsdPerMillion":"0.015","cacheCreationUsdPerMillion":"0.1875"},
   {"modelId":"accounts/fireworks/models/inkling","displayName":"Inkling","inputUsdPerMillion":"1","outputUsdPerMillion":"4.05","cacheReadUsdPerMillion":"0.17","cacheCreationUsdPerMillion":"1.25","exactOnly":true},
-  {"modelId":"accounts/fireworks/models/kimi-k2p6","displayName":"Kimi K2p6","inputUsdPerMillion":"0.95","outputUsdPerMillion":"4","cacheReadUsdPerMillion":"0.16","cacheCreationUsdPerMillion":"1.1875"},
-  {"modelId":"accounts/fireworks/models/kimi-k2p7-code","displayName":"Kimi K2p7 Code","inputUsdPerMillion":"0.95","outputUsdPerMillion":"4","cacheReadUsdPerMillion":"0.19","cacheCreationUsdPerMillion":"1.1875"},
   {"modelId":"accounts/fireworks/models/kimi-k3","displayName":"Kimi K3","inputUsdPerMillion":"3","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75"},
-  {"modelId":"accounts/fireworks/models/minimax-m2p7","displayName":"Minimax M2p7","inputUsdPerMillion":"1.2","outputUsdPerMillion":"1.2","cacheReadUsdPerMillion":"0.6","cacheCreationUsdPerMillion":"1.5"},
   {"modelId":"accounts/fireworks/models/minimax-m3","displayName":"Minimax M3","inputUsdPerMillion":"0.3","outputUsdPerMillion":"1.2","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.375"},
-  {"modelId":"accounts/fireworks/models/muse-glimmer-30b","displayName":"Muse Glimmer 30b","inputUsdPerMillion":"0.35","outputUsdPerMillion":"1.5","cacheReadUsdPerMillion":"0.04","cacheCreationUsdPerMillion":"0.4375"},
   {"modelId":"accounts/fireworks/models/nemotron-3-ultra-nvfp4","displayName":"Nemotron 3 Ultra Nvfp4","inputUsdPerMillion":"0.6","outputUsdPerMillion":"2.4","cacheReadUsdPerMillion":"0.12","cacheCreationUsdPerMillion":"0.75"},
   {"modelId":"accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b","displayName":"Nemotron Lightning 3p5 30b A3b","inputUsdPerMillion":"0.05","outputUsdPerMillion":"0.2","cacheReadUsdPerMillion":"0.01","cacheCreationUsdPerMillion":"0.0625"},
-  {"modelId":"accounts/fireworks/models/qwen3p7-plus","displayName":"Qwen3p7 Plus","inputUsdPerMillion":"0.4","outputUsdPerMillion":"1.6","cacheReadUsdPerMillion":"0.08","cacheCreationUsdPerMillion":"0.5"},
   {"modelId":"accounts/fireworks/models/qwen3p8-2p4t-a95b","displayName":"Qwen3p8 2p4t A95b","inputUsdPerMillion":"2","outputUsdPerMillion":"6","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"2.5"},
   {"modelId":"accounts/fireworks/models/qwen3p8-max","displayName":"Qwen3p8 Max","inputUsdPerMillion":"2","outputUsdPerMillion":"6","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"2.5"},
   {"modelId":"accounts/fireworks/routers/deepseek-flash-latest","displayName":"Deepseek Flash Latest","inputUsdPerMillion":"0.22","outputUsdPerMillion":"0.66","cacheReadUsdPerMillion":"0.007","cacheCreationUsdPerMillion":"0.275","exactOnly":true},
-  {"modelId":"accounts/fireworks/routers/glm-5p2-fast","displayName":"Glm 5p2 Fast","inputUsdPerMillion":"2.1","outputUsdPerMillion":"6.6","cacheReadUsdPerMillion":"0.21","cacheCreationUsdPerMillion":"2.625"},
   {"modelId":"accounts/fireworks/routers/glm-5p3-fast","displayName":"Glm 5p3 Fast","inputUsdPerMillion":"2.1","outputUsdPerMillion":"6.6","cacheReadUsdPerMillion":"0.39","cacheCreationUsdPerMillion":"2.625"},
   {"modelId":"accounts/fireworks/routers/glm-fast-latest","displayName":"Glm Fast Latest","inputUsdPerMillion":"2.1","outputUsdPerMillion":"6.6","cacheReadUsdPerMillion":"0.39","cacheCreationUsdPerMillion":"2.625","exactOnly":true},
   {"modelId":"accounts/fireworks/routers/glm-flash-latest","displayName":"Glm Flash Latest","inputUsdPerMillion":"0.15","outputUsdPerMillion":"0.5","cacheReadUsdPerMillion":"0.03","cacheCreationUsdPerMillion":"0.1875","exactOnly":true},
@@ -505,9 +494,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"aws-bedrock/claude-sonnet-4-6","displayName":"Claude Sonnet 4 6","inputUsdPerMillion":"3","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75"},
   {"modelId":"aws-bedrock/claude-sonnet-5","displayName":"Claude Sonnet 5","inputUsdPerMillion":"2","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"2.5"},
   {"modelId":"aws-bedrock/grok-4-3","displayName":"Grok 4 3","inputUsdPerMillion":"1.25","outputUsdPerMillion":"2.5","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"1.5625","inputAbove200kUsdPerMillion":"2.5","outputAbove200kUsdPerMillion":"5","cacheReadAbove200kUsdPerMillion":"0.4","longContextThresholdTokens":200000},
-  {"modelId":"aws-bedrock/grok-4-6","displayName":"Grok 4 6","inputUsdPerMillion":"2","outputUsdPerMillion":"6","cacheReadUsdPerMillion":"0.5","cacheCreationUsdPerMillion":"2.5"}
-],
-[
+  {"modelId":"aws-bedrock/grok-4-6","displayName":"Grok 4 6","inputUsdPerMillion":"2","outputUsdPerMillion":"6","cacheReadUsdPerMillion":"0.5","cacheCreationUsdPerMillion":"2.5"},
   {"modelId":"aws-bedrock/llama-3.1-70b-instruct","displayName":"Llama 3 1 70b Instruct","inputUsdPerMillion":"0.72","outputUsdPerMillion":"0.72","cacheReadUsdPerMillion":"0.072","cacheCreationUsdPerMillion":"0.9"},
   {"modelId":"aws-bedrock/llama-4-maverick-17b-instruct","displayName":"Llama 4 Maverick 17b Instruct","inputUsdPerMillion":"0.24","outputUsdPerMillion":"0.97","cacheReadUsdPerMillion":"0.024","cacheCreationUsdPerMillion":"0.3"},
   {"modelId":"aws-bedrock/llama-4-scout-17b-instruct","displayName":"Llama 4 Scout 17b Instruct","inputUsdPerMillion":"0.17","outputUsdPerMillion":"0.66","cacheReadUsdPerMillion":"0.017","cacheCreationUsdPerMillion":"0.2125"},
@@ -518,7 +505,9 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"azure_ai/claude-fable-5","displayName":"Claude Fable 5","inputUsdPerMillion":"10","outputUsdPerMillion":"50","cacheReadUsdPerMillion":"1","cacheCreationUsdPerMillion":"12.5"},
   {"modelId":"azure_ai/claude-fable-5-1","displayName":"Claude Fable 5 1","inputUsdPerMillion":"10","outputUsdPerMillion":"50","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"12.5"},
   {"modelId":"azure_ai/claude-haiku-4-5","displayName":"Claude Haiku 4 5","inputUsdPerMillion":"1","outputUsdPerMillion":"5","cacheReadUsdPerMillion":"0.1","cacheCreationUsdPerMillion":"1.25"},
-  {"modelId":"azure_ai/claude-opus-4-5","displayName":"Claude Opus 4 5","inputUsdPerMillion":"5","outputUsdPerMillion":"25","cacheReadUsdPerMillion":"0.5","cacheCreationUsdPerMillion":"6.25"},
+  {"modelId":"azure_ai/claude-opus-4-5","displayName":"Claude Opus 4 5","inputUsdPerMillion":"5","outputUsdPerMillion":"25","cacheReadUsdPerMillion":"0.5","cacheCreationUsdPerMillion":"6.25"}
+],
+[
   {"modelId":"azure_ai/claude-opus-4-6","displayName":"Claude Opus 4 6","inputUsdPerMillion":"5","outputUsdPerMillion":"25","cacheReadUsdPerMillion":"0.5","cacheCreationUsdPerMillion":"6.25","fastMultiplier":"6"},
   {"modelId":"azure_ai/claude-opus-4-7","displayName":"Claude Opus 4 7","inputUsdPerMillion":"5","outputUsdPerMillion":"25","cacheReadUsdPerMillion":"0.5","cacheCreationUsdPerMillion":"6.25","fastMultiplier":"6"},
   {"modelId":"azure_ai/claude-opus-4-8","displayName":"Claude Opus 4 8","inputUsdPerMillion":"5","outputUsdPerMillion":"25","cacheReadUsdPerMillion":"0.5","cacheCreationUsdPerMillion":"6.25","fastMultiplier":"2"},
@@ -746,12 +735,12 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"azure/gpt-4o-2024-08-06","displayName":"Gpt 4o 2024 08 06","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"1.25","cacheCreationUsdPerMillion":"3.125"},
   {"modelId":"azure/gpt-4o-2024-11-20","displayName":"Gpt 4o 2024 11 20","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"1.25","cacheCreationUsdPerMillion":"3.125"},
   {"modelId":"azure/gpt-4o-audio-preview-2024-12-17","displayName":"Gpt 4o Audio Preview 2024 12 17","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125"},
-  {"modelId":"azure/gpt-4o-mini","displayName":"Gpt 4o Mini","inputUsdPerMillion":"0.165","outputUsdPerMillion":"0.66","cacheReadUsdPerMillion":"0.075","cacheCreationUsdPerMillion":"0.20625"},
+  {"modelId":"azure/gpt-4o-mini","displayName":"Gpt 4o Mini","inputUsdPerMillion":"0.15","outputUsdPerMillion":"0.6","cacheReadUsdPerMillion":"0.075","cacheCreationUsdPerMillion":"0.1875"},
   {"modelId":"azure/gpt-4o-mini-2024-07-18","displayName":"Gpt 4o Mini 2024 07 18","inputUsdPerMillion":"0.15","outputUsdPerMillion":"0.6","cacheReadUsdPerMillion":"0.075","cacheCreationUsdPerMillion":"0.1875"},
   {"modelId":"azure/gpt-4o-mini-audio-preview-2024-12-17","displayName":"Gpt 4o Mini Audio Preview 2024 12 17","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125"},
   {"modelId":"azure/gpt-4o-mini-realtime-preview-2024-12-17","displayName":"Gpt 4o Mini Realtime Preview 2024 12 17","inputUsdPerMillion":"0.6","outputUsdPerMillion":"2.4","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"0.75"},
   {"modelId":"azure/gpt-4o-mini-transcribe","displayName":"Gpt 4o Mini Transcribe","inputUsdPerMillion":"1.25","outputUsdPerMillion":"5","cacheReadUsdPerMillion":"0.125","cacheCreationUsdPerMillion":"1.5625"},
-  {"modelId":"azure/gpt-4o-mini-tts","displayName":"Gpt 4o Mini Tts","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125"},
+  {"modelId":"azure/gpt-4o-mini-tts","displayName":"Gpt 4o Mini Tts","inputUsdPerMillion":"0.6","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.75"},
   {"modelId":"azure/gpt-4o-realtime-preview-2024-10-01","displayName":"Gpt 4o Realtime Preview 2024 10 01","inputUsdPerMillion":"5","outputUsdPerMillion":"20","cacheReadUsdPerMillion":"2.5","cacheCreationUsdPerMillion":"6.25"},
   {"modelId":"azure/gpt-4o-realtime-preview-2024-12-17","displayName":"Gpt 4o Realtime Preview 2024 12 17","inputUsdPerMillion":"5","outputUsdPerMillion":"20","cacheReadUsdPerMillion":"2.5","cacheCreationUsdPerMillion":"6.25"},
   {"modelId":"azure/gpt-4o-transcribe","displayName":"Gpt 4o Transcribe","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125"},
@@ -1007,9 +996,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"bedrock_mantle/moonshotai.kimi-k2-thinking","displayName":"Moonshotai Kimi K2 Thinking","inputUsdPerMillion":"0.6","outputUsdPerMillion":"2.5","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.75"},
   {"modelId":"bedrock_mantle/openai.gpt-5.4","displayName":"Openai Gpt 5 4","inputUsdPerMillion":"2.75","outputUsdPerMillion":"16.5","cacheReadUsdPerMillion":"0.275","cacheCreationUsdPerMillion":"3.4375"},
   {"modelId":"bedrock_mantle/openai.gpt-5.5","displayName":"Openai Gpt 5 5","inputUsdPerMillion":"5.5","outputUsdPerMillion":"33","cacheReadUsdPerMillion":"0.55","cacheCreationUsdPerMillion":"6.875"},
-  {"modelId":"bedrock_mantle/openai.gpt-5.6-cyber","displayName":"Openai Gpt 5 6 Cyber","inputUsdPerMillion":"13.75","outputUsdPerMillion":"82.5","cacheReadUsdPerMillion":"1.375","cacheCreationUsdPerMillion":"17.1875"}
-],
-[
+  {"modelId":"bedrock_mantle/openai.gpt-5.6-cyber","displayName":"Openai Gpt 5 6 Cyber","inputUsdPerMillion":"13.75","outputUsdPerMillion":"82.5","cacheReadUsdPerMillion":"1.375","cacheCreationUsdPerMillion":"17.1875"},
   {"modelId":"bedrock_mantle/openai.gpt-5.6-luna","displayName":"Openai Gpt 5 6 Luna","inputUsdPerMillion":"0.22","outputUsdPerMillion":"1.32","cacheReadUsdPerMillion":"0.022","cacheCreationUsdPerMillion":"0.275"},
   {"modelId":"bedrock_mantle/openai.gpt-5.6-sol","displayName":"Openai Gpt 5 6 Sol","inputUsdPerMillion":"4.4","outputUsdPerMillion":"22","cacheReadUsdPerMillion":"0.44","cacheCreationUsdPerMillion":"5.5"},
   {"modelId":"bedrock_mantle/openai.gpt-5.6-terra","displayName":"Openai Gpt 5 6 Terra","inputUsdPerMillion":"2.2","outputUsdPerMillion":"13.2","cacheReadUsdPerMillion":"0.22","cacheCreationUsdPerMillion":"2.75"},
@@ -1020,7 +1007,9 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"bedrock_mantle/openai.gpt-oss-120b","displayName":"Openai Gpt Oss 120b","inputUsdPerMillion":"0.15","outputUsdPerMillion":"0.6","cacheReadUsdPerMillion":"0.015","cacheCreationUsdPerMillion":"0.1875"},
   {"modelId":"bedrock_mantle/openai.gpt-oss-20b","displayName":"Openai Gpt Oss 20b","inputUsdPerMillion":"0.07","outputUsdPerMillion":"0.3","cacheReadUsdPerMillion":"0.007","cacheCreationUsdPerMillion":"0.0875"},
   {"modelId":"bedrock_mantle/openai.gpt-oss-safeguard-120b","displayName":"Openai Gpt Oss Safeguard 120b","inputUsdPerMillion":"0.15","outputUsdPerMillion":"0.6","cacheReadUsdPerMillion":"0.015","cacheCreationUsdPerMillion":"0.1875"},
-  {"modelId":"bedrock_mantle/openai.gpt-oss-safeguard-20b","displayName":"Openai Gpt Oss Safeguard 20b","inputUsdPerMillion":"0.07","outputUsdPerMillion":"0.2","cacheReadUsdPerMillion":"0.007","cacheCreationUsdPerMillion":"0.0875"},
+  {"modelId":"bedrock_mantle/openai.gpt-oss-safeguard-20b","displayName":"Openai Gpt Oss Safeguard 20b","inputUsdPerMillion":"0.07","outputUsdPerMillion":"0.2","cacheReadUsdPerMillion":"0.007","cacheCreationUsdPerMillion":"0.0875"}
+],
+[
   {"modelId":"bedrock_mantle/qwen.qwen3-235b-a22b-2507","displayName":"Qwen Qwen3 235b A22b 2507","inputUsdPerMillion":"0.22","outputUsdPerMillion":"0.88","cacheReadUsdPerMillion":"0.022","cacheCreationUsdPerMillion":"0.275"},
   {"modelId":"bedrock_mantle/qwen.qwen3-32b","displayName":"Qwen Qwen3 32b","inputUsdPerMillion":"0.15","outputUsdPerMillion":"0.6","cacheReadUsdPerMillion":"0.015","cacheCreationUsdPerMillion":"0.1875"},
   {"modelId":"bedrock_mantle/qwen.qwen3-coder-30b-a3b-instruct","displayName":"Qwen Qwen3 Coder 30b A3b Instruct","inputUsdPerMillion":"0.15","outputUsdPerMillion":"0.6","cacheReadUsdPerMillion":"0.015","cacheCreationUsdPerMillion":"0.1875"},
@@ -1436,6 +1425,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"cohere.embed-multilingual-v3","displayName":"Cohere Embed Multilingual V3","inputUsdPerMillion":"0.1","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0.01","cacheCreationUsdPerMillion":"0.125"},
   {"modelId":"cohere.embed-v4:0","displayName":"Cohere Embed V4 0","inputUsdPerMillion":"0.12","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0.012","cacheCreationUsdPerMillion":"0.15"},
   {"modelId":"cohere.rerank-v3-5:0","displayName":"Cohere Rerank V3 5 0","inputUsdPerMillion":"0","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0","cacheCreationUsdPerMillion":"0"},
+  {"modelId":"cohere/c4ai-aya-expanse-32b","displayName":"C4ai Aya Expanse 32b","inputUsdPerMillion":"0.5","outputUsdPerMillion":"1.5","cacheReadUsdPerMillion":"0.05","cacheCreationUsdPerMillion":"0.625"},
   {"modelId":"cohere/command-a","displayName":"Command A","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125","exactOnly":true},
   {"modelId":"cohere/command-a-03-2025","displayName":"Command A 03 2025","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125"},
   {"modelId":"cohere/command-a-plus","displayName":"Command A Plus","inputUsdPerMillion":"0.3","outputUsdPerMillion":"1.5","cacheReadUsdPerMillion":"0.15","cacheCreationUsdPerMillion":"0.375","exactOnly":true},
@@ -1509,9 +1499,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"databricks-claude-opus-4-7","displayName":"Databricks Claude Opus 4 7","inputUsdPerMillion":"5","outputUsdPerMillion":"25","cacheReadUsdPerMillion":"0.5","cacheCreationUsdPerMillion":"6.25","fastMultiplier":"6"},
   {"modelId":"databricks-claude-sonnet-4","displayName":"Databricks Claude Sonnet 4","inputUsdPerMillion":"3","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75"},
   {"modelId":"databricks-claude-sonnet-4-5","displayName":"Databricks Claude Sonnet 4 5","inputUsdPerMillion":"3","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75"},
-  {"modelId":"databricks-claude-sonnet-4-6","displayName":"Databricks Claude Sonnet 4 6","inputUsdPerMillion":"3","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75"}
-],
-[
+  {"modelId":"databricks-claude-sonnet-4-6","displayName":"Databricks Claude Sonnet 4 6","inputUsdPerMillion":"3","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75"},
   {"modelId":"databricks-gemini-2-5-flash","displayName":"Databricks Gemini 2 5 Flash","inputUsdPerMillion":"0.3","outputUsdPerMillion":"2.5","cacheReadUsdPerMillion":"0.03","cacheCreationUsdPerMillion":"0.375"},
   {"modelId":"databricks-gemini-2-5-pro","displayName":"Databricks Gemini 2 5 Pro","inputUsdPerMillion":"1.25","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.125","cacheCreationUsdPerMillion":"1.5625","inputAbove200kUsdPerMillion":"2.5","outputAbove200kUsdPerMillion":"15","cacheReadAbove200kUsdPerMillion":"0.25","longContextThresholdTokens":200000},
   {"modelId":"databricks-gemini-3-1-flash-lite","displayName":"Databricks Gemini 3 1 Flash Lite","inputUsdPerMillion":"0.25","outputUsdPerMillion":"1.5","cacheReadUsdPerMillion":"0.025","cacheCreationUsdPerMillion":"0.3125"},
@@ -1521,7 +1509,9 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"databricks-glm-5-2","displayName":"Databricks Glm 5 2","inputUsdPerMillion":"1.4","outputUsdPerMillion":"4.4","cacheReadUsdPerMillion":"0.26","cacheCreationUsdPerMillion":"1.75"},
   {"modelId":"databricks-gpt-5","displayName":"Databricks Gpt 5","inputUsdPerMillion":"1.25","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.125","cacheCreationUsdPerMillion":"1.5625"},
   {"modelId":"databricks-gpt-5-1","displayName":"Databricks Gpt 5 1","inputUsdPerMillion":"1.25","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.125","cacheCreationUsdPerMillion":"1.5625"},
-  {"modelId":"databricks-gpt-5-2","displayName":"Databricks Gpt 5 2","inputUsdPerMillion":"1.75","outputUsdPerMillion":"14","cacheReadUsdPerMillion":"0.175","cacheCreationUsdPerMillion":"2.1875"},
+  {"modelId":"databricks-gpt-5-2","displayName":"Databricks Gpt 5 2","inputUsdPerMillion":"1.75","outputUsdPerMillion":"14","cacheReadUsdPerMillion":"0.175","cacheCreationUsdPerMillion":"2.1875"}
+],
+[
   {"modelId":"databricks-gpt-5-4","displayName":"Databricks Gpt 5 4","inputUsdPerMillion":"2.5","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125","inputAbove200kUsdPerMillion":"5","outputAbove200kUsdPerMillion":"22.5","cacheReadAbove200kUsdPerMillion":"0.5","longContextThresholdTokens":272000},
   {"modelId":"databricks-gpt-5-4-mini","displayName":"Databricks Gpt 5 4 Mini","inputUsdPerMillion":"0.75","outputUsdPerMillion":"4.5","cacheReadUsdPerMillion":"0.075","cacheCreationUsdPerMillion":"0.9375"},
   {"modelId":"databricks-gpt-5-4-nano","displayName":"Databricks Gpt 5 4 Nano","inputUsdPerMillion":"0.2","outputUsdPerMillion":"1.25","cacheReadUsdPerMillion":"0.02","cacheCreationUsdPerMillion":"0.25"},
@@ -1545,6 +1535,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"databricks/databricks-claude-opus-4-7","displayName":"Databricks Claude Opus 4 7","inputUsdPerMillion":"5.00003","outputUsdPerMillion":"25.00001","cacheReadUsdPerMillion":"0.50001","cacheCreationUsdPerMillion":"6.25002","fastMultiplier":"6"},
   {"modelId":"databricks/databricks-claude-opus-4-8","displayName":"Databricks Claude Opus 4 8","inputUsdPerMillion":"5.00003","outputUsdPerMillion":"25.00001","cacheReadUsdPerMillion":"0.50001","cacheCreationUsdPerMillion":"6.25002","fastMultiplier":"2"},
   {"modelId":"databricks/databricks-claude-opus-5","displayName":"Databricks Claude Opus 5","inputUsdPerMillion":"5.00003","outputUsdPerMillion":"25.00001","cacheReadUsdPerMillion":"0.50001","cacheCreationUsdPerMillion":"6.25002"},
+  {"modelId":"databricks/databricks-claude-opus-5-5","displayName":"Databricks Claude Opus 5 5","inputUsdPerMillion":"4.00001","outputUsdPerMillion":"19.99998","cacheReadUsdPerMillion":"0.19999","cacheCreationUsdPerMillion":"5.00003"},
   {"modelId":"databricks/databricks-claude-sonnet-4","displayName":"Databricks Claude Sonnet 4","inputUsdPerMillion":"2.99999","outputUsdPerMillion":"15.00002","cacheReadUsdPerMillion":"0.30002","cacheCreationUsdPerMillion":"3.74997"},
   {"modelId":"databricks/databricks-claude-sonnet-4-1","displayName":"Databricks Claude Sonnet 4 1","inputUsdPerMillion":"2.99999","outputUsdPerMillion":"15.00002","cacheReadUsdPerMillion":"0.30002","cacheCreationUsdPerMillion":"3.74997"},
   {"modelId":"databricks/databricks-claude-sonnet-4-5","displayName":"Databricks Claude Sonnet 4 5","inputUsdPerMillion":"2.99999","outputUsdPerMillion":"15.00002","cacheReadUsdPerMillion":"0.30002","cacheCreationUsdPerMillion":"3.74997"},
@@ -1776,6 +1767,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"deepinfra/stepfun-ai/Step-3.7-Flash","displayName":"Step 3 7 Flash","inputUsdPerMillion":"0.2","outputUsdPerMillion":"1.15","cacheReadUsdPerMillion":"0.04","cacheCreationUsdPerMillion":"0.25"},
   {"modelId":"deepinfra/tencent/Hy3","displayName":"Hy3","inputUsdPerMillion":"0.14","outputUsdPerMillion":"0.58","cacheReadUsdPerMillion":"0.035","cacheCreationUsdPerMillion":"0.175"},
   {"modelId":"deepinfra/tencent/Hy3","displayName":"Hy3","inputUsdPerMillion":"0.13","outputUsdPerMillion":"0.53","cacheReadUsdPerMillion":"0.033","cacheCreationUsdPerMillion":"0.1625"},
+  {"modelId":"deepinfra/tencent/Hy4-preview","displayName":"Hy4 Preview","inputUsdPerMillion":"0.834","outputUsdPerMillion":"2.501","cacheReadUsdPerMillion":"0.042","cacheCreationUsdPerMillion":"1.0425"},
   {"modelId":"deepinfra/thinkingmachines/Inkling","displayName":"Inkling","inputUsdPerMillion":"0.95","outputUsdPerMillion":"4.05","cacheReadUsdPerMillion":"0.16","cacheCreationUsdPerMillion":"1.1875"},
   {"modelId":"deepinfra/thinkingmachines/Inkling","displayName":"Inkling","inputUsdPerMillion":"0.95","outputUsdPerMillion":"4.05","cacheReadUsdPerMillion":"0.16","cacheCreationUsdPerMillion":"1.1875","exactOnly":true},
   {"modelId":"deepinfra/thinkingmachines/Inkling-Small","displayName":"Inkling Small","inputUsdPerMillion":"0.45","outputUsdPerMillion":"1.2","cacheReadUsdPerMillion":"0.1","cacheCreationUsdPerMillion":"0.5625"},
@@ -2011,9 +2003,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"eu.anthropic.claude-opus-4-6-v1","displayName":"Eu Anthropic Claude Opus 4 6 V1","inputUsdPerMillion":"5.5","outputUsdPerMillion":"27.5","cacheReadUsdPerMillion":"0.55","cacheCreationUsdPerMillion":"6.875","fastMultiplier":"6"},
   {"modelId":"eu.anthropic.claude-opus-4-6-v1","displayName":"Eu Anthropic Claude Opus 4 6 V1","inputUsdPerMillion":"5.5","outputUsdPerMillion":"27.5","cacheReadUsdPerMillion":"0.55","cacheCreationUsdPerMillion":"6.875","fastMultiplier":"6"},
   {"modelId":"eu.anthropic.claude-opus-4-7","displayName":"Eu Anthropic Claude Opus 4 7","inputUsdPerMillion":"5.5","outputUsdPerMillion":"27.5","cacheReadUsdPerMillion":"0.55","cacheCreationUsdPerMillion":"6.875","fastMultiplier":"6"},
-  {"modelId":"eu.anthropic.claude-opus-4-7","displayName":"Eu Anthropic Claude Opus 4 7","inputUsdPerMillion":"5.5","outputUsdPerMillion":"27.5","cacheReadUsdPerMillion":"0.55","cacheCreationUsdPerMillion":"6.875","fastMultiplier":"6"}
-],
-[
+  {"modelId":"eu.anthropic.claude-opus-4-7","displayName":"Eu Anthropic Claude Opus 4 7","inputUsdPerMillion":"5.5","outputUsdPerMillion":"27.5","cacheReadUsdPerMillion":"0.55","cacheCreationUsdPerMillion":"6.875","fastMultiplier":"6"},
   {"modelId":"eu.anthropic.claude-opus-4-8","displayName":"Eu Anthropic Claude Opus 4 8","inputUsdPerMillion":"5.5","outputUsdPerMillion":"27.5","cacheReadUsdPerMillion":"0.55","cacheCreationUsdPerMillion":"6.875","fastMultiplier":"2"},
   {"modelId":"eu.anthropic.claude-opus-4-8","displayName":"Eu Anthropic Claude Opus 4 8","inputUsdPerMillion":"5.5","outputUsdPerMillion":"27.5","cacheReadUsdPerMillion":"0.55","cacheCreationUsdPerMillion":"6.875","fastMultiplier":"2"},
   {"modelId":"eu.anthropic.claude-opus-5","displayName":"Eu Anthropic Claude Opus 5","inputUsdPerMillion":"5.5","outputUsdPerMillion":"27.5","cacheReadUsdPerMillion":"0.55","cacheCreationUsdPerMillion":"6.875"},
@@ -2021,7 +2011,9 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"eu.anthropic.claude-opus-5-5","displayName":"Eu Anthropic Claude Opus 5 5","inputUsdPerMillion":"4.4","outputUsdPerMillion":"22","cacheReadUsdPerMillion":"0.22","cacheCreationUsdPerMillion":"5.5"},
   {"modelId":"eu.anthropic.claude-opus-5-5","displayName":"Eu Anthropic Claude Opus 5 5","inputUsdPerMillion":"4.4","outputUsdPerMillion":"22","cacheReadUsdPerMillion":"0.22","cacheCreationUsdPerMillion":"5.5"},
   {"modelId":"eu.anthropic.claude-sonnet-4-20250514-v1:0","displayName":"Eu Anthropic Claude Sonnet 4 20250514 V1 0","inputUsdPerMillion":"3","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75","inputAbove200kUsdPerMillion":"6","outputAbove200kUsdPerMillion":"22.5","cacheReadAbove200kUsdPerMillion":"0.6","cacheCreationAbove200kUsdPerMillion":"7.5"},
-  {"modelId":"eu.anthropic.claude-sonnet-4-20250514-v1:0","displayName":"Eu Anthropic Claude Sonnet 4 20250514 V1 0","inputUsdPerMillion":"3","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75"},
+  {"modelId":"eu.anthropic.claude-sonnet-4-20250514-v1:0","displayName":"Eu Anthropic Claude Sonnet 4 20250514 V1 0","inputUsdPerMillion":"3","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75"}
+],
+[
   {"modelId":"eu.anthropic.claude-sonnet-4-5-20250929-v1:0","displayName":"Eu Anthropic Claude Sonnet 4 5 20250929 V1 0","inputUsdPerMillion":"3.3","outputUsdPerMillion":"16.5","cacheReadUsdPerMillion":"0.33","cacheCreationUsdPerMillion":"4.125","inputAbove200kUsdPerMillion":"6.6","outputAbove200kUsdPerMillion":"24.75","cacheReadAbove200kUsdPerMillion":"0.66","cacheCreationAbove200kUsdPerMillion":"8.25"},
   {"modelId":"eu.anthropic.claude-sonnet-4-5-20250929-v1:0","displayName":"Eu Anthropic Claude Sonnet 4 5 20250929 V1 0","inputUsdPerMillion":"3.3","outputUsdPerMillion":"16.5","cacheReadUsdPerMillion":"0.33","cacheCreationUsdPerMillion":"4.125"},
   {"modelId":"eu.anthropic.claude-sonnet-4-6","displayName":"Eu Anthropic Claude Sonnet 4 6","inputUsdPerMillion":"3.3","outputUsdPerMillion":"16.5","cacheReadUsdPerMillion":"0.33","cacheCreationUsdPerMillion":"4.125"},
@@ -2107,7 +2099,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"fireworks_ai/accounts/fireworks/models/deepseek-v4-pro","displayName":"Deepseek V4 Pro","inputUsdPerMillion":"1.2","outputUsdPerMillion":"1.2","cacheReadUsdPerMillion":"0.6","cacheCreationUsdPerMillion":"1.5"},
   {"modelId":"fireworks_ai/accounts/fireworks/models/deepseek-v4-pro-0813","displayName":"Deepseek V4 Pro 0813","inputUsdPerMillion":"1.32","outputUsdPerMillion":"3.96","cacheReadUsdPerMillion":"0.044","cacheCreationUsdPerMillion":"1.65"},
   {"modelId":"fireworks_ai/accounts/fireworks/models/deepseek-v4-pro-0813","displayName":"Deepseek V4 Pro 0813","inputUsdPerMillion":"1.32","outputUsdPerMillion":"3.96","cacheReadUsdPerMillion":"0.044","cacheCreationUsdPerMillion":"1.65"},
-  {"modelId":"fireworks_ai/accounts/fireworks/models/deepseek-v4p1-flash","displayName":"Deepseek V4p1 Flash","inputUsdPerMillion":"0.3","outputUsdPerMillion":"1.2","cacheReadUsdPerMillion":"0.006","cacheCreationUsdPerMillion":"0.375"},
+  {"modelId":"fireworks_ai/accounts/fireworks/models/deepseek-v4p1-flash","displayName":"Deepseek V4p1 Flash","inputUsdPerMillion":"0.22","outputUsdPerMillion":"0.66","cacheReadUsdPerMillion":"0.007","cacheCreationUsdPerMillion":"0.275"},
   {"modelId":"fireworks_ai/accounts/fireworks/models/devstral-small-2505","displayName":"Devstral Small 2505","inputUsdPerMillion":"0.9","outputUsdPerMillion":"0.9","cacheReadUsdPerMillion":"0.09","cacheCreationUsdPerMillion":"1.125"},
   {"modelId":"fireworks_ai/accounts/fireworks/models/dobby-mini-unhinged-plus-llama-3-1-8b","displayName":"Dobby Mini Unhinged Plus Llama 3 1 8b","inputUsdPerMillion":"0.2","outputUsdPerMillion":"0.2","cacheReadUsdPerMillion":"0.02","cacheCreationUsdPerMillion":"0.25"},
   {"modelId":"fireworks_ai/accounts/fireworks/models/dobby-unhinged-llama-3-3-70b-new","displayName":"Dobby Unhinged Llama 3 3 70b New","inputUsdPerMillion":"0.9","outputUsdPerMillion":"0.9","cacheReadUsdPerMillion":"0.09","cacheCreationUsdPerMillion":"1.125"},
@@ -2349,7 +2341,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"fireworks_ai/deepseek-v4-flash-0731","displayName":"Deepseek V4 Flash 0731","inputUsdPerMillion":"0.22","outputUsdPerMillion":"0.66","cacheReadUsdPerMillion":"0.007","cacheCreationUsdPerMillion":"0.275"},
   {"modelId":"fireworks_ai/deepseek-v4-flash-vision-exp","displayName":"Deepseek V4 Flash Vision Exp","inputUsdPerMillion":"0.22","outputUsdPerMillion":"0.66","cacheReadUsdPerMillion":"0.007","cacheCreationUsdPerMillion":"0.275"},
   {"modelId":"fireworks_ai/deepseek-v4-pro-0813","displayName":"Deepseek V4 Pro 0813","inputUsdPerMillion":"1.32","outputUsdPerMillion":"3.96","cacheReadUsdPerMillion":"0.044","cacheCreationUsdPerMillion":"1.65"},
-  {"modelId":"fireworks_ai/deepseek-v4p1-flash","displayName":"Deepseek V4p1 Flash","inputUsdPerMillion":"0.3","outputUsdPerMillion":"1.2","cacheReadUsdPerMillion":"0.006","cacheCreationUsdPerMillion":"0.375"},
+  {"modelId":"fireworks_ai/deepseek-v4p1-flash","displayName":"Deepseek V4p1 Flash","inputUsdPerMillion":"0.22","outputUsdPerMillion":"0.66","cacheReadUsdPerMillion":"0.007","cacheCreationUsdPerMillion":"0.275"},
   {"modelId":"fireworks_ai/deepseek-v4p1-flash-us","displayName":"Deepseek V4p1 Flash Us","inputUsdPerMillion":"0.45","outputUsdPerMillion":"1.8","cacheReadUsdPerMillion":"0.009","cacheCreationUsdPerMillion":"0.5625"},
   {"modelId":"fireworks_ai/glm-4p7","displayName":"Glm 4p7","inputUsdPerMillion":"0.6","outputUsdPerMillion":"2.2","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"0.75"},
   {"modelId":"fireworks_ai/glm-5p1","displayName":"Glm 5p1","inputUsdPerMillion":"1.4","outputUsdPerMillion":"4.4","cacheReadUsdPerMillion":"0.26","cacheCreationUsdPerMillion":"1.75"},
@@ -2513,9 +2505,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"gemini-3.8-live","displayName":"Gemini 3 8 Live","inputUsdPerMillion":"0.75","outputUsdPerMillion":"4.5","cacheReadUsdPerMillion":"0.075","cacheCreationUsdPerMillion":"0.9375"},
   {"modelId":"gemini-3.8-live-extended-thinking","displayName":"Gemini 3 8 Live Extended Thinking","inputUsdPerMillion":"0.75","outputUsdPerMillion":"4.5","cacheReadUsdPerMillion":"0.075","cacheCreationUsdPerMillion":"0.9375"},
   {"modelId":"gemini-embedding-001","displayName":"Gemini Embedding 001","inputUsdPerMillion":"0.15","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0.015","cacheCreationUsdPerMillion":"0.1875"},
-  {"modelId":"gemini-embedding-001","displayName":"Gemini Embedding 001","inputUsdPerMillion":"0.15","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0.015","cacheCreationUsdPerMillion":"0.1875"}
-],
-[
+  {"modelId":"gemini-embedding-001","displayName":"Gemini Embedding 001","inputUsdPerMillion":"0.15","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0.015","cacheCreationUsdPerMillion":"0.1875"},
   {"modelId":"gemini-embedding-2","displayName":"Gemini Embedding 2","inputUsdPerMillion":"0.2","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0.02","cacheCreationUsdPerMillion":"0.25"},
   {"modelId":"gemini-embedding-2","displayName":"Gemini Embedding 2","inputUsdPerMillion":"0.2","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0.02","cacheCreationUsdPerMillion":"0.25"},
   {"modelId":"gemini-embedding-2-preview","displayName":"Gemini Embedding 2 Preview","inputUsdPerMillion":"0.2","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0.02","cacheCreationUsdPerMillion":"0.25"},
@@ -2523,7 +2513,9 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"gemini-exp-1206","displayName":"Gemini Exp 1206","inputUsdPerMillion":"1.258","outputUsdPerMillion":"4.998","cacheReadUsdPerMillion":"0.629","cacheCreationUsdPerMillion":"1.5725"},
   {"modelId":"gemini-flash-experimental","displayName":"Gemini Flash Experimental","inputUsdPerMillion":"0","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0","cacheCreationUsdPerMillion":"0"},
   {"modelId":"gemini-flash-latest","displayName":"Gemini Flash Latest","inputUsdPerMillion":"0.75","outputUsdPerMillion":"3.75","cacheReadUsdPerMillion":"0.075","cacheCreationUsdPerMillion":"0.9375"},
-  {"modelId":"gemini-flash-latest","displayName":"Gemini Flash Latest","inputUsdPerMillion":"0.75","outputUsdPerMillion":"3.75","cacheReadUsdPerMillion":"0.075","cacheCreationUsdPerMillion":"0.9375","exactOnly":true},
+  {"modelId":"gemini-flash-latest","displayName":"Gemini Flash Latest","inputUsdPerMillion":"0.75","outputUsdPerMillion":"3.75","cacheReadUsdPerMillion":"0.075","cacheCreationUsdPerMillion":"0.9375","exactOnly":true}
+],
+[
   {"modelId":"gemini-flash-lite-latest","displayName":"Gemini Flash Lite Latest","inputUsdPerMillion":"0.3","outputUsdPerMillion":"2.5","cacheReadUsdPerMillion":"0.03","cacheCreationUsdPerMillion":"0.375"},
   {"modelId":"gemini-flash-lite-latest","displayName":"Gemini Flash Lite Latest","inputUsdPerMillion":"0.3","outputUsdPerMillion":"2.5","cacheReadUsdPerMillion":"0.03","cacheCreationUsdPerMillion":"0.375","exactOnly":true},
   {"modelId":"gemini-live-2.5-flash-native-audio","displayName":"Gemini Live 2 5 Flash Native Audio","inputUsdPerMillion":"0.5","outputUsdPerMillion":"2","cacheReadUsdPerMillion":"0.05","cacheCreationUsdPerMillion":"0.625"},
@@ -3015,9 +3007,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"gpt-5.6-terra","displayName":"Gpt 5 6 Terra","inputUsdPerMillion":"2","outputUsdPerMillion":"12","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"2.5","inputAbove200kUsdPerMillion":"4","outputAbove200kUsdPerMillion":"18","cacheReadAbove200kUsdPerMillion":"0.4","cacheCreationAbove200kUsdPerMillion":"5","longContextThresholdTokens":272000,"exactOnly":true,"fastMultiplier":"2"},
   {"modelId":"gpt-5.6-terra-pro","displayName":"Gpt 5 6 Terra Pro","inputUsdPerMillion":"2","outputUsdPerMillion":"12","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"2.5","exactOnly":true},
   {"modelId":"gpt-5.6-terra@eu","displayName":"Gpt 5 6 Terra Eu","inputUsdPerMillion":"2.2","outputUsdPerMillion":"13.2","cacheReadUsdPerMillion":"0.22","cacheCreationUsdPerMillion":"2.75","exactOnly":true},
-  {"modelId":"gpt-5@eu","displayName":"Gpt 5 Eu","inputUsdPerMillion":"1.375","outputUsdPerMillion":"11","cacheReadUsdPerMillion":"0.1375","cacheCreationUsdPerMillion":"1.71875","exactOnly":true}
-],
-[
+  {"modelId":"gpt-5@eu","displayName":"Gpt 5 Eu","inputUsdPerMillion":"1.375","outputUsdPerMillion":"11","cacheReadUsdPerMillion":"0.1375","cacheCreationUsdPerMillion":"1.71875","exactOnly":true},
   {"modelId":"gpt-6-astra","displayName":"Gpt 6 Astra","inputUsdPerMillion":"10","outputUsdPerMillion":"50","cacheReadUsdPerMillion":"1","cacheCreationUsdPerMillion":"12.5","fastMultiplier":"2"},
   {"modelId":"gpt-6-astra","displayName":"Gpt 6 Astra","inputUsdPerMillion":"10","outputUsdPerMillion":"50","cacheReadUsdPerMillion":"1","cacheCreationUsdPerMillion":"12.5","inputAbove200kUsdPerMillion":"20","outputAbove200kUsdPerMillion":"75","cacheReadAbove200kUsdPerMillion":"2","cacheCreationAbove200kUsdPerMillion":"25","longContextThresholdTokens":272000,"fastMultiplier":"2"},
   {"modelId":"gpt-6-luna","displayName":"Gpt 6 Luna","inputUsdPerMillion":"0.1","outputUsdPerMillion":"0.5","cacheReadUsdPerMillion":"0.01","cacheCreationUsdPerMillion":"0.125"},
@@ -3025,7 +3015,9 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"gpt-6-luna@eu","displayName":"Gpt 6 Luna Eu","inputUsdPerMillion":"0.12","outputUsdPerMillion":"0.6","cacheReadUsdPerMillion":"0.012","cacheCreationUsdPerMillion":"0.15","inputAbove200kUsdPerMillion":"0.24","outputAbove200kUsdPerMillion":"0.9","cacheReadAbove200kUsdPerMillion":"0.024","longContextThresholdTokens":272000,"exactOnly":true},
   {"modelId":"gpt-6-sol","displayName":"Gpt 6 Sol","inputUsdPerMillion":"2","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"2.5"},
   {"modelId":"gpt-6-sol","displayName":"Gpt 6 Sol","inputUsdPerMillion":"2","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"2.5","inputAbove200kUsdPerMillion":"4","outputAbove200kUsdPerMillion":"15","cacheReadAbove200kUsdPerMillion":"0.4","cacheCreationAbove200kUsdPerMillion":"5","longContextThresholdTokens":272000},
-  {"modelId":"gpt-6-sol@eu","displayName":"Gpt 6 Sol Eu","inputUsdPerMillion":"2.4","outputUsdPerMillion":"12","cacheReadUsdPerMillion":"0.24","cacheCreationUsdPerMillion":"3","inputAbove200kUsdPerMillion":"4.8","outputAbove200kUsdPerMillion":"18","cacheReadAbove200kUsdPerMillion":"0.48","longContextThresholdTokens":272000,"exactOnly":true},
+  {"modelId":"gpt-6-sol@eu","displayName":"Gpt 6 Sol Eu","inputUsdPerMillion":"2.4","outputUsdPerMillion":"12","cacheReadUsdPerMillion":"0.24","cacheCreationUsdPerMillion":"3","inputAbove200kUsdPerMillion":"4.8","outputAbove200kUsdPerMillion":"18","cacheReadAbove200kUsdPerMillion":"0.48","longContextThresholdTokens":272000,"exactOnly":true}
+],
+[
   {"modelId":"gpt-audio","displayName":"Gpt Audio","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125"},
   {"modelId":"gpt-audio-1.5","displayName":"Gpt Audio 1 5","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125"},
   {"modelId":"gpt-audio-2025-08-28","displayName":"Gpt Audio 2025 08 28","inputUsdPerMillion":"2.5","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125"},
@@ -3517,9 +3509,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"MiniMaxAI/MiniMax-M2.7","displayName":"MiniMax M2 7","inputUsdPerMillion":"0.279","outputUsdPerMillion":"1.2","cacheReadUsdPerMillion":"0.279","cacheCreationUsdPerMillion":"0.279"},
   {"modelId":"MiniMaxAI/MiniMax-M3","displayName":"MiniMax M3","inputUsdPerMillion":"0.6","outputUsdPerMillion":"2.4","cacheReadUsdPerMillion":"0.12","cacheCreationUsdPerMillion":"0.75","inputAbove200kUsdPerMillion":"1.2","outputAbove200kUsdPerMillion":"4.8","cacheReadAbove200kUsdPerMillion":"0.24","longContextThresholdTokens":512000},
   {"modelId":"ministral-14b","displayName":"Ministral 14b","inputUsdPerMillion":"0.2","outputUsdPerMillion":"0.2","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"0.2"},
-  {"modelId":"ministral-14b-2512","displayName":"Ministral 14b 2512","inputUsdPerMillion":"0.24","outputUsdPerMillion":"0.24","cacheReadUsdPerMillion":"0.022","cacheCreationUsdPerMillion":"0.3","exactOnly":true}
-],
-[
+  {"modelId":"ministral-14b-2512","displayName":"Ministral 14b 2512","inputUsdPerMillion":"0.24","outputUsdPerMillion":"0.24","cacheReadUsdPerMillion":"0.022","cacheCreationUsdPerMillion":"0.3","exactOnly":true},
   {"modelId":"ministral-3b","displayName":"Ministral 3b","inputUsdPerMillion":"0.04","outputUsdPerMillion":"0.04","cacheReadUsdPerMillion":"0.004","cacheCreationUsdPerMillion":"0.05"},
   {"modelId":"ministral-3b-2512","displayName":"Ministral 3b 2512","inputUsdPerMillion":"0.123","outputUsdPerMillion":"0.123","cacheReadUsdPerMillion":"0.012","cacheCreationUsdPerMillion":"0.15375","exactOnly":true},
   {"modelId":"ministral-3b-latest","displayName":"Ministral 3b Latest","inputUsdPerMillion":"0.04","outputUsdPerMillion":"0.04","cacheReadUsdPerMillion":"0.004","cacheCreationUsdPerMillion":"0.05","exactOnly":true},
@@ -3527,7 +3517,9 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"ministral-8b-latest","displayName":"Ministral 8b Latest","inputUsdPerMillion":"0.1","outputUsdPerMillion":"0.1","cacheReadUsdPerMillion":"0.01","cacheCreationUsdPerMillion":"0.125"},
   {"modelId":"mistral-3-14B","displayName":"Mistral 3 14B","inputUsdPerMillion":"0.2","outputUsdPerMillion":"0.2","cacheReadUsdPerMillion":"0.02","cacheCreationUsdPerMillion":"0.25"},
   {"modelId":"mistral-7b-instruct-v0.2","displayName":"Mistral 7b Instruct V0 2","inputUsdPerMillion":"0.159","outputUsdPerMillion":"0.219","cacheReadUsdPerMillion":"0.0159","cacheCreationUsdPerMillion":"0.19875"},
-  {"modelId":"mistral-7b-instruct-v0.3","displayName":"Mistral 7b Instruct V0 3","inputUsdPerMillion":"0.111","outputUsdPerMillion":"0.111","cacheReadUsdPerMillion":"0.0111","cacheCreationUsdPerMillion":"0.13875"},
+  {"modelId":"mistral-7b-instruct-v0.3","displayName":"Mistral 7b Instruct V0 3","inputUsdPerMillion":"0.111","outputUsdPerMillion":"0.111","cacheReadUsdPerMillion":"0.0111","cacheCreationUsdPerMillion":"0.13875"}
+],
+[
   {"modelId":"mistral-code-agent-latest","displayName":"Mistral Code Agent Latest","inputUsdPerMillion":"0.4","outputUsdPerMillion":"2","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"0.5","exactOnly":true},
   {"modelId":"mistral-code-latest","displayName":"Mistral Code Latest","inputUsdPerMillion":"0.3","outputUsdPerMillion":"0.9","cacheReadUsdPerMillion":"0.15","cacheCreationUsdPerMillion":"0.375","exactOnly":true},
   {"modelId":"mistral-embed","displayName":"Mistral Embed","inputUsdPerMillion":"0.1","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0.01","cacheCreationUsdPerMillion":"0.125","exactOnly":true},
@@ -4019,9 +4011,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"novita/qwen3-max","displayName":"Qwen3 Max","inputUsdPerMillion":"0.845","outputUsdPerMillion":"3.38","cacheReadUsdPerMillion":"0.0845","cacheCreationUsdPerMillion":"1.05625"},
   {"modelId":"novita/qwen3-next-80b-a3b-instruct","displayName":"Qwen3 Next 80b A3b Instruct","inputUsdPerMillion":"0.15","outputUsdPerMillion":"1.5","cacheReadUsdPerMillion":"0.015","cacheCreationUsdPerMillion":"0.1875"},
   {"modelId":"novita/qwen3-vl-235b-a22b-instruct","displayName":"Qwen3 Vl 235b A22b Instruct","inputUsdPerMillion":"0.3","outputUsdPerMillion":"1.5","cacheReadUsdPerMillion":"0.03","cacheCreationUsdPerMillion":"0.375"},
-  {"modelId":"novita/qwen3-vl-235b-a22b-thinking","displayName":"Qwen3 Vl 235b A22b Thinking","inputUsdPerMillion":"0.98","outputUsdPerMillion":"3.95","cacheReadUsdPerMillion":"0.098","cacheCreationUsdPerMillion":"1.225"}
-],
-[
+  {"modelId":"novita/qwen3-vl-235b-a22b-thinking","displayName":"Qwen3 Vl 235b A22b Thinking","inputUsdPerMillion":"0.98","outputUsdPerMillion":"3.95","cacheReadUsdPerMillion":"0.098","cacheCreationUsdPerMillion":"1.225"},
   {"modelId":"novita/qwen3-vl-30b-a3b-instruct","displayName":"Qwen3 Vl 30b A3b Instruct","inputUsdPerMillion":"0.2","outputUsdPerMillion":"0.7","cacheReadUsdPerMillion":"0.02","cacheCreationUsdPerMillion":"0.25"},
   {"modelId":"novita/qwen3.6-35b-a3b","displayName":"Qwen3 6 35b A3b","inputUsdPerMillion":"0.248","outputUsdPerMillion":"1.485","cacheReadUsdPerMillion":"0.0248","cacheCreationUsdPerMillion":"0.31"},
   {"modelId":"novita/qwen3.7-max","displayName":"Qwen3 7 Max","inputUsdPerMillion":"1.25","outputUsdPerMillion":"3.75","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"1.5625"},
@@ -4029,7 +4019,9 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"novita/qwen3.8-27b","displayName":"Qwen3 8 27b","inputUsdPerMillion":"0.42","outputUsdPerMillion":"3","cacheReadUsdPerMillion":"0.085","cacheCreationUsdPerMillion":"0.525"},
   {"modelId":"novita/qwen3.8-flash","displayName":"Qwen3 8 Flash","inputUsdPerMillion":"0.15","outputUsdPerMillion":"0.47","cacheReadUsdPerMillion":"0.016","cacheCreationUsdPerMillion":"0.1875"},
   {"modelId":"novita/qwen3.8-max","displayName":"Qwen3 8 Max","inputUsdPerMillion":"2","outputUsdPerMillion":"6","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"2.5"},
-  {"modelId":"novita/qwen35-397b-a17b","displayName":"Qwen35 397b A17b","inputUsdPerMillion":"0.6","outputUsdPerMillion":"3.6","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.75"},
+  {"modelId":"novita/qwen35-397b-a17b","displayName":"Qwen35 397b A17b","inputUsdPerMillion":"0.6","outputUsdPerMillion":"3.6","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.75"}
+],
+[
   {"modelId":"novita/sao10k/l3-70b-euryale-v2.1","displayName":"L3 70b Euryale V2 1","inputUsdPerMillion":"1.48","outputUsdPerMillion":"1.48","cacheReadUsdPerMillion":"0.148","cacheCreationUsdPerMillion":"1.85"},
   {"modelId":"novita/sao10k/l3-8b-lunaris","displayName":"L3 8b Lunaris","inputUsdPerMillion":"0.05","outputUsdPerMillion":"0.05","cacheReadUsdPerMillion":"0.005","cacheCreationUsdPerMillion":"0.0625"},
   {"modelId":"novita/Sao10K/L3-8B-Stheno-v3.2","displayName":"L3 8B Stheno V3 2","inputUsdPerMillion":"0.05","outputUsdPerMillion":"0.05","cacheReadUsdPerMillion":"0.005","cacheCreationUsdPerMillion":"0.0625"},
@@ -4478,11 +4470,11 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"openrouter/deepseek/deepseek-v3.2","displayName":"Deepseek V3 2","inputUsdPerMillion":"0.269","outputUsdPerMillion":"0.4","cacheReadUsdPerMillion":"0.1345","cacheCreationUsdPerMillion":"0.33625"},
   {"modelId":"openrouter/deepseek/deepseek-v3.2-exp","displayName":"Deepseek V3 2 Exp","inputUsdPerMillion":"0.27","outputUsdPerMillion":"0.41","cacheReadUsdPerMillion":"0.02","cacheCreationUsdPerMillion":"0.3375"},
   {"modelId":"openrouter/deepseek/deepseek-v4-flash","displayName":"Deepseek V4 Flash","inputUsdPerMillion":"0.04704","outputUsdPerMillion":"0.09408","cacheReadUsdPerMillion":"0.009408","cacheCreationUsdPerMillion":"0.0588"},
-  {"modelId":"openrouter/deepseek/deepseek-v4-flash-0731","displayName":"Deepseek V4 Flash 0731","inputUsdPerMillion":"0.022","outputUsdPerMillion":"0.32","cacheReadUsdPerMillion":"0.016","cacheCreationUsdPerMillion":"0.0275"},
+  {"modelId":"openrouter/deepseek/deepseek-v4-flash-0731","displayName":"Deepseek V4 Flash 0731","inputUsdPerMillion":"0.021","outputUsdPerMillion":"0.32","cacheReadUsdPerMillion":"0.016","cacheCreationUsdPerMillion":"0.02625"},
   {"modelId":"openrouter/deepseek/deepseek-v4-flash-vision-exp","displayName":"Deepseek V4 Flash Vision Exp","inputUsdPerMillion":"0.22","outputUsdPerMillion":"0.66","cacheReadUsdPerMillion":"0.007","cacheCreationUsdPerMillion":"0.275"},
-  {"modelId":"openrouter/deepseek/deepseek-v4-pro","displayName":"Deepseek V4 Pro","inputUsdPerMillion":"0.45936","outputUsdPerMillion":"0.91872","cacheReadUsdPerMillion":"0.03828","cacheCreationUsdPerMillion":"0.5742"},
-  {"modelId":"openrouter/deepseek/deepseek-v4-pro-0813","displayName":"Deepseek V4 Pro 0813","inputUsdPerMillion":"0.264","outputUsdPerMillion":"0.792","cacheReadUsdPerMillion":"0.0088","cacheCreationUsdPerMillion":"0.33"},
-  {"modelId":"openrouter/deepseek/deepseek-v4.1-flash","displayName":"Deepseek V4 1 Flash","inputUsdPerMillion":"0.14","outputUsdPerMillion":"0.42","cacheReadUsdPerMillion":"0.0042","cacheCreationUsdPerMillion":"0.175"},
+  {"modelId":"openrouter/deepseek/deepseek-v4-pro","displayName":"Deepseek V4 Pro","inputUsdPerMillion":"0.348","outputUsdPerMillion":"0.696","cacheReadUsdPerMillion":"0.029","cacheCreationUsdPerMillion":"0.435"},
+  {"modelId":"openrouter/deepseek/deepseek-v4-pro-0813","displayName":"Deepseek V4 Pro 0813","inputUsdPerMillion":"0.2476","outputUsdPerMillion":"3.5","cacheReadUsdPerMillion":"0.2475","cacheCreationUsdPerMillion":"0.3095"},
+  {"modelId":"openrouter/deepseek/deepseek-v4.1-flash","displayName":"Deepseek V4 1 Flash","inputUsdPerMillion":"0.035","outputUsdPerMillion":"0.29","cacheReadUsdPerMillion":"0.001","cacheCreationUsdPerMillion":"0.04375"},
   {"modelId":"openrouter/deepseek/deepseek-v4.1-flash:batch","displayName":"Deepseek V4 1 Flash Batch","inputUsdPerMillion":"0.112","outputUsdPerMillion":"0.336","cacheReadUsdPerMillion":"0.00336","cacheCreationUsdPerMillion":"0.14"},
   {"modelId":"openrouter/dots-studio/dots-3-note-preview:free","displayName":"Dots 3 Note Preview Free","inputUsdPerMillion":"0","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0","cacheCreationUsdPerMillion":"0"},
   {"modelId":"openrouter/fireworks/ember-1","displayName":"Ember 1","inputUsdPerMillion":"3","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75"},
@@ -4521,9 +4513,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"openrouter/google/gemini-3.8-flash:batch","displayName":"Gemini 3 8 Flash Batch","inputUsdPerMillion":"0.375","outputUsdPerMillion":"1.875","cacheReadUsdPerMillion":"0.0375","cacheCreationUsdPerMillion":"0.0416666666666667"},
   {"modelId":"openrouter/google/gemma-2-27b-it","displayName":"Gemma 2 27b It","inputUsdPerMillion":"0.65","outputUsdPerMillion":"0.65","cacheReadUsdPerMillion":"0.065","cacheCreationUsdPerMillion":"0.8125"},
   {"modelId":"openrouter/google/gemma-3-12b-it","displayName":"Gemma 3 12b It","inputUsdPerMillion":"0.05","outputUsdPerMillion":"0.15","cacheReadUsdPerMillion":"0.005","cacheCreationUsdPerMillion":"0.0625"},
-  {"modelId":"openrouter/google/gemma-3-27b-it","displayName":"Gemma 3 27b It","inputUsdPerMillion":"0.08","outputUsdPerMillion":"0.45","cacheReadUsdPerMillion":"0.04","cacheCreationUsdPerMillion":"0.1"}
-],
-[
+  {"modelId":"openrouter/google/gemma-3-27b-it","displayName":"Gemma 3 27b It","inputUsdPerMillion":"0.08","outputUsdPerMillion":"0.45","cacheReadUsdPerMillion":"0.04","cacheCreationUsdPerMillion":"0.1"},
   {"modelId":"openrouter/google/gemma-3-4b-it","displayName":"Gemma 3 4b It","inputUsdPerMillion":"0.05","outputUsdPerMillion":"0.1","cacheReadUsdPerMillion":"0.005","cacheCreationUsdPerMillion":"0.0625"},
   {"modelId":"openrouter/google/gemma-4-26b-a4b-it","displayName":"Gemma 4 26b A4b It","inputUsdPerMillion":"0.0675","outputUsdPerMillion":"0.225","cacheReadUsdPerMillion":"0.0375","cacheCreationUsdPerMillion":"0.084375"},
   {"modelId":"openrouter/google/gemma-4-26b-a4b-it:free","displayName":"Gemma 4 26b A4b It Free","inputUsdPerMillion":"0","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0","cacheCreationUsdPerMillion":"0"},
@@ -4531,7 +4521,9 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"openrouter/google/gemma-4-31b-it:free","displayName":"Gemma 4 31b It Free","inputUsdPerMillion":"0","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0","cacheCreationUsdPerMillion":"0"},
   {"modelId":"openrouter/gryphe/mythomax-l2-13b","displayName":"Mythomax L2 13b","inputUsdPerMillion":"0.08","outputUsdPerMillion":"0.11","cacheReadUsdPerMillion":"0.008","cacheCreationUsdPerMillion":"0.1"},
   {"modelId":"openrouter/ibm-granite/granite-4.0-h-micro","displayName":"Granite 4 0 H Micro","inputUsdPerMillion":"0.017","outputUsdPerMillion":"0.112","cacheReadUsdPerMillion":"0.0017","cacheCreationUsdPerMillion":"0.02125"},
-  {"modelId":"openrouter/ibm-granite/granite-4.2-8b","displayName":"Granite 4 2 8b","inputUsdPerMillion":"0.06","outputUsdPerMillion":"0.25","cacheReadUsdPerMillion":"0.015","cacheCreationUsdPerMillion":"0.075"},
+  {"modelId":"openrouter/ibm-granite/granite-4.2-8b","displayName":"Granite 4 2 8b","inputUsdPerMillion":"0.06","outputUsdPerMillion":"0.25","cacheReadUsdPerMillion":"0.015","cacheCreationUsdPerMillion":"0.075"}
+],
+[
   {"modelId":"openrouter/inception/mercury-2","displayName":"Mercury 2","inputUsdPerMillion":"0.25","outputUsdPerMillion":"0.75","cacheReadUsdPerMillion":"0.025","cacheCreationUsdPerMillion":"0.3125"},
   {"modelId":"openrouter/inception/mercury-2.5","displayName":"Mercury 2 5","inputUsdPerMillion":"0.04","outputUsdPerMillion":"0.15","cacheReadUsdPerMillion":"0.004","cacheCreationUsdPerMillion":"0.05"},
   {"modelId":"openrouter/inclusionai/ling-3.0-flash","displayName":"Ling 3 0 Flash","inputUsdPerMillion":"0.021","outputUsdPerMillion":"0.063","cacheReadUsdPerMillion":"0.0042","cacheCreationUsdPerMillion":"0.02625"},
@@ -4565,11 +4557,11 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"openrouter/microsoft/wizardlm-2-8x22b","displayName":"Wizardlm 2 8x22b","inputUsdPerMillion":"0.62","outputUsdPerMillion":"0.62","cacheReadUsdPerMillion":"0.062","cacheCreationUsdPerMillion":"0.775"},
   {"modelId":"openrouter/minimax/minimax-01","displayName":"Minimax 01","inputUsdPerMillion":"0.2","outputUsdPerMillion":"1.1","cacheReadUsdPerMillion":"0.02","cacheCreationUsdPerMillion":"0.25"},
   {"modelId":"openrouter/minimax/minimax-m1","displayName":"Minimax M1","inputUsdPerMillion":"0.4","outputUsdPerMillion":"2.2","cacheReadUsdPerMillion":"0.04","cacheCreationUsdPerMillion":"0.5"},
-  {"modelId":"openrouter/minimax/minimax-m2","displayName":"Minimax M2","inputUsdPerMillion":"0.3","outputUsdPerMillion":"1.2","cacheReadUsdPerMillion":"0.03","cacheCreationUsdPerMillion":"0.375"},
+  {"modelId":"openrouter/minimax/minimax-m2","displayName":"Minimax M2","inputUsdPerMillion":"0.255","outputUsdPerMillion":"1.02","cacheReadUsdPerMillion":"0.0255","cacheCreationUsdPerMillion":"0.31875"},
   {"modelId":"openrouter/minimax/minimax-m2-her","displayName":"Minimax M2 Her","inputUsdPerMillion":"0.3","outputUsdPerMillion":"1.2","cacheReadUsdPerMillion":"0.03","cacheCreationUsdPerMillion":"0.375"},
   {"modelId":"openrouter/minimax/minimax-m2.1","displayName":"Minimax M2 1","inputUsdPerMillion":"0.3","outputUsdPerMillion":"1.2","cacheReadUsdPerMillion":"0.03","cacheCreationUsdPerMillion":"0"},
   {"modelId":"openrouter/minimax/minimax-m2.5","displayName":"Minimax M2 5","inputUsdPerMillion":"0.27","outputUsdPerMillion":"1.08","cacheReadUsdPerMillion":"0.027","cacheCreationUsdPerMillion":"0.3375"},
-  {"modelId":"openrouter/minimax/minimax-m2.7","displayName":"Minimax M2 7","inputUsdPerMillion":"0.3","outputUsdPerMillion":"1.2","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.375"},
+  {"modelId":"openrouter/minimax/minimax-m2.7","displayName":"Minimax M2 7","inputUsdPerMillion":"0.21","outputUsdPerMillion":"0.84","cacheReadUsdPerMillion":"0.042","cacheCreationUsdPerMillion":"0.2625"},
   {"modelId":"openrouter/minimax/minimax-m2.7:free","displayName":"Minimax M2 7 Free","inputUsdPerMillion":"0","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0","cacheCreationUsdPerMillion":"0"},
   {"modelId":"openrouter/minimax/minimax-m3","displayName":"Minimax M3","inputUsdPerMillion":"0.3","outputUsdPerMillion":"1.2","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.375"},
   {"modelId":"openrouter/minimax/minimax-m3:free","displayName":"Minimax M3 Free","inputUsdPerMillion":"0","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0","cacheCreationUsdPerMillion":"0"},
@@ -4715,7 +4707,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"openrouter/openai/gpt-chat-latest","displayName":"Gpt Chat Latest","inputUsdPerMillion":"5","outputUsdPerMillion":"30","cacheReadUsdPerMillion":"0.5","cacheCreationUsdPerMillion":"6.25"},
   {"modelId":"openrouter/openai/gpt-oss-120b","displayName":"Gpt Oss 120b","inputUsdPerMillion":"0.15","outputUsdPerMillion":"0.6","cacheReadUsdPerMillion":"0.075","cacheCreationUsdPerMillion":"0.1875"},
   {"modelId":"openrouter/openai/gpt-oss-120b:batch","displayName":"Gpt Oss 120b Batch","inputUsdPerMillion":"0.0296","outputUsdPerMillion":"0.136","cacheReadUsdPerMillion":"0.00296","cacheCreationUsdPerMillion":"0.037"},
-  {"modelId":"openrouter/openai/gpt-oss-20b","displayName":"Gpt Oss 20b","inputUsdPerMillion":"0.018","outputUsdPerMillion":"0.09","cacheReadUsdPerMillion":"0.03","cacheCreationUsdPerMillion":"0.0225"},
+  {"modelId":"openrouter/openai/gpt-oss-20b","displayName":"Gpt Oss 20b","inputUsdPerMillion":"0.018","outputUsdPerMillion":"0.09","cacheReadUsdPerMillion":"0.0018","cacheCreationUsdPerMillion":"0.0225"},
   {"modelId":"openrouter/openai/gpt-oss-20b:batch","displayName":"Gpt Oss 20b Batch","inputUsdPerMillion":"0.024","outputUsdPerMillion":"0.112","cacheReadUsdPerMillion":"0.0024","cacheCreationUsdPerMillion":"0.03"},
   {"modelId":"openrouter/openai/gpt-oss-safeguard-20b","displayName":"Gpt Oss Safeguard 20b","inputUsdPerMillion":"0.075","outputUsdPerMillion":"0.3","cacheReadUsdPerMillion":"0.0375","cacheCreationUsdPerMillion":"0.09375"},
   {"modelId":"openrouter/openai/o1","displayName":"O1","inputUsdPerMillion":"15","outputUsdPerMillion":"60","cacheReadUsdPerMillion":"7.5","cacheCreationUsdPerMillion":"18.75"},
@@ -4755,7 +4747,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"openrouter/qwen/qwen3-235b-a22b","displayName":"Qwen3 235b A22b","inputUsdPerMillion":"0.455","outputUsdPerMillion":"1.82","cacheReadUsdPerMillion":"0.0455","cacheCreationUsdPerMillion":"0.56875"},
   {"modelId":"openrouter/qwen/qwen3-235b-a22b-2507","displayName":"Qwen3 235b A22b 2507","inputUsdPerMillion":"0.0875","outputUsdPerMillion":"0.35","cacheReadUsdPerMillion":"0.0175","cacheCreationUsdPerMillion":"0.109375"},
   {"modelId":"openrouter/qwen/qwen3-235b-a22b-thinking-2507","displayName":"Qwen3 235b A22b Thinking 2507","inputUsdPerMillion":"0.23","outputUsdPerMillion":"2.3","cacheReadUsdPerMillion":"0.023","cacheCreationUsdPerMillion":"0.2875"},
-  {"modelId":"openrouter/qwen/qwen3-30b-a3b","displayName":"Qwen3 30b A3b","inputUsdPerMillion":"0.12","outputUsdPerMillion":"0.5","cacheReadUsdPerMillion":"0.012","cacheCreationUsdPerMillion":"0.15"},
+  {"modelId":"openrouter/qwen/qwen3-30b-a3b","displayName":"Qwen3 30b A3b","inputUsdPerMillion":"0.13","outputUsdPerMillion":"0.52","cacheReadUsdPerMillion":"0.013","cacheCreationUsdPerMillion":"0.1625"},
   {"modelId":"openrouter/qwen/qwen3-30b-a3b-instruct-2507","displayName":"Qwen3 30b A3b Instruct 2507","inputUsdPerMillion":"0.1","outputUsdPerMillion":"0.3","cacheReadUsdPerMillion":"0.01","cacheCreationUsdPerMillion":"0.125"},
   {"modelId":"openrouter/qwen/qwen3-30b-a3b-thinking-2507","displayName":"Qwen3 30b A3b Thinking 2507","inputUsdPerMillion":"0.2","outputUsdPerMillion":"2.4","cacheReadUsdPerMillion":"0.02","cacheCreationUsdPerMillion":"0.25"},
   {"modelId":"openrouter/qwen/qwen3-32b","displayName":"Qwen3 32b","inputUsdPerMillion":"0.08","outputUsdPerMillion":"0.28","cacheReadUsdPerMillion":"0.008","cacheCreationUsdPerMillion":"0.1"},
@@ -4865,8 +4857,8 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"openrouter/z-ai/glm-5.1","displayName":"Glm 5 1","inputUsdPerMillion":"0.9646","outputUsdPerMillion":"3.0316","cacheReadUsdPerMillion":"0.17914","cacheCreationUsdPerMillion":"0"},
   {"modelId":"openrouter/z-ai/glm-5.2","displayName":"Glm 5 2","inputUsdPerMillion":"0.6496","outputUsdPerMillion":"2.0416","cacheReadUsdPerMillion":"0.12064","cacheCreationUsdPerMillion":"0.812"},
   {"modelId":"openrouter/z-ai/glm-5.2:free","displayName":"Glm 5 2 Free","inputUsdPerMillion":"0","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0","cacheCreationUsdPerMillion":"0"},
-  {"modelId":"openrouter/z-ai/glm-5.3","displayName":"Glm 5 3","inputUsdPerMillion":"1.4","outputUsdPerMillion":"4.4","cacheReadUsdPerMillion":"0.26","cacheCreationUsdPerMillion":"1.75"},
-  {"modelId":"openrouter/z-ai/glm-5.3-flash","displayName":"Glm 5 3 Flash","inputUsdPerMillion":"0.045","outputUsdPerMillion":"0.14","cacheReadUsdPerMillion":"0.01","cacheCreationUsdPerMillion":"0.05625"},
+  {"modelId":"openrouter/z-ai/glm-5.3","displayName":"Glm 5 3","inputUsdPerMillion":"0.238","outputUsdPerMillion":"0.748","cacheReadUsdPerMillion":"0.0391","cacheCreationUsdPerMillion":"0.2975"},
+  {"modelId":"openrouter/z-ai/glm-5.3-flash","displayName":"Glm 5 3 Flash","inputUsdPerMillion":"0.04","outputUsdPerMillion":"0.5","cacheReadUsdPerMillion":"0.015","cacheCreationUsdPerMillion":"0.05"},
   {"modelId":"openrouter/z-ai/glm-5.3-flash:batch","displayName":"Glm 5 3 Flash Batch","inputUsdPerMillion":"0.06","outputUsdPerMillion":"0.2","cacheReadUsdPerMillion":"0.012","cacheCreationUsdPerMillion":"0.075"},
   {"modelId":"openrouter/z-ai/glm-5.3-flashx","displayName":"Glm 5 3 Flashx","inputUsdPerMillion":"0.37","outputUsdPerMillion":"1.25","cacheReadUsdPerMillion":"0.09","cacheCreationUsdPerMillion":"0.4625"},
   {"modelId":"openrouter/z-ai/glm-5.3-prime","displayName":"Glm 5 3 Prime","inputUsdPerMillion":"2.8","outputUsdPerMillion":"8.8","cacheReadUsdPerMillion":"0.56","cacheCreationUsdPerMillion":"3.5"},
@@ -5023,9 +5015,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"publicai/apertus-8b-instruct","displayName":"Apertus 8b Instruct","inputUsdPerMillion":"0.1","outputUsdPerMillion":"0.2","cacheReadUsdPerMillion":"0.01","cacheCreationUsdPerMillion":"0.125"},
   {"modelId":"publicai/BSC-LT/ALIA-40b-instruct_Q8_0","displayName":"ALIA 40b Instruct Q8 0","inputUsdPerMillion":"0","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0","cacheCreationUsdPerMillion":"0"},
   {"modelId":"publicai/BSC-LT/salamandra-7b-instruct-tools-16k","displayName":"Salamandra 7b Instruct Tools 16k","inputUsdPerMillion":"0","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0","cacheCreationUsdPerMillion":"0"},
-  {"modelId":"publicai/swiss-ai/apertus-70b-instruct","displayName":"Apertus 70b Instruct","inputUsdPerMillion":"0","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0","cacheCreationUsdPerMillion":"0"}
-],
-[
+  {"modelId":"publicai/swiss-ai/apertus-70b-instruct","displayName":"Apertus 70b Instruct","inputUsdPerMillion":"0","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0","cacheCreationUsdPerMillion":"0"},
   {"modelId":"publicai/swiss-ai/apertus-8b-instruct","displayName":"Apertus 8b Instruct","inputUsdPerMillion":"0","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0","cacheCreationUsdPerMillion":"0"},
   {"modelId":"quartz/gemini-3.1-pro-preview","displayName":"Gemini 3 1 Pro Preview","inputUsdPerMillion":"2","outputUsdPerMillion":"12","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"2.5","inputAbove200kUsdPerMillion":"4","outputAbove200kUsdPerMillion":"18","cacheReadAbove200kUsdPerMillion":"0.4","longContextThresholdTokens":200000},
   {"modelId":"qvq-max","displayName":"Qvq Max","inputUsdPerMillion":"1.2","outputUsdPerMillion":"4.8","cacheReadUsdPerMillion":"0.12","cacheCreationUsdPerMillion":"1.5","exactOnly":true},
@@ -5033,7 +5023,9 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"qwen_ai_platform/deepseek-v4-flash-0731","displayName":"Deepseek V4 Flash 0731","inputUsdPerMillion":"0.2","outputUsdPerMillion":"0.4","cacheReadUsdPerMillion":"0.04","cacheCreationUsdPerMillion":"0.25"},
   {"modelId":"qwen_ai_platform/deepseek-v4-pro","displayName":"Deepseek V4 Pro","inputUsdPerMillion":"2.4","outputUsdPerMillion":"4.8","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"3"},
   {"modelId":"qwen_ai_platform/glm-5.1","displayName":"Glm 5 1","inputUsdPerMillion":"1.4","outputUsdPerMillion":"4.4","cacheReadUsdPerMillion":"0.26","cacheCreationUsdPerMillion":"1.75"},
-  {"modelId":"qwen_ai_platform/glm-5.2","displayName":"Glm 5 2","inputUsdPerMillion":"1.4","outputUsdPerMillion":"4.4","cacheReadUsdPerMillion":"0.28","cacheCreationUsdPerMillion":"1.75"},
+  {"modelId":"qwen_ai_platform/glm-5.2","displayName":"Glm 5 2","inputUsdPerMillion":"1.4","outputUsdPerMillion":"4.4","cacheReadUsdPerMillion":"0.28","cacheCreationUsdPerMillion":"1.75"}
+],
+[
   {"modelId":"qwen_ai_platform/kimi-k2.7-code","displayName":"Kimi K2 7 Code","inputUsdPerMillion":"0.95","outputUsdPerMillion":"4","cacheReadUsdPerMillion":"0.19","cacheCreationUsdPerMillion":"1.1875"},
   {"modelId":"qwen_ai_platform/qwen-coder","displayName":"Qwen Coder","inputUsdPerMillion":"0.3","outputUsdPerMillion":"1.5","cacheReadUsdPerMillion":"0.03","cacheCreationUsdPerMillion":"0.375"},
   {"modelId":"qwen_ai_platform/qwen-max","displayName":"Qwen Max","inputUsdPerMillion":"1.6","outputUsdPerMillion":"6.4","cacheReadUsdPerMillion":"0.16","cacheCreationUsdPerMillion":"2"},
@@ -5414,6 +5406,18 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"sagemaker/meta-textgeneration-llama-2-70b-b-f","displayName":"Meta Textgeneration Llama 2 70b B F","inputUsdPerMillion":"0","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0","cacheCreationUsdPerMillion":"0"},
   {"modelId":"sagemaker/meta-textgeneration-llama-2-7b","displayName":"Meta Textgeneration Llama 2 7b","inputUsdPerMillion":"0","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0","cacheCreationUsdPerMillion":"0"},
   {"modelId":"sagemaker/meta-textgeneration-llama-2-7b-f","displayName":"Meta Textgeneration Llama 2 7b F","inputUsdPerMillion":"0","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0","cacheCreationUsdPerMillion":"0"},
+  {"modelId":"sail/deepseek-ai/DeepSeek-V4-Flash-0731","displayName":"DeepSeek V4 Flash 0731","inputUsdPerMillion":"0.09","outputUsdPerMillion":"0.18","cacheReadUsdPerMillion":"0.02","cacheCreationUsdPerMillion":"0.1125"},
+  {"modelId":"sail/deepseek-ai/DeepSeek-V4-Pro-0813","displayName":"DeepSeek V4 Pro 0813","inputUsdPerMillion":"0.92","outputUsdPerMillion":"2.77","cacheReadUsdPerMillion":"0.04","cacheCreationUsdPerMillion":"1.15"},
+  {"modelId":"sail/deepseek-ai/DeepSeek-V4.1-Flash","displayName":"DeepSeek V4 1 Flash","inputUsdPerMillion":"0.15","outputUsdPerMillion":"0.6","cacheReadUsdPerMillion":"0.006","cacheCreationUsdPerMillion":"0.1875"},
+  {"modelId":"sail/google/gemma-4-12B-it","displayName":"Gemma 4 12B It","inputUsdPerMillion":"0.3","outputUsdPerMillion":"2","cacheReadUsdPerMillion":"0.15","cacheCreationUsdPerMillion":"0.375"},
+  {"modelId":"sail/google/gemma-4-31B-it","displayName":"Gemma 4 31B It","inputUsdPerMillion":"0.4","outputUsdPerMillion":"0.6","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"0.5"},
+  {"modelId":"sail/moonshotai/Kimi-K2.6","displayName":"Kimi K2 6","inputUsdPerMillion":"1","outputUsdPerMillion":"4","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"1.25"},
+  {"modelId":"sail/moonshotai/Kimi-K3","displayName":"Kimi K3","inputUsdPerMillion":"2.5","outputUsdPerMillion":"12.5","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"3.125"},
+  {"modelId":"sail/nvidia/Gemma-4-31B-IT-NVFP4","displayName":"Gemma 4 31B IT NVFP4","inputUsdPerMillion":"0.14","outputUsdPerMillion":"0.4","cacheReadUsdPerMillion":"0.07","cacheCreationUsdPerMillion":"0.175"},
+  {"modelId":"sail/openai/gpt-oss-120b","displayName":"Gpt Oss 120b","inputUsdPerMillion":"0.06","outputUsdPerMillion":"0.4","cacheReadUsdPerMillion":"0.03","cacheCreationUsdPerMillion":"0.075"},
+  {"modelId":"sail/Qwen/Qwen3.6-35B-A3B","displayName":"Qwen3 6 35B A3B","inputUsdPerMillion":"0.05","outputUsdPerMillion":"0.4","cacheReadUsdPerMillion":"0.02","cacheCreationUsdPerMillion":"0.0625"},
+  {"modelId":"sail/zai-org/GLM-5.3","displayName":"GLM 5 3","inputUsdPerMillion":"0.98","outputUsdPerMillion":"3.08","cacheReadUsdPerMillion":"0.18","cacheCreationUsdPerMillion":"1.225"},
+  {"modelId":"sail/zai-org/GLM-5.3-Flash","displayName":"GLM 5 3 Flash","inputUsdPerMillion":"0.11","outputUsdPerMillion":"0.35","cacheReadUsdPerMillion":"0.02","cacheCreationUsdPerMillion":"0.1375"},
   {"modelId":"sakana-namazu","displayName":"Sakana Namazu","inputUsdPerMillion":"0.95","outputUsdPerMillion":"4","cacheReadUsdPerMillion":"0.15","cacheCreationUsdPerMillion":"1.1875","exactOnly":true},
   {"modelId":"sakana/fugu-max","displayName":"Fugu Max","inputUsdPerMillion":"2","outputUsdPerMillion":"6","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"2.5","exactOnly":true},
   {"modelId":"sakana/fugu-ultra","displayName":"Fugu Ultra","inputUsdPerMillion":"5","outputUsdPerMillion":"30","cacheReadUsdPerMillion":"0.5","cacheCreationUsdPerMillion":"6.25","inputAbove200kUsdPerMillion":"10","outputAbove200kUsdPerMillion":"45","cacheReadAbove200kUsdPerMillion":"1","longContextThresholdTokens":272000,"exactOnly":true},
@@ -5521,13 +5525,13 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"snowflake/snowflake-llama-3.3-70b","displayName":"Snowflake Llama 3 3 70b","inputUsdPerMillion":"0.72","outputUsdPerMillion":"0.72","cacheReadUsdPerMillion":"0.072","cacheCreationUsdPerMillion":"0.9"},
   {"modelId":"solar-mini","displayName":"Solar Mini","inputUsdPerMillion":"0.15","outputUsdPerMillion":"0.15","cacheReadUsdPerMillion":"0.015","cacheCreationUsdPerMillion":"0.1875","exactOnly":true},
   {"modelId":"solar-pro2","displayName":"Solar Pro2","inputUsdPerMillion":"0.25","outputUsdPerMillion":"0.25","cacheReadUsdPerMillion":"0.025","cacheCreationUsdPerMillion":"0.3125"},
-  {"modelId":"solar-pro3","displayName":"Solar Pro3","inputUsdPerMillion":"0.25","outputUsdPerMillion":"0.25","cacheReadUsdPerMillion":"0.025","cacheCreationUsdPerMillion":"0.3125"},
+  {"modelId":"solar-pro3","displayName":"Solar Pro3","inputUsdPerMillion":"0.25","outputUsdPerMillion":"0.25","cacheReadUsdPerMillion":"0.025","cacheCreationUsdPerMillion":"0.3125"}
+],
+[
   {"modelId":"solar-pro4","displayName":"Solar Pro4","inputUsdPerMillion":"0.3","outputUsdPerMillion":"1.2","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.375"},
   {"modelId":"sonar","displayName":"Sonar","inputUsdPerMillion":"1","outputUsdPerMillion":"1","cacheReadUsdPerMillion":"0.1","cacheCreationUsdPerMillion":"1.25","exactOnly":true},
   {"modelId":"sonar-deep-research","displayName":"Sonar Deep Research","inputUsdPerMillion":"2","outputUsdPerMillion":"8","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"2.5","exactOnly":true},
-  {"modelId":"sonar-pro","displayName":"Sonar Pro","inputUsdPerMillion":"3","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75","exactOnly":true}
-],
-[
+  {"modelId":"sonar-pro","displayName":"Sonar Pro","inputUsdPerMillion":"3","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75","exactOnly":true},
   {"modelId":"sonar-reasoning","displayName":"Sonar Reasoning","inputUsdPerMillion":"1","outputUsdPerMillion":"5","cacheReadUsdPerMillion":"0.1","cacheCreationUsdPerMillion":"1.25","exactOnly":true},
   {"modelId":"sonar-reasoning-pro","displayName":"Sonar Reasoning Pro","inputUsdPerMillion":"2","outputUsdPerMillion":"8","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"2.5","exactOnly":true},
   {"modelId":"soob3123/amoral-gemma3-27B-v2","displayName":"Amoral Gemma3 27B V2","inputUsdPerMillion":"0.3","outputUsdPerMillion":"0.3","cacheReadUsdPerMillion":"0.15","cacheCreationUsdPerMillion":"0.375"},
@@ -5708,6 +5712,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"together_ai/meta-llama/Meta-Llama-3-70B-Instruct-Turbo","displayName":"Meta Llama 3 70B Instruct Turbo","inputUsdPerMillion":"0.88","outputUsdPerMillion":"0.88","cacheReadUsdPerMillion":"0.088","cacheCreationUsdPerMillion":"1.1"},
   {"modelId":"together_ai/meta-llama/Meta-Llama-3-8B-Instruct","displayName":"Meta Llama 3 8B Instruct","inputUsdPerMillion":"0.2","outputUsdPerMillion":"0.2","cacheReadUsdPerMillion":"0.02","cacheCreationUsdPerMillion":"0.25"},
   {"modelId":"together_ai/meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo","displayName":"Meta Llama 3 1 70B Instruct Turbo","inputUsdPerMillion":"0.88","outputUsdPerMillion":"0.88","cacheReadUsdPerMillion":"0.088","cacheCreationUsdPerMillion":"1.1"},
+  {"modelId":"together_ai/meta-llama/Meta-Llama-3.1-8B","displayName":"Meta Llama 3 1 8B","inputUsdPerMillion":"0.2","outputUsdPerMillion":"0.2","cacheReadUsdPerMillion":"0.02","cacheCreationUsdPerMillion":"0.25"},
   {"modelId":"together_ai/meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo","displayName":"Meta Llama 3 1 8B Instruct Turbo","inputUsdPerMillion":"0.18","outputUsdPerMillion":"0.18","cacheReadUsdPerMillion":"0.018","cacheCreationUsdPerMillion":"0.225"},
   {"modelId":"together_ai/meta-models/Muse-Glimmer-30B","displayName":"Muse Glimmer 30B","inputUsdPerMillion":"0.35","outputUsdPerMillion":"1.5","cacheReadUsdPerMillion":"0.04","cacheCreationUsdPerMillion":"0.4375"},
   {"modelId":"together_ai/meta-models/Muse-Glimmer-30B","displayName":"Muse Glimmer 30B","inputUsdPerMillion":"0.35","outputUsdPerMillion":"1.5","cacheReadUsdPerMillion":"0.04","cacheCreationUsdPerMillion":"0.4375"},
@@ -5754,6 +5759,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"together_ai/Qwen/Qwen3.8-2.4T-A95B","displayName":"Qwen3 8 2 4T A95B","inputUsdPerMillion":"2","outputUsdPerMillion":"6","cacheReadUsdPerMillion":"0.25","cacheCreationUsdPerMillion":"2.5"},
   {"modelId":"together_ai/Qwen/Qwen3.8-Flash","displayName":"Qwen3 8 Flash","inputUsdPerMillion":"0.09","outputUsdPerMillion":"0.282","cacheReadUsdPerMillion":"0.009","cacheCreationUsdPerMillion":"0.1125"},
   {"modelId":"together_ai/Qwen/QwQ-32B","displayName":"QwQ 32B","inputUsdPerMillion":"1.2","outputUsdPerMillion":"1.2","cacheReadUsdPerMillion":"0.12","cacheCreationUsdPerMillion":"1.5"},
+  {"modelId":"together_ai/Salesforce/Llama-Rank-V1","displayName":"Llama Rank V1","inputUsdPerMillion":"0.1","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0.01","cacheCreationUsdPerMillion":"0.125"},
   {"modelId":"together_ai/thinkingmachines/Inkling","displayName":"Inkling","inputUsdPerMillion":"1","outputUsdPerMillion":"4.05","cacheReadUsdPerMillion":"0.17","cacheCreationUsdPerMillion":"1.25"},
   {"modelId":"together_ai/thinkingmachines/Inkling","displayName":"Inkling","inputUsdPerMillion":"1","outputUsdPerMillion":"4.05","cacheReadUsdPerMillion":"0.17","cacheCreationUsdPerMillion":"1.25","exactOnly":true},
   {"modelId":"together_ai/together/Tev1-4B-experimental","displayName":"Tev1 4B Experimental","inputUsdPerMillion":"0.042","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0.042","cacheCreationUsdPerMillion":"0.0525"},
@@ -6021,15 +6027,15 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"vercel_ai_gateway/xai/grok-2-vision","displayName":"Grok 2 Vision","inputUsdPerMillion":"2","outputUsdPerMillion":"10","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"2.5"},
   {"modelId":"vercel_ai_gateway/xai/grok-3","displayName":"Grok 3","inputUsdPerMillion":"3","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75"},
   {"modelId":"vercel_ai_gateway/xai/grok-3-fast","displayName":"Grok 3 Fast","inputUsdPerMillion":"5","outputUsdPerMillion":"25","cacheReadUsdPerMillion":"0.5","cacheCreationUsdPerMillion":"6.25"},
-  {"modelId":"vercel_ai_gateway/xai/grok-3-mini","displayName":"Grok 3 Mini","inputUsdPerMillion":"0.3","outputUsdPerMillion":"0.5","cacheReadUsdPerMillion":"0.03","cacheCreationUsdPerMillion":"0.375"},
+  {"modelId":"vercel_ai_gateway/xai/grok-3-mini","displayName":"Grok 3 Mini","inputUsdPerMillion":"0.3","outputUsdPerMillion":"0.5","cacheReadUsdPerMillion":"0.03","cacheCreationUsdPerMillion":"0.375"}
+],
+[
   {"modelId":"vercel_ai_gateway/xai/grok-3-mini-fast","displayName":"Grok 3 Mini Fast","inputUsdPerMillion":"0.6","outputUsdPerMillion":"4","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.75"},
   {"modelId":"vercel_ai_gateway/xai/grok-4","displayName":"Grok 4","inputUsdPerMillion":"3","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75"},
   {"modelId":"vercel_ai_gateway/zai/glm-4.5","displayName":"Glm 4 5","inputUsdPerMillion":"0.6","outputUsdPerMillion":"2.2","cacheReadUsdPerMillion":"0.06","cacheCreationUsdPerMillion":"0.75"},
   {"modelId":"vercel_ai_gateway/zai/glm-4.5-air","displayName":"Glm 4 5 Air","inputUsdPerMillion":"0.2","outputUsdPerMillion":"1.1","cacheReadUsdPerMillion":"0.02","cacheCreationUsdPerMillion":"0.25"},
   {"modelId":"vercel_ai_gateway/zai/glm-4.6","displayName":"Glm 4 6","inputUsdPerMillion":"0.45","outputUsdPerMillion":"1.8","cacheReadUsdPerMillion":"0.11","cacheCreationUsdPerMillion":"0.5625"},
-  {"modelId":"vertex_ai/claude-3-5-haiku","displayName":"Claude 3 5 Haiku","inputUsdPerMillion":"1","outputUsdPerMillion":"5","cacheReadUsdPerMillion":"0.1","cacheCreationUsdPerMillion":"1.25"}
-],
-[
+  {"modelId":"vertex_ai/claude-3-5-haiku","displayName":"Claude 3 5 Haiku","inputUsdPerMillion":"1","outputUsdPerMillion":"5","cacheReadUsdPerMillion":"0.1","cacheCreationUsdPerMillion":"1.25"},
   {"modelId":"vertex_ai/claude-3-5-haiku@20241022","displayName":"Claude 3 5 Haiku 20241022","inputUsdPerMillion":"1","outputUsdPerMillion":"5","cacheReadUsdPerMillion":"0.1","cacheCreationUsdPerMillion":"1.25"},
   {"modelId":"vertex_ai/claude-3-5-sonnet","displayName":"Claude 3 5 Sonnet","inputUsdPerMillion":"3","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75"},
   {"modelId":"vertex_ai/claude-3-5-sonnet@20240620","displayName":"Claude 3 5 Sonnet 20240620","inputUsdPerMillion":"3","outputUsdPerMillion":"15","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"3.75"},
@@ -6408,7 +6414,8 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"xiaomi/mimo-v2.5-pro:thinking","displayName":"Mimo V2 5 Pro Thinking","inputUsdPerMillion":"0.435","outputUsdPerMillion":"0.87","cacheReadUsdPerMillion":"0.0036","cacheCreationUsdPerMillion":"0"},
   {"modelId":"xiaomi/mimo-v2.5:thinking","displayName":"Mimo V2 5 Thinking","inputUsdPerMillion":"0.14","outputUsdPerMillion":"0.28","cacheReadUsdPerMillion":"0.0028","cacheCreationUsdPerMillion":"0"},
   {"modelId":"xiaomi/mimo-v2.6-flash","displayName":"Mimo V2 6 Flash","inputUsdPerMillion":"0.16","outputUsdPerMillion":"0.32","cacheReadUsdPerMillion":"0.004","cacheCreationUsdPerMillion":"0.16"},
-  {"modelId":"xiaomi/mimo-v2.6-flash-uncensored","displayName":"Mimo V2 6 Flash Uncensored","inputUsdPerMillion":"0.5","outputUsdPerMillion":"1.5","cacheReadUsdPerMillion":"0.275","cacheCreationUsdPerMillion":"0.625"},
+  {"modelId":"xiaomi/mimo-v2.6-flash-uncensored","displayName":"Mimo V2 6 Flash Uncensored","inputUsdPerMillion":"0.5","outputUsdPerMillion":"1.5","cacheReadUsdPerMillion":"0.00903","cacheCreationUsdPerMillion":"0.625"},
+  {"modelId":"xiaomi/mimo-v2.6-flash-uncensored:thinking","displayName":"Mimo V2 6 Flash Uncensored Thinking","inputUsdPerMillion":"0.5","outputUsdPerMillion":"1.5","cacheReadUsdPerMillion":"0.00903","cacheCreationUsdPerMillion":"0.625"},
   {"modelId":"xiaomi/mimo-v2.6-pro","displayName":"Mimo V2 6 Pro","inputUsdPerMillion":"0.47","outputUsdPerMillion":"0.94","cacheReadUsdPerMillion":"0.005","cacheCreationUsdPerMillion":"0.47"},
   {"modelId":"xiaomi/mimo-v2.6-pro-ultraspeed","displayName":"Mimo V2 6 Pro Ultraspeed","inputUsdPerMillion":"4.35","outputUsdPerMillion":"8.7","cacheReadUsdPerMillion":"0.036","cacheCreationUsdPerMillion":"0"},
   {"modelId":"xiaomimimo/mimo-v2-flash","displayName":"Mimo V2 Flash","inputUsdPerMillion":"0.1","outputUsdPerMillion":"0.3","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"0.125"},
@@ -6459,6 +6466,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"z-ai/glm-5.3-flash-uncensored","displayName":"Glm 5 3 Flash Uncensored","inputUsdPerMillion":"0.2","outputUsdPerMillion":"0.8","cacheReadUsdPerMillion":"0.1","cacheCreationUsdPerMillion":"0.25"},
   {"modelId":"z-ai/glm-5.3-flashx","displayName":"Glm 5 3 Flashx","inputUsdPerMillion":"0.37","outputUsdPerMillion":"1.25","cacheReadUsdPerMillion":"0.09","cacheCreationUsdPerMillion":"0.4625"},
   {"modelId":"z-ai/glm-5.3-prime","displayName":"Glm 5 3 Prime","inputUsdPerMillion":"2.8","outputUsdPerMillion":"8.8","cacheReadUsdPerMillion":"0.56","cacheCreationUsdPerMillion":"3.5"},
+  {"modelId":"z-ai/glm-5.3-uncensored","displayName":"Glm 5 3 Uncensored","inputUsdPerMillion":"1.25","outputUsdPerMillion":"2.25","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"1.5625"},
   {"modelId":"z-ai/glm-5.3:thinking","displayName":"Glm 5 3 Thinking","inputUsdPerMillion":"1","outputUsdPerMillion":"3.2","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"1.25"},
   {"modelId":"z-ai/glm-5v-turbo","displayName":"Glm 5v Turbo","inputUsdPerMillion":"0.726","outputUsdPerMillion":"3.1946","cacheReadUsdPerMillion":"0.1743","cacheCreationUsdPerMillion":"0.9075","inputAbove200kUsdPerMillion":"1.0165","outputAbove200kUsdPerMillion":"3.7754","cacheReadAbove200kUsdPerMillion":"0.2614","longContextThresholdTokens":32000},
   {"modelId":"z-ai/glm-5v-turbo:thinking","displayName":"Glm 5v Turbo Thinking","inputUsdPerMillion":"1.2","outputUsdPerMillion":"4","cacheReadUsdPerMillion":"0.24","cacheCreationUsdPerMillion":"1.5"},
@@ -6521,7 +6529,9 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"zai/glm-4.6","displayName":"Glm 4 6","inputUsdPerMillion":"0.6","outputUsdPerMillion":"2.2","cacheReadUsdPerMillion":"0.11","cacheCreationUsdPerMillion":"0"},
   {"modelId":"zai/glm-4.6v","displayName":"Glm 4 6v","inputUsdPerMillion":"0.3","outputUsdPerMillion":"0.9","cacheReadUsdPerMillion":"0.05","cacheCreationUsdPerMillion":"0.375"},
   {"modelId":"zai/glm-4.6v-flashx","displayName":"Glm 4 6v Flashx","inputUsdPerMillion":"0.04","outputUsdPerMillion":"0.4","cacheReadUsdPerMillion":"0.004","cacheCreationUsdPerMillion":"0.05"},
-  {"modelId":"zai/glm-4.7","displayName":"Glm 4 7","inputUsdPerMillion":"0.6","outputUsdPerMillion":"2.2","cacheReadUsdPerMillion":"0.11","cacheCreationUsdPerMillion":"0"},
+  {"modelId":"zai/glm-4.7","displayName":"Glm 4 7","inputUsdPerMillion":"0.6","outputUsdPerMillion":"2.2","cacheReadUsdPerMillion":"0.11","cacheCreationUsdPerMillion":"0"}
+],
+[
   {"modelId":"zai/glm-4.7","displayName":"Glm 4 7","inputUsdPerMillion":"0.6","outputUsdPerMillion":"2.2","cacheReadUsdPerMillion":"0.11","cacheCreationUsdPerMillion":"0"},
   {"modelId":"zai/glm-4.7-flash","displayName":"Glm 4 7 Flash","inputUsdPerMillion":"0","outputUsdPerMillion":"0","cacheReadUsdPerMillion":"0","cacheCreationUsdPerMillion":"0"},
   {"modelId":"zai/glm-4.7-flash","displayName":"Glm 4 7 Flash","inputUsdPerMillion":"0.07","outputUsdPerMillion":"0.4","cacheReadUsdPerMillion":"0.007","cacheCreationUsdPerMillion":"0.0875"},
@@ -6529,9 +6539,7 @@ export const CCUSAGE_SNAPSHOT_PRICING: PricingProfile[] = ([] as PricingProfile[
   {"modelId":"zai/glm-5","displayName":"Glm 5","inputUsdPerMillion":"1","outputUsdPerMillion":"3.2","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"0"},
   {"modelId":"zai/glm-5","displayName":"Glm 5","inputUsdPerMillion":"1","outputUsdPerMillion":"3.2","cacheReadUsdPerMillion":"0.2","cacheCreationUsdPerMillion":"0"},
   {"modelId":"zai/glm-5-code","displayName":"Glm 5 Code","inputUsdPerMillion":"1.2","outputUsdPerMillion":"5","cacheReadUsdPerMillion":"0.3","cacheCreationUsdPerMillion":"0"},
-  {"modelId":"zai/glm-5-turbo","displayName":"Glm 5 Turbo","inputUsdPerMillion":"1.2","outputUsdPerMillion":"4","cacheReadUsdPerMillion":"0.24","cacheCreationUsdPerMillion":"0"}
-],
-[
+  {"modelId":"zai/glm-5-turbo","displayName":"Glm 5 Turbo","inputUsdPerMillion":"1.2","outputUsdPerMillion":"4","cacheReadUsdPerMillion":"0.24","cacheCreationUsdPerMillion":"0"},
   {"modelId":"zai/glm-5.1","displayName":"Glm 5 1","inputUsdPerMillion":"1.4","outputUsdPerMillion":"4.4","cacheReadUsdPerMillion":"0.26","cacheCreationUsdPerMillion":"0"},
   {"modelId":"zai/glm-5.1","displayName":"Glm 5 1","inputUsdPerMillion":"1.4","outputUsdPerMillion":"4.4","cacheReadUsdPerMillion":"0.26","cacheCreationUsdPerMillion":"0"},
   {"modelId":"zai/glm-5.2","displayName":"Glm 5 2","inputUsdPerMillion":"1.4","outputUsdPerMillion":"4.4","cacheReadUsdPerMillion":"0.26","cacheCreationUsdPerMillion":"0"},
