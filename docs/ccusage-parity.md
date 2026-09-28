@@ -194,7 +194,9 @@ The 2026-09-27 pass observed only `flake.lock` movement and a models.dev catalog
 
 ## Automation Policy
 
-A daily automation monitors ccusage for adapter, parser, loader, path, and pricing drift. It should only auto-implement and publish changes that are directly migratable into TokenFlow's local collector model:
+A recurring automation monitors ccusage for adapter, parser, loader, path, and pricing drift. Since 2026-09-29, pricing-only changes are generated and deployed in TokenFlow_Server; they no longer require a TokenFlow collector package release. The collector's bundled table remains an offline estimate. Collector changes are reserved for local log parsing, normalization needed before upload, or new raw pricing signals that cannot be reconstructed on the server.
+
+Only auto-implement collector changes that are directly migratable into TokenFlow's local collector model:
 
 - local JSON, JSONL, or SQLite source files with stable paths;
 - token field mapping that can be tested with fixtures;

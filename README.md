@@ -190,6 +190,7 @@ tokenflow logout
 ## Pricing Model
 
 TokenFlow calculates costs locally before upload.
+The hosted dashboard recalculates costs from uploaded token counts using the server's current pricing table. The local table supports offline estimates and `status`; hosted price-only updates do not require a collector upgrade. Historical server estimates cannot recover pricing signals that an older collector never uploaded.
 
 - Built-in pricing covers known Codex, Claude, Gemini, OpenCode, and cc-switch-inspired
   third-party coding/provider model IDs including DeepSeek, Kimi K2, MiniMax, GLM,
