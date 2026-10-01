@@ -4,3 +4,8 @@ dist/
 *.log
 .DS_Store
 AGENTS.md
+
+# Keep development notes local; only user docs and assets belong in docs/.
+/docs/*
+!/docs/i18n/
+!/docs/assets/

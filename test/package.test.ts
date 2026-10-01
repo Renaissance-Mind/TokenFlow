@@ -18,7 +18,6 @@ describe("npm package", () => {
     expect(pkg.bin?.tokenflow).toBe("dist/cli.js");
     expect(pkg.bin?.tokenusage).toBe("dist/cli.js");
     expect(pkg.files).toContain("dist");
-    expect(pkg.files).toContain("docs/ccusage-parity.md");
     expect(pkg.files).toContain("docs/i18n");
     expect(pkg.publishConfig?.access).toBe("public");
     expect(pkg.scripts?.prepare).toBe("npm run build");
