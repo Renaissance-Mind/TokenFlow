@@ -1,7 +1,11 @@
 {
   "name": "@renaissancemind/tokenflow",
-  "version": "0.2.64",
+  "version": "0.2.65",
   "description": "Local token usage collector for multi-device AI agent accounting.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Renaissance-Mind/TokenFlow.git"
+  },
   "type": "module",
   "bin": {
     "tokenflow": "dist/cli.js",
