@@ -5,7 +5,7 @@ import { toUsageSnapshotPayload } from "../src/ingest-payload.js";
 
 // Schema-faithful records from dsh Session codecs and token-meter usage projection.
 const time = Date.parse("2026-10-01T01:05:00Z");
-const header = (version = 3, extra = {}) => ({ type: "session", version, id: "session-a", createdAt: time, isSeeded: false, delegationDepth: 0, ...extra });
+const header = (version = 3, extra = {}) => ({ type: "session", version, id: "session-a", createdAt: time, ...(version >= 2 ? { isSeeded: false } : {}), delegationDepth: 0, ...extra });
 const row = (type: string, seq: number, data: unknown) => ({ type, seq, time, data });
 const request = row("request/header", 0, { header: { config: { provider: "deepseek-official", model: "deepseek-v4-flash" } } });
 const usage = { inputTokens: 100, outputTokens: 30, cacheReadTokens: 20, cacheWriteTokens: 10, reasoningTokens: 5, totalTokens: 160 };
@@ -49,7 +49,7 @@ describe("dsh Session accounting", () => {
   });
 
   it.each([0, 1, 2, 3, 4])("reads released/current format %i without counting chunk usage twice", (version) => {
-    const records = [header(version, version < 2 ? { seedLength: 2 } : {}), request, settlement(1), row("assistant/chunk", 2, { turn: 2, step: 1, chunk: { type: "usage", usage } }), settlement(3, 2)];
+    const records = [header(version, version < 2 ? { seedLength: 2 } : {}), request, settlement(1), version < 2 ? row("assistant/chunk", 2, { turn: 2, step: 1, chunk: { type: "usage", usage } }) : row("step/start", 2, { turn: 2, step: 1 }), settlement(3, 2)];
     const file = `/session${version ? `.v${version}` : ""}.jsonl`;
     const events = parseDshJsonl(records.map((record) => JSON.stringify(record)).join("\n"), file);
     expect(events).toHaveLength(version < 2 ? 1 : 2);
