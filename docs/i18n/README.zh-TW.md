@@ -11,7 +11,7 @@
 
 [功能](#功能) - [安裝](#安裝) - [快速開始](#快速開始) - [命令](#命令) - [設定](#設定) - [開發](#開發)
 
-TokenFlow 是一個可安裝的本地採集器，用於統計多裝置 AI Agent 的 token 使用量。它會掃描本地 Codex、Claude Code、Gemini CLI、OpenCode、Kimi CLI、Qwen Code、Amp、Codebuff、Droid、Goose、Hermes、Kilo、OpenClaw 和 Pi 使用資料，按 UTC 半小時 bucket、Agent 和模型彙總 token 數量，計算已知模型成本，並只把使用元資料上傳到 TokenFlow 伺服器。
+TokenFlow 是一個可安裝的本地採集器，用於統計多裝置 AI Agent 的 token 使用量。它會掃描本地 Codex、Claude Code、Gemini CLI、OpenCode、Kimi CLI、Qwen Code、Amp、Codebuff、Droid、Goose、Hermes、Kilo、OpenClaw、Pi 和 DeepSeek Harness（dsh） 使用資料，按 UTC 半小時 bucket、Agent 和模型彙總 token 數量，計算已知模型成本，並只把使用元資料上傳到 TokenFlow 伺服器。
 
 提示詞和回覆內容會留在你的機器上。上傳資料只包含計數、模型名稱、bucket 時間戳、計價狀態，以及可選的裝置元資料。
 
@@ -37,7 +37,7 @@ Home: /Users/alice/.tokenflow
 ## 功能
 
 - 🔐 **本地優先採集** - 在本機讀取 Agent 日誌，只上傳元資料。
-- 🤖 **多 Agent 支援** - 支援 Codex、Claude Code、Gemini CLI、OpenCode、Kimi CLI、Qwen Code、Amp、Codebuff、Droid、Goose、Hermes、Kilo、OpenClaw 和 Pi。
+- 🤖 **多 Agent 支援** - 支援 Codex、Claude Code、Gemini CLI、OpenCode、Kimi CLI、Qwen Code、Amp、Codebuff、Droid、Goose、Hermes、Kilo、OpenClaw、Pi 和 DeepSeek Harness（dsh）。
 - 📊 **UTC 半小時 bucket** - 保留本地使用細節，同時 dashboard 仍可按天彙總。
 - 💸 **成本感知統計** - 區分 fresh input、cached input、cache creation、output 和 reasoning output tokens。
 - 🧾 **未計價模型可見** - 未知模型仍然計入 token，並標記為 `unpriced`。
@@ -63,6 +63,7 @@ Home: /Users/alice/.tokenflow
 | Kilo | `~/.local/share/kilo/kilo.db` | 需要 `PATH` 中存在 `sqlite3`。 |
 | OpenClaw | `~/.openclaw`、`~/.clawdbot`、`~/.moltbot` 和 `~/.moldbot` JSONL sessions | 追蹤 model-change 行並關聯後續 assistant usage。 |
 | Pi | `~/.pi/agent/sessions/**/*.jsonl` | 讀取 assistant message usage 行。 |
+| DeepSeek Harness (dsh) | `~/.dsh/sessions/**/session*.jsonl` or `session*.jsonl.zstd` | 讀取普通或 Zstandard 壓縮的 Session 0–4 格式；選擇最新版本並排除分叉繼承的歷史用量。 |
 
 TokenFlow 不會上傳來源檔案路徑、session ID、提示詞或回覆內容。
 
@@ -198,6 +199,8 @@ TokenFlow 會在上傳前本地計算成本。
 | `KILO_DATA_DIR` | Kilo 資料根目錄，或逗號分隔的多個根目錄。預設 `~/.local/share/kilo`。 |
 | `OPENCLAW_DIR` | OpenClaw 相容根目錄，可用逗號分隔。預設 `~/.openclaw`、`~/.clawdbot`、`~/.moltbot` 和 `~/.moldbot`。 |
 | `PI_AGENT_DIR` | Pi agent sessions 根目錄，或逗號分隔的多個根目錄。預設 `~/.pi/agent/sessions`。 |
+| `DSH_HOME` | dsh 主目錄，預設 `~/.dsh`；讀取其 `sessions/` 目錄。 |
+| `DSH_SESSIONS_DIR` | 自訂 dsh 會話根目錄，多個目錄以逗號分隔；優先於 `DSH_HOME`。 |
 | `XDG_DATA_HOME` | 未設定 `OPENCODE_DB` 和 `OPENCODE_HOME` 時用於解析 OpenCode 資料目錄。 |
 
 ### 自動同步使用本地 checkout

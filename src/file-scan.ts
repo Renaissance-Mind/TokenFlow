@@ -10,6 +10,7 @@ import { createClaudeJsonlParser } from "./sources/claude.js";
 import { createCodexJsonlParser } from "./sources/codex.js";
 import { parseCodebuffChatMessages } from "./sources/codebuff.js";
 import { extractDroidModelFromLine, parseDroidSettings } from "./sources/droid.js";
+import { collectDshUsage, resolveDshSessionDirs } from "./sources/dsh.js";
 import { parseGeminiSession } from "./sources/gemini.js";
 import { parseGooseSessionRow, type GooseSessionRow } from "./sources/goose.js";
 import { parseHermesSessionRow, type HermesSessionRow } from "./sources/hermes.js";
@@ -59,6 +60,7 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
   const openclawRoots = await existingDirs(resolveOpenClawRoots(home));
   const piRoots = await existingDirs(resolveDataDirs("PI_AGENT_DIR", home, ".pi/agent/sessions"));
   const codexServiceTier = await readCodexServiceTier(codexHome);
+  const dsh = await collectDshUsage(resolveDshSessionDirs(home));
 
   const codexFiles = [
     ...(await listFiles(path.join(codexHome, "sessions"), (file) =>
@@ -88,6 +90,7 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
   );
 
   const events: UsageEvent[] = [];
+  events.push(...dsh.events);
   for (const file of codexFiles) {
     events.push(...(await readJsonlEvents(file, (options) => createCodexJsonlParser({ ...options, serviceTier: codexServiceTier }))));
   }
@@ -147,6 +150,12 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
     events,
     pricingProfiles: [],
     sources: [
+      {
+        agent: "dsh",
+        path: sourcePathLabel(dsh.roots, resolveDshSessionDirs(home)),
+        files: dsh.files.length,
+        exists: dsh.roots.length > 0,
+      },
       {
         agent: "codex",
         path: path.join(codexHome, "sessions"),

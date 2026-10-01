@@ -11,7 +11,7 @@
 
 [기능](#기능) - [설치](#설치) - [빠른 시작](#빠른-시작) - [명령어](#명령어) - [설정](#설정) - [개발](#개발)
 
-TokenFlow는 여러 기기에서 사용하는 AI Agent의 사용량을 집계하는 설치형 로컬 collector입니다. 로컬의 Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, and Pi 사용 데이터를 스캔하고, UTC 30분 bucket, Agent, 모델별로 token 수를 집계하며, 알려진 모델의 비용을 계산한 뒤 사용 메타데이터만 TokenFlow 서버로 업로드합니다.
+TokenFlow는 여러 기기에서 사용하는 AI Agent의 사용량을 집계하는 설치형 로컬 collector입니다. 로컬의 Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, Pi, and DeepSeek Harness (dsh) 사용 데이터를 스캔하고, UTC 30분 bucket, Agent, 모델별로 token 수를 집계하며, 알려진 모델의 비용을 계산한 뒤 사용 메타데이터만 TokenFlow 서버로 업로드합니다.
 
 프롬프트와 응답 본문은 사용자의 머신에 남습니다. 업로드되는 payload에는 count, 모델명, bucket timestamp, pricing status, 선택적인 device metadata만 포함됩니다.
 
@@ -37,7 +37,7 @@ Home: /Users/alice/.tokenflow
 ## 기능
 
 - 🔐 **로컬 우선 수집** - Agent 로그를 로컬에서 읽고 메타데이터만 업로드합니다.
-- 🤖 **다중 Agent 지원** - Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, and Pi.
+- 🤖 **다중 Agent 지원** - Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, Pi, and DeepSeek Harness (dsh).
 - 📊 **UTC 30분 bucket** - 로컬 사용 상세를 유지하면서 dashboard에서는 일별 요약도 가능합니다.
 - 💸 **비용 인식 집계** - fresh input, cached input, cache creation, output, reasoning output tokens를 분리합니다.
 - 🧾 **미가격 모델 가시화** - 알 수 없는 모델도 token으로 집계하고 `unpriced`로 표시합니다.
@@ -63,6 +63,7 @@ Home: /Users/alice/.tokenflow
 | Kilo | `~/.local/share/kilo/kilo.db` | Requires `sqlite3` on `PATH`. |
 | OpenClaw | `~/.openclaw`, `~/.clawdbot`, `~/.moltbot`, and `~/.moldbot` JSONL sessions | Tracks model-change rows for following assistant usage. |
 | Pi | `~/.pi/agent/sessions/**/*.jsonl` | Reads assistant message usage rows. |
+| DeepSeek Harness (dsh) | `~/.dsh/sessions/**/session*.jsonl` or `session*.jsonl.zstd` | 일반 또는 Zstandard 압축 Session 0–4 형식을 읽고 최신 세대를 선택하며 분기에서 상속된 사용량을 제외합니다. |
 
 TokenFlow는 source file path, session ID, prompt, response 본문을 업로드하지 않습니다.
 
@@ -198,6 +199,8 @@ TokenFlow는 업로드 전에 로컬에서 비용을 계산합니다.
 | `KILO_DATA_DIR` | Kilo data root, or comma-separated roots. Defaults to `~/.local/share/kilo`. |
 | `OPENCLAW_DIR` | OpenClaw-compatible roots, comma-separated. Defaults to `~/.openclaw`, `~/.clawdbot`, `~/.moltbot`, and `~/.moldbot`. |
 | `PI_AGENT_DIR` | Pi agent sessions root, or comma-separated roots. Defaults to `~/.pi/agent/sessions`. |
+| `DSH_HOME` | dsh 홈. 기본값은 `~/.dsh`이며 `sessions/`를 읽습니다. |
+| `DSH_SESSIONS_DIR` | 쉼표로 구분한 dsh 세션 루트. `DSH_HOME`보다 우선합니다. |
 | `XDG_DATA_HOME` | Used to resolve OpenCode data when `OPENCODE_DB` and `OPENCODE_HOME` are unset. |
 
 ### 자동 동기화에서 로컬 checkout 사용

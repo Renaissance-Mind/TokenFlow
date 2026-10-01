@@ -11,7 +11,7 @@
 
 [機能](#機能) - [インストール](#インストール) - [クイックスタート](#クイックスタート) - [コマンド](#コマンド) - [設定](#設定) - [開発](#開発)
 
-TokenFlow は、複数デバイスの AI Agent 利用量を集計するためのインストール可能なローカルコレクターです。ローカルの Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, and Pi の使用データを読み取り、UTC 30 分 bucket、Agent、モデルごとに token 数を集計し、既知モデルのコストを計算して、使用メタデータだけを TokenFlow サーバーへアップロードします。
+TokenFlow は、複数デバイスの AI Agent 利用量を集計するためのインストール可能なローカルコレクターです。ローカルの Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, Pi, and DeepSeek Harness (dsh) の使用データを読み取り、UTC 30 分 bucket、Agent、モデルごとに token 数を集計し、既知モデルのコストを計算して、使用メタデータだけを TokenFlow サーバーへアップロードします。
 
 プロンプトと応答本文はあなたのマシンに残ります。アップロードされるのは、カウント、モデル名、bucket のタイムスタンプ、課金ステータス、任意のデバイスメタデータだけです。
 
@@ -37,7 +37,7 @@ Home: /Users/alice/.tokenflow
 ## 機能
 
 - 🔐 **ローカル優先の収集** - Agent ログをローカルで読み取り、メタデータだけをアップロードします。
-- 🤖 **複数 Agent 対応** - Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, and Pi に対応します。
+- 🤖 **複数 Agent 対応** - Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, Pi, and DeepSeek Harness (dsh) に対応します。
 - 📊 **UTC 30 分 bucket** - ローカルの使用詳細を保ちながら、dashboard では日次集計もできます。
 - 💸 **コストを意識した集計** - fresh input、cached input、cache creation、output、reasoning output tokens を分けて扱います。
 - 🧾 **未価格モデルの可視化** - 未知のモデルも token として集計し、`unpriced` として明示します。
@@ -63,6 +63,7 @@ Home: /Users/alice/.tokenflow
 | Kilo | `~/.local/share/kilo/kilo.db` | Requires `sqlite3` on `PATH`. |
 | OpenClaw | `~/.openclaw`, `~/.clawdbot`, `~/.moltbot`, and `~/.moldbot` JSONL sessions | Tracks model-change rows for following assistant usage. |
 | Pi | `~/.pi/agent/sessions/**/*.jsonl` | Reads assistant message usage rows. |
+| DeepSeek Harness (dsh) | `~/.dsh/sessions/**/session*.jsonl` or `session*.jsonl.zstd` | 通常または Zstandard 圧縮の Session 0–4 形式を読み取り、最新世代を選択し、分岐で継承した使用量を除外します。 |
 
 TokenFlow は、ソースファイルパス、session ID、プロンプト、応答本文をアップロードしません。
 
@@ -198,6 +199,8 @@ TokenFlow はアップロード前にローカルでコストを計算します�
 | `KILO_DATA_DIR` | Kilo data root, or comma-separated roots. Defaults to `~/.local/share/kilo`. |
 | `OPENCLAW_DIR` | OpenClaw-compatible roots, comma-separated. Defaults to `~/.openclaw`, `~/.clawdbot`, `~/.moltbot`, and `~/.moldbot`. |
 | `PI_AGENT_DIR` | Pi agent sessions root, or comma-separated roots. Defaults to `~/.pi/agent/sessions`. |
+| `DSH_HOME` | dsh ホーム。既定は `~/.dsh`。`sessions/` を読み取ります。 |
+| `DSH_SESSIONS_DIR` | カンマ区切りの dsh セッションルート。`DSH_HOME` より優先します。 |
 | `XDG_DATA_HOME` | Used to resolve OpenCode data when `OPENCODE_DB` and `OPENCODE_HOME` are unset. |
 
 ### 自動同期でローカル checkout を使う

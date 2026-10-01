@@ -11,7 +11,7 @@
 
 [Özellikler](#özellikler) - [Kurulum](#kurulum) - [Hızlı başlangıç](#hızlı-başlangıç) - [Komutlar](#komutlar) - [Yapılandırma](#yapılandırma) - [Geliştirme](#geliştirme)
 
-TokenFlow, birden fazla cihazdaki AI agent kullanımını hesaplamak için kurulabilir bir yerel collector'dır. Yerel Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, and Pi kullanım verilerini tarar; token sayılarını UTC yarım saatlik bucket'larda agent ve modele göre toplar; bilinen maliyetleri hesaplar ve yalnızca kullanım metadatasını TokenFlow sunucusuna yükler.
+TokenFlow, birden fazla cihazdaki AI agent kullanımını hesaplamak için kurulabilir bir yerel collector'dır. Yerel Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, Pi, and DeepSeek Harness (dsh) kullanım verilerini tarar; token sayılarını UTC yarım saatlik bucket'larda agent ve modele göre toplar; bilinen maliyetleri hesaplar ve yalnızca kullanım metadatasını TokenFlow sunucusuna yükler.
 
 Prompt'lar ve yanıt metinleri makinenizde kalır. Yüklenen payload sadece sayımlar, model adları, bucket zaman damgaları, pricing status ve isteğe bağlı cihaz metadatası içerir.
 
@@ -37,7 +37,7 @@ Home: /Users/alice/.tokenflow
 ## Özellikler
 
 - 🔐 **Local-first toplama** - agent loglarını yerelde okur ve yalnızca metadata yükler.
-- 🤖 **Çoklu agent desteği** - Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, and Pi.
+- 🤖 **Çoklu agent desteği** - Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, Pi, and DeepSeek Harness (dsh).
 - 📊 **UTC yarım saatlik bucket'lar** - yerel kullanım detayını korurken dashboard'lar yine günlük özet gösterebilir.
 - 💸 **Maliyet farkındalığı** - fresh input, cached input, cache creation, output ve reasoning output tokens ayrılır.
 - 🧾 **Fiyatlandırılmamış model görünürlüğü** - bilinmeyen modeller sayılır ve `unpriced` olarak işaretlenir.
@@ -63,6 +63,7 @@ Home: /Users/alice/.tokenflow
 | Kilo | `~/.local/share/kilo/kilo.db` | Requires `sqlite3` on `PATH`. |
 | OpenClaw | `~/.openclaw`, `~/.clawdbot`, `~/.moltbot`, and `~/.moldbot` JSONL sessions | Tracks model-change rows for following assistant usage. |
 | Pi | `~/.pi/agent/sessions/**/*.jsonl` | Reads assistant message usage rows. |
+| DeepSeek Harness (dsh) | `~/.dsh/sessions/**/session*.jsonl` or `session*.jsonl.zstd` | Düz veya Zstandard sıkıştırmalı Session 0–4 biçimlerini okur; en yeni nesli seçer ve dallanmadan miras kalan kullanımı hariç tutar. |
 
 TokenFlow source file path, session ID, prompt veya response içeriğini yüklemez.
 
@@ -198,6 +199,8 @@ Environment variable override'ları:
 | `KILO_DATA_DIR` | Kilo data root, or comma-separated roots. Defaults to `~/.local/share/kilo`. |
 | `OPENCLAW_DIR` | OpenClaw-compatible roots, comma-separated. Defaults to `~/.openclaw`, `~/.clawdbot`, `~/.moltbot`, and `~/.moldbot`. |
 | `PI_AGENT_DIR` | Pi agent sessions root, or comma-separated roots. Defaults to `~/.pi/agent/sessions`. |
+| `DSH_HOME` | dsh ana dizini. Varsayılan `~/.dsh`; `sessions/` okunur. |
+| `DSH_SESSIONS_DIR` | Virgülle ayrılmış dsh oturum kökleri; `DSH_HOME` değerinden önceliklidir. |
 | `XDG_DATA_HOME` | Used to resolve OpenCode data when `OPENCODE_DB` and `OPENCODE_HOME` are unset. |
 
 ### Auto-sync içinde yerel checkout kullanma

@@ -1,7 +1,8 @@
 # Third-Party Notices
 
 TokenFlow includes implementation ideas and behavior derived from the following MIT-licensed
-projects. TokenFlow does not vendor these packages as runtime dependencies.
+projects. The adapter and product references are not runtime dependencies;
+runtime libraries are identified separately below.
 
 ## ccusage
 
@@ -22,6 +23,22 @@ projects. TokenFlow does not vendor these packages as runtime dependencies.
 - Project: https://github.com/vibe-cafe/vibe-usage
 - License: MIT
 - Used for: CLI product-flow references around local collection and upload.
+
+## DeepSeek Harness
+
+- Project: https://github.com/deepseek-ai/deepseek-harness
+- Copyright: Copyright (c) 2026 DeepSeek
+- License: MIT
+- Used for: dsh Session log discovery, versioned physical formats, token-field semantics,
+  inherited-history boundaries, and retry/settlement accounting. TokenFlow reads local
+  logs with its own adapter and does not run or vendor the harness.
+
+## fzstd (runtime dependency)
+
+- Project: https://github.com/101arrowz/fzstd
+- Copyright: Copyright (c) 2020 Arjun Barrett
+- License: MIT
+- Used for: streaming decompression of local dsh Zstandard session logs on Node.js 20+.
 
 ## MIT License Text
 

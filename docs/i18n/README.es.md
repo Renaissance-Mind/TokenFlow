@@ -11,7 +11,7 @@
 
 [Características](#características) - [Instalación](#instalación) - [Inicio rápido](#inicio-rápido) - [Comandos](#comandos) - [Configuración](#configuración) - [Desarrollo](#desarrollo)
 
-TokenFlow es un collector local instalable para contabilizar el uso de AI agents en varios dispositivos. Escanea datos locales de Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, and Pi, agrega tokens en buckets UTC de media hora por agent y modelo, calcula costos conocidos y sube solo metadatos de uso a un servidor TokenFlow.
+TokenFlow es un collector local instalable para contabilizar el uso de AI agents en varios dispositivos. Escanea datos locales de Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, Pi, and DeepSeek Harness (dsh), agrega tokens en buckets UTC de media hora por agent y modelo, calcula costos conocidos y sube solo metadatos de uso a un servidor TokenFlow.
 
 Los prompts y las respuestas permanecen en tu máquina. El payload subido contiene conteos, nombres de modelos, timestamps de buckets, estado de pricing y metadatos opcionales del dispositivo.
 
@@ -37,7 +37,7 @@ Home: /Users/alice/.tokenflow
 ## Características
 
 - 🔐 **Colección local-first** - lee logs de agents localmente y sube solo metadatos.
-- 🤖 **Soporte multi-agent** - Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, and Pi.
+- 🤖 **Soporte multi-agent** - Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, Pi, and DeepSeek Harness (dsh).
 - 📊 **Buckets UTC de media hora** - conserva detalle local mientras los dashboards pueden resumir por día.
 - 💸 **Contabilidad consciente del costo** - separa fresh input, cached input, cache creation, output y reasoning output tokens.
 - 🧾 **Visibilidad de modelos sin precio** - los modelos desconocidos se cuentan y se marcan como `unpriced`.
@@ -63,6 +63,7 @@ Home: /Users/alice/.tokenflow
 | Kilo | `~/.local/share/kilo/kilo.db` | Requires `sqlite3` on `PATH`. |
 | OpenClaw | `~/.openclaw`, `~/.clawdbot`, `~/.moltbot`, and `~/.moldbot` JSONL sessions | Tracks model-change rows for following assistant usage. |
 | Pi | `~/.pi/agent/sessions/**/*.jsonl` | Reads assistant message usage rows. |
+| DeepSeek Harness (dsh) | `~/.dsh/sessions/**/session*.jsonl` or `session*.jsonl.zstd` | Lee formatos Session 0–4 sin comprimir o con Zstandard; selecciona la generación más reciente y excluye el uso heredado de bifurcaciones. |
 
 TokenFlow no sube rutas de archivos fuente, session IDs, prompts ni respuestas.
 
@@ -198,6 +199,8 @@ Overrides por variables de entorno:
 | `KILO_DATA_DIR` | Kilo data root, or comma-separated roots. Defaults to `~/.local/share/kilo`. |
 | `OPENCLAW_DIR` | OpenClaw-compatible roots, comma-separated. Defaults to `~/.openclaw`, `~/.clawdbot`, `~/.moltbot`, and `~/.moldbot`. |
 | `PI_AGENT_DIR` | Pi agent sessions root, or comma-separated roots. Defaults to `~/.pi/agent/sessions`. |
+| `DSH_HOME` | Directorio de dsh. Predeterminado: `~/.dsh`; lee `sessions/`. |
+| `DSH_SESSIONS_DIR` | Raíces de sesiones dsh separadas por comas; tienen prioridad sobre `DSH_HOME`. |
 | `XDG_DATA_HOME` | Used to resolve OpenCode data when `OPENCODE_DB` and `OPENCODE_HOME` are unset. |
 
 ### Usar un checkout local en auto-sync

@@ -13,6 +13,7 @@ export type AgentSource =
   | "kilo"
   | "openclaw"
   | "pi"
+  | "dsh"
   | "unknown";
 
 export interface UsageTotals {
