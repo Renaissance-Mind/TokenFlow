@@ -14,7 +14,7 @@ export function aggregateEvents(events: UsageEvent[], pricingProfiles: PricingPr
 
   for (const event of events) {
     const bucketStart = event.bucketStart;
-    const key = `${event.agent}|${event.model}|${bucketStart}`;
+    const key = `${event.agent}|${event.model}|${event.pricingModel || event.model}|${bucketStart}`;
     const bucket =
       buckets.get(key) ||
       ({

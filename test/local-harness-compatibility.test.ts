@@ -24,6 +24,7 @@ import { aggregateEvents } from "../src/usage-buckets.js";
 import { toUsageSnapshotPayload } from "../src/ingest-payload.js";
 import { normalizeAgentModelForUsage } from "../src/pricing.js";
 import { optionalDecimalString } from "../src/sources/ccusage-common.js";
+import { emptySyncState, markSyncPlanUploaded, planIncrementalSync } from "../src/sync-state.js";
 
 // Schemas and wire fields from ccusage bb24af0 rust/adapters/{grok,zcode,antigravity,openclaw,kimi,codex,pi} tests.
 const originalEnv = { ...process.env };
@@ -49,6 +50,19 @@ const jsonl = (...rows: object[]) =>
   rows.map((row) => JSON.stringify(row)).join("\n");
 
 describe("local harness compatibility", () => {
+  it("keeps same-name models with distinct provider prices separate during aggregation and sync", () => {
+    const base = { agent: "claude" as const, model: "claude-opus-4-8", sourcePath: "usage.jsonl", sessionId: "s",
+      timestamp: "2026-06-09T00:00:00Z", bucketStart: "2026-06-09T00:00:00.000Z", inputTokens: 1000, cachedInputTokens: 0,
+      outputTokens: 0, reasoningOutputTokens: 0, cacheCreationTokens: 0, totalTokens: 1000 };
+    const buckets = aggregateEvents([{ ...base, pricingModel: "claude-opus-4-8" }, { ...base, pricingModel: "stealth/claude-opus-4.8" }]);
+    expect(buckets).toHaveLength(2);
+    expect(buckets.reduce((sum, bucket) => sum + Number(bucket.cost.totalUsd), 0)).toBeCloseTo(0.009);
+    const plan = planIncrementalSync(buckets, emptySyncState());
+    expect(plan.buckets).toHaveLength(2);
+    const state = markSyncPlanUploaded(emptySyncState(), plan, "2026-06-09T01:00:00Z");
+    expect(planIncrementalSync(buckets, state).buckets).toHaveLength(0);
+    expect(toUsageSnapshotPayload(buckets).daily[0].slots).toHaveLength(2);
+  });
   it("retains future provider model identity and safely normalizes tiny recorded USD values", () => {
     expect(normalizeAgentModelForUsage("opencode", "openai/future-coding-model")).toMatchObject({ model: "future-coding-model", pricingModel: "openai/future-coding-model" });
     expect(optionalDecimalString(1e-10)).toBe("0.0000000001");

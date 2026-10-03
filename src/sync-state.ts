@@ -122,7 +122,9 @@ export function markSyncPlanUploaded(state: SyncState, plan: IncrementalSyncPlan
 }
 
 export function bucketSyncKey(bucket: UsageBucket): string {
-  return ["half_hour", bucket.agent, bucket.model, bucket.bucketStart].join("\t");
+  const identity = ["half_hour", bucket.agent, bucket.model, bucket.bucketStart];
+  if (bucket.pricingModel && bucket.pricingModel !== bucket.model) identity.push(bucket.pricingModel);
+  return identity.join("\t");
 }
 
 export function bucketFingerprint(bucket: UsageBucket): string {
