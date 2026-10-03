@@ -50,6 +50,21 @@ const jsonl = (...rows: object[]) =>
   rows.map((row) => JSON.stringify(row)).join("\n");
 
 describe("local harness compatibility", () => {
+  it("deduplicates a Pi fork against its parent's active branch while retaining spent sibling requests", async () => {
+    const home = await root(); const dir = path.join(home, "sessions");
+    const header = { type: "session", id: "parent", timestamp: "2026-01-01T00:00:00Z" };
+    const rootEntry = { type: "message", id: "root", parentId: null, message: { role: "user" } };
+    const request = (id: string, parentId: string, input: number, timestamp: string) => ({ type: "message", id, parentId, timestamp, message: { role: "assistant", model: "gpt-5.5", usage: { input, output: 0 } } });
+    const a = request("a", "root", 100, "2026-01-02T00:00:00Z");
+    const b = request("b", "root", 200, "2026-01-02T00:01:00Z");
+    const c = request("c", "a", 50, "2026-01-02T00:02:00Z");
+    await put(path.join(dir, "parent.jsonl"), jsonl(header, rootEntry, a, b, c));
+    await put(path.join(dir, "child.jsonl"), jsonl({ ...header, id: "child", parentSession: "parent.jsonl", timestamp: "2026-01-03T00:00:00Z" }, rootEntry, a, c,
+      request("own", "c", 30, "2026-01-04T00:00:00Z")));
+    const events = (await collectPiStores(home, [dir])).events;
+    expect(events).toHaveLength(4);
+    expect(events.reduce((sum, event) => sum + event.totalTokens, 0)).toBe(380);
+  });
   it("keeps same-name models with distinct provider prices separate during aggregation and sync", () => {
     const base = { agent: "claude" as const, model: "claude-opus-4-8", sourcePath: "usage.jsonl", sessionId: "s",
       timestamp: "2026-06-09T00:00:00Z", bucketStart: "2026-06-09T00:00:00.000Z", inputTokens: 1000, cachedInputTokens: 0,

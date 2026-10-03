@@ -15,11 +15,16 @@ import type { UsageEvent, AgentSource } from "../types.js";
 import fs from "node:fs/promises";
 import { optionalJson, readStoreLines, storeFiles } from "./store-io.js";
 
-export function parsePiJsonl(jsonl: string, options: ParseOptions): UsageEvent[] {
+export function parsePiJsonl(
+  jsonl: string,
+  options: ParseOptions,
+): UsageEvent[] {
   return parseJsonlWithParser(jsonl, createPiJsonlParser(options));
 }
 
-export function createPiJsonlParser(options: ParseOptions & { agent?: AgentSource }): JsonlUsageParser {
+export function createPiJsonlParser(
+  options: ParseOptions & { agent?: AgentSource },
+): JsonlUsageParser {
   const events: UsageEvent[] = [];
   let sessionId = piSessionIdFromPath(options.sourcePath);
 
@@ -27,9 +32,12 @@ export function createPiJsonlParser(options: ParseOptions & { agent?: AgentSourc
     pushLine(line: string): void {
       if (line.includes('"session"')) {
         const header = JSON.parse(line) as Record<string, unknown>;
-        if (header.type === "session") { sessionId = stringField(header, "id") || sessionId; return; }
+        if (header.type === "session") {
+          sessionId = stringField(header, "id") || sessionId;
+          return;
+        }
       }
-      if (!line.includes("\"usage\"") || !line.includes("\"message\"")) return;
+      if (!line.includes('"usage"') || !line.includes('"message"')) return;
       const value = JSON.parse(line) as unknown;
       if (!value || typeof value !== "object" || Array.isArray(value)) return;
       const record = value as Record<string, unknown>;
@@ -58,7 +66,10 @@ export function createPiJsonlParser(options: ParseOptions & { agent?: AgentSourc
         ...totals,
         recordedCostUsd: optionalDecimalString(cost?.total),
       });
-      if (event) { event.messageId = stringField(record, "id") || undefined; events.push(event); }
+      if (event) {
+        event.messageId = stringField(record, "id") || undefined;
+        events.push(event);
+      }
     },
 
     finish(): UsageEvent[] {
@@ -68,80 +79,261 @@ export function createPiJsonlParser(options: ParseOptions & { agent?: AgentSourc
 }
 
 export async function collectPiStores(home: string, defaultRoots: string[]) {
-  const stores: Array<{ name: string; roots: string[] }> = [{ name: "pi", roots: defaultRoots }];
+  const stores: Array<{ name: string; roots: string[] }> = [
+    { name: "pi", roots: defaultRoots },
+  ];
   let config: Record<string, unknown> | null = null;
-  for (const file of [path.join(process.cwd(), ".ccusage", "ccusage.json"), path.join(home, ".config", "claude", "ccusage.json"), path.join(home, ".claude", "ccusage.json")]) {
-    config = await optionalJson(file); if (config) break;
+  for (const file of [
+    path.join(process.cwd(), ".ccusage", "ccusage.json"),
+    path.join(home, ".config", "claude", "ccusage.json"),
+    path.join(home, ".claude", "ccusage.json"),
+  ]) {
+    config = await optionalJson(file);
+    if (config) break;
   }
   const pi = recordField(config, "pi");
   const defaults = recordField(pi, "defaults");
-  if (!process.env.PI_AGENT_DIR?.trim() && typeof defaults?.piPath === "string") {
+  if (
+    !process.env.PI_AGENT_DIR?.trim() &&
+    typeof defaults?.piPath === "string"
+  ) {
     stores[0].roots = [];
-    for (const candidate of defaults.piPath.split(",").map((value) => value.trim()).filter(Boolean)) {
-      const stat = await fs.stat(candidate).catch((error: NodeJS.ErrnoException) => { if (error.code === "ENOENT") return null; throw error; });
+    for (const candidate of defaults.piPath
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean)) {
+      const stat = await fs
+        .stat(candidate)
+        .catch((error: NodeJS.ErrnoException) => {
+          if (error.code === "ENOENT") return null;
+          throw error;
+        });
       if (stat?.isDirectory()) stores[0].roots.push(candidate);
     }
   }
-  const reserved = new Set(["codex", "claude", "gemini", "opencode", "kimi", "qwen", "amp", "codebuff", "droid", "goose", "hermes", "kilo", "openclaw", "pi", "dsh", "grok", "zcode", "antigravity", "unknown"]);
+  const reserved = new Set([
+    "codex",
+    "claude",
+    "gemini",
+    "opencode",
+    "kimi",
+    "qwen",
+    "amp",
+    "codebuff",
+    "droid",
+    "goose",
+    "hermes",
+    "kilo",
+    "openclaw",
+    "pi",
+    "dsh",
+    "grok",
+    "zcode",
+    "antigravity",
+    "unknown",
+  ]);
   const names = new Set(reserved);
-  const canonical = await Promise.all(stores[0].roots.map((root) => fs.realpath(root)));
+  const canonical = await Promise.all(
+    stores[0].roots.map((root) => fs.realpath(root)),
+  );
   for (const raw of Array.isArray(pi?.stores) ? pi.stores : []) {
-    if (!raw || typeof raw !== "object") throw new Error("Invalid ccusage Pi store");
+    if (!raw || typeof raw !== "object")
+      throw new Error("Invalid ccusage Pi store");
     const store = raw as Record<string, unknown>;
-    if (typeof store.name !== "string" || !/^[a-z][a-z0-9_-]{0,31}$/.test(store.name) || names.has(store.name) || typeof store.path !== "string") throw new Error("Invalid or duplicate ccusage Pi store name/path");
+    if (
+      typeof store.name !== "string" ||
+      !/^[a-z][a-z0-9_-]{0,31}$/.test(store.name) ||
+      names.has(store.name) ||
+      typeof store.path !== "string"
+    )
+      throw new Error("Invalid or duplicate ccusage Pi store name/path");
     names.add(store.name);
     const roots: string[] = [];
-    for (const item of store.path.split(",").map((value) => value.trim()).filter(Boolean)) {
-      const root = await fs.realpath(item.replace(/^~(?=\/|$)/, home)).catch((error: NodeJS.ErrnoException) => { if (error.code === "ENOENT") return null; throw error; });
+    for (const item of store.path
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean)) {
+      const root = await fs
+        .realpath(item.replace(/^~(?=\/|$)/, home))
+        .catch((error: NodeJS.ErrnoException) => {
+          if (error.code === "ENOENT") return null;
+          throw error;
+        });
       if (!root) continue;
-      if (canonical.some((old) => root === old || root.startsWith(`${old}${path.sep}`) || old.startsWith(`${root}${path.sep}`))) throw new Error("Overlapping ccusage Pi store paths");
-      canonical.push(root); roots.push(root);
+      if (
+        canonical.some(
+          (old) =>
+            root === old ||
+            root.startsWith(`${old}${path.sep}`) ||
+            old.startsWith(`${root}${path.sep}`),
+        )
+      )
+        throw new Error("Overlapping ccusage Pi store paths");
+      canonical.push(root);
+      roots.push(root);
     }
     stores.push({ name: store.name, roots });
   }
   const events: UsageEvent[] = [];
   const sources = [];
   for (const store of stores) {
-    const files = (await Promise.all(store.roots.map((root) => storeFiles(root,
-      (file) => file.endsWith(".jsonl") && !file.split(path.sep).includes("subagent-artifacts"))))).flat();
-    const sessions = new Map<string, { events: UsageEvent[]; parent?: string; time?: string }>();
+    const files = (
+      await Promise.all(
+        store.roots.map((root) =>
+          storeFiles(
+            root,
+            (file) =>
+              file.endsWith(".jsonl") &&
+              !file.split(path.sep).includes("subagent-artifacts"),
+          ),
+        ),
+      )
+    ).flat();
+    const sessions = new Map<
+      string,
+      {
+        events: UsageEvent[];
+        replay: UsageEvent[] | null;
+        parent?: string;
+        time?: string;
+      }
+    >();
     for (const file of files) {
-      const parser = createPiJsonlParser({ sourcePath: file, agent: store.name as AgentSource });
+      const parser = createPiJsonlParser({
+        sourcePath: file,
+        agent: store.name as AgentSource,
+      });
       let parent: string | undefined;
       let time: string | undefined;
+      const links: Array<{ id?: string; parentId?: string }> = [];
       await readStoreLines(file, (line) => {
+        const record = JSON.parse(line) as Record<string, unknown>;
+        if (record.type !== "session")
+          links.push({
+            id: stringField(record, "id") || undefined,
+            parentId: stringField(record, "parentId") || undefined,
+          });
         if (line.includes('"session"')) {
           const row = JSON.parse(line) as Record<string, unknown>;
           if (row.type === "session") {
-            if (typeof row.parentSession === "string") parent = path.resolve(path.dirname(file), row.parentSession.replace(/^~(?=\/|$)/, home));
+            if (typeof row.parentSession === "string")
+              parent = path.resolve(
+                path.dirname(file),
+                row.parentSession.replace(/^~(?=\/|$)/, home),
+              );
             time = timestampFromValue(row.timestamp) || undefined;
           }
         }
         parser.pushLine(line);
       });
-      sessions.set(path.resolve(file), { events: parser.finish(), parent, time });
+      const events = parser.finish();
+      sessions.set(path.resolve(file), {
+        events,
+        replay: piReplayPath(events, links),
+        parent,
+        time,
+      });
     }
     const seen = new Set<string>();
-    const key = (event: UsageEvent) => [event.timestamp, event.model, event.inputTokens, event.outputTokens, event.cachedInputTokens, event.cacheCreationTokens, event.totalTokens, event.recordedCostUsd].join("|");
+    const key = (event: UsageEvent) =>
+      [
+        event.timestamp,
+        event.model,
+        event.inputTokens,
+        event.outputTokens,
+        event.cachedInputTokens,
+        event.cacheCreationTokens,
+        event.totalTokens,
+        event.recordedCostUsd,
+      ].join("|");
     for (const [file, session] of sessions) {
-      const ancestry = new Set([file]); let ancestor = session.parent; let valid = true;
-      while (ancestor) { if (ancestry.has(ancestor) || !sessions.has(ancestor)) { valid = false; break; } ancestry.add(ancestor); ancestor = sessions.get(ancestor)?.parent; }
-      const prefix = valid && session.parent && session.time ? sessions.get(session.parent)?.events.filter((event) => event.timestamp <= session.time!) || [] : [];
+      const ancestry = new Set([file]);
+      let ancestor = session.parent;
+      let valid = session.replay !== null;
+      while (ancestor) {
+        if (
+          ancestry.has(ancestor) ||
+          !sessions.has(ancestor) ||
+          sessions.get(ancestor)?.replay === null
+        ) {
+          valid = false;
+          break;
+        }
+        ancestry.add(ancestor);
+        ancestor = sessions.get(ancestor)?.parent;
+      }
+      const prefix =
+        valid && session.parent && session.time
+          ? sessions
+              .get(session.parent)
+              ?.replay?.filter((event) => event.timestamp <= session.time!) ||
+            []
+          : [];
       let index = 0;
       for (const event of session.events) {
-        if (prefix[index] && key(event) === key(prefix[index])) { index++; continue; }
+        if (prefix[index] && key(event) === key(prefix[index])) {
+          index++;
+          continue;
+        }
         index = prefix.length;
         const identity = `${event.sessionId}|${key(event)}`;
-        if (!seen.has(identity)) { seen.add(identity); events.push(event); }
+        if (!seen.has(identity)) {
+          seen.add(identity);
+          events.push(event);
+        }
       }
     }
-    sources.push({ agent: store.name, path: store.roots.join(","), files: files.length, exists: store.roots.length > 0 });
+    sources.push({
+      agent: store.name,
+      path: store.roots.join(","),
+      files: files.length,
+      exists: store.roots.length > 0,
+    });
   }
   return { events, sources };
+}
+
+function piReplayPath(
+  events: UsageEvent[],
+  links: Array<{ id?: string; parentId?: string }>,
+): UsageEvent[] | null {
+  if (links.every((link) => !link.id && !link.parentId)) return events;
+  const parents = new Map<string, string | undefined>();
+  let leaf: string | undefined;
+  for (const link of links) {
+    if (!link.id || parents.has(link.id)) return null;
+    parents.set(link.id, link.parentId);
+    leaf = link.id;
+  }
+  const validated = new Set<string>();
+  for (const start of parents.keys()) {
+    const lineage = new Set<string>();
+    let id: string | undefined = start;
+    while (id && !validated.has(id)) {
+      if (!parents.has(id) || lineage.has(id)) return null;
+      lineage.add(id);
+      id = parents.get(id);
+    }
+    for (const key of lineage) validated.add(key);
+  }
+  const byId = new Map(
+    events
+      .filter((event) => event.messageId)
+      .map((event) => [event.messageId!, event]),
+  );
+  const active: UsageEvent[] = [];
+  while (leaf) {
+    const event = byId.get(leaf);
+    if (event) active.push(event);
+    leaf = parents.get(leaf);
+  }
+  return active.reverse();
 }
 
 function piSessionIdFromPath(filePath: string): string | null {
   const filename = path.basename(filePath, path.extname(filePath));
   if (!filename) return null;
-  return filename.includes("_") ? filename.slice(filename.indexOf("_") + 1) : filename;
+  return filename.includes("_")
+    ? filename.slice(filename.indexOf("_") + 1)
+    : filename;
 }

@@ -196,6 +196,8 @@ tokenflow logout
 TokenFlow calculates costs locally before upload.
 The hosted dashboard recalculates costs from uploaded token counts using the server's current pricing table. The local table supports offline estimates and `status`; hosted price-only updates do not require a collector upgrade. Historical server estimates cannot recover pricing signals that an older collector never uploaded.
 
+New collectors fetch the configured server's public pricing catalog during sync and cache it in `pricing-catalog.json`. The current rates and context thresholds determine token splits before aggregation; server catalog updates are picked up through a version ETag. Offline status uses the cached catalog, while older servers without the catalog endpoint retain bundled estimates. The catalog request sends no usage data or authentication token. Existing ccusage Pi store-path settings are supported; ccusage's per-user price overrides do not change the hosted server's price policy.
+
 - Built-in pricing covers known Codex, Claude, Gemini, OpenCode, and cc-switch-inspired
   third-party coding/provider model IDs including DeepSeek, Kimi K2, MiniMax, GLM,
   Qwen, Doubao, StepFun, MiMo, Grok, Mistral, and Cohere.

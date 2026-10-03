@@ -26,6 +26,7 @@ import {
 } from "./config.js";
 import { collectLocalUsage } from "./file-scan.js";
 import { installAutoSync } from "./scheduler.js";
+import { readPricingCatalog, refreshPricingCatalog } from "./server-pricing-catalog.js";
 import { formatStatus, type UnpricedModelStatus } from "./status.js";
 import {
   markSyncPlanUploaded,
@@ -177,7 +178,9 @@ async function cmdSync(argv: string[]): Promise<void> {
   const serverUrl = normalizeServerUrl(optionString(options, "server-url") || config.serverUrl);
   const deviceName = config.deviceName || os.hostname();
   const collection = await collectLocalUsage();
-  const buckets = aggregateEvents(collection.events, collection.pricingProfiles);
+  const pricing = await refreshPricingCatalog(serverUrl);
+  if (pricing.warning && !options.auto) process.stderr.write(`${pricing.warning}\n`);
+  const buckets = aggregateEvents(collection.events, [...pricing.catalog?.profiles || [], ...collection.pricingProfiles]);
   const syncState = await readSyncState();
   const plan = planIncrementalSync(buckets, syncState, { maxBuckets: Number.MAX_SAFE_INTEGER });
   const shouldIngest = plan.buckets.length > 0;
@@ -210,8 +213,9 @@ async function cmdSync(argv: string[]): Promise<void> {
 async function cmdStatus(): Promise<void> {
   const config = await readConfig();
   const collection = await collectLocalUsage();
-  const buckets = aggregateEvents(collection.events, collection.pricingProfiles);
   const serverUrl = normalizeServerUrl(config?.serverUrl);
+  const pricing = await readPricingCatalog(serverUrl);
+  const buckets = aggregateEvents(collection.events, [...pricing?.profiles || [], ...collection.pricingProfiles]);
   const remoteReport = config?.apiToken
     ? await getRemoteApiTokenStatusForReport(serverUrl, config.apiToken)
     : config?.deviceToken

@@ -227,6 +227,6 @@ async function readJson(request: IncomingMessage): Promise<Record<string, unknow
 }
 
 function json(response: ServerResponse, body: Record<string, unknown>): void {
-  response.writeHead(200, { "Content-Type": "application/json" });
+  response.writeHead(response.statusCode, { "Content-Type": "application/json" });
   response.end(JSON.stringify(body));
 }
