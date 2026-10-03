@@ -1,4 +1,5 @@
 import type { UsageBucket } from "./types.js";
+import { resolvePricing } from "./pricing.js";
 
 export interface UnknownReplacementScope {
   agent: string;
@@ -39,6 +40,10 @@ export interface IngestPayload {
 }
 
 export interface UsageSnapshotSlot {
+  pricing_model?: string;
+  recorded_cost_usd?: string;
+  recorded_usage?: Record<string, number>;
+  [signal: string]: unknown;
   bucket_start: string;
   input_tokens: number;
   cached_input_tokens: number;
@@ -203,6 +208,7 @@ export function replacementScopeKey(agent: string, bucketStart: string): string 
 
 function snapshotSlot(bucket: UsageBucket): UsageSnapshotSlot {
   return {
+    ...pricingSignals(bucket),
     bucket_start: bucket.bucketStart,
     input_tokens: bucket.inputTokens,
     cached_input_tokens: bucket.cachedInputTokens,
@@ -217,6 +223,25 @@ function snapshotSlot(bucket: UsageBucket): UsageSnapshotSlot {
     total_cost_usd: bucket.cost.totalUsd,
     pricing_status: bucket.pricingStatus,
   };
+}
+
+export function pricingSignals(bucket: UsageBucket): Record<string, unknown> {
+  const signals: Record<string, unknown> = {};
+  const baseline = new Set(["inputTokens", "cachedInputTokens", "outputTokens", "reasoningOutputTokens", "cacheCreationTokens", "totalTokens"]);
+  const exactContext = !!resolvePricing(bucket.pricingModel || bucket.model)?.longContextThresholdTokens;
+  const snake = (key: string) => key.replace(/([a-z])([A-Z0-9])/g, "$1_$2").replace(/([0-9])([A-Z])/g, "$1_$2").toLowerCase();
+  for (const [key, value] of Object.entries(bucket)) {
+    if (!key.endsWith("Tokens") || baseline.has(key) || typeof value !== "number") continue;
+    if (key.includes("longContext") || key.includes("LongContext")) { if (!exactContext && value === 0) continue; }
+    signals[snake(key)] = value;
+  }
+  if (bucket.pricingModel) signals.pricing_model = bucket.pricingModel;
+  if (bucket.recordedCostUsd !== undefined) {
+    signals.recorded_cost_usd = bucket.recordedCostUsd;
+    if (bucket.recordedUsage) signals.recorded_usage = Object.fromEntries(Object.entries(bucket.recordedUsage)
+      .filter(([key, value]) => key.endsWith("Tokens") && typeof value === "number").map(([key, value]) => [snake(key), value]));
+  }
+  return signals;
 }
 
 function dayKey(timestamp: string): string {

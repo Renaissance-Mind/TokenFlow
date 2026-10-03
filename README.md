@@ -18,7 +18,7 @@ Existing `tokenusage` installs keep working: the package still exposes a `tokenu
 
 [Features](#features) - [Install](#install) - [Quick Start](#quick-start) - [Commands](#commands) - [Configuration](#configuration) - [Development](#development)
 
-TokenFlow is an installable local collector for multi-device AI-agent usage accounting. It scans local Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, Pi, and DeepSeek Harness (dsh) usage data, aggregates token counts into UTC half-hour buckets by agent and model, calculates known costs, and uploads only changed usage metadata to a TokenFlow server.
+TokenFlow is an installable local collector for multi-device AI-agent usage accounting. It scans local Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, Pi, Grok Build, ZCode, Antigravity, and DeepSeek Harness (dsh) usage data, aggregates token counts into UTC half-hour buckets by agent and model, calculates known costs, and uploads only changed usage metadata to a TokenFlow server.
 
 Prompts and responses stay on your machine. Uploaded payloads contain counts, model names, bucket timestamps, pricing status, and optional device metadata.
 
@@ -44,7 +44,7 @@ Home: /Users/alice/.tokenflow
 ## Features
 
 - 🔐 **Local-first collection** - reads agent logs locally and uploads metadata only.
-- 🤖 **Multi-agent support** - Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, Pi, and DeepSeek Harness (dsh).
+- 🤖 **Multi-agent support** - Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, Pi, Grok Build, ZCode, Antigravity, and DeepSeek Harness (dsh).
 - 📊 **Half-hour UTC buckets** - keeps local usage detail while dashboards can still summarize by day.
 - 💸 **Cost-aware accounting** - separates fresh input, cached input, cache creation, output, and reasoning output tokens.
 - 🧾 **Unpriced model visibility** - unknown models are counted and marked as `unpriced` instead of silently disappearing.
@@ -56,20 +56,23 @@ Home: /Users/alice/.tokenflow
 
 | Source | Local data read | Notes |
 | --- | --- | --- |
-| Codex | `~/.codex/sessions/**/rollout-*.jsonl` and archived session JSONL | Parses local rollout token events. |
+| Codex | `~/.codex/sessions/**/rollout-*.jsonl` and archived session JSONL | Parses rollout token events, counts unreported compactions, and excludes inherited fork history. |
 | Claude Code | `~/.claude/projects/**/*.jsonl` | Parses project JSONL usage data. |
-| Gemini CLI | `~/.gemini/tmp/**/chats/session-*.json` | Parses Gemini session JSON files. |
-| OpenCode | `~/.local/share/opencode/opencode.db` | Requires `sqlite3` on `PATH`. |
-| Kimi CLI | `~/.kimi/sessions/*/*/wire.jsonl` | Reads `StatusUpdate.token_usage` rows and `~/.kimi/config.json` model metadata. |
-| Qwen Code | `~/.qwen/projects/*/chats/*.jsonl` | Reads assistant `usageMetadata` rows. |
+| Gemini CLI | `~/.gemini/tmp/**/*.{json,jsonl}` | Reads per-request usage, JSONL settlement records and stats; preserves legacy cumulative session parsing. |
+| OpenCode | `~/.local/share/opencode/opencode*.db` and legacy message JSON | Reads legacy and v2 message tables, excludes copied fork rows, and uses uncovered session counters as fallback. Requires `sqlite3`. |
+| Kimi CLI / Kimi Code | `~/.kimi/sessions/**/wire.jsonl` and `~/.kimi-code/sessions/**/wire.jsonl` | Reads legacy `StatusUpdate.token_usage` and turn-level `usage.record` entries, including nested agents. Session snapshots are excluded. |
+| Qwen Code | `~/.qwen/projects/**/*.jsonl` | Reads assistant `usageMetadata` rows. |
 | Amp | `~/.local/share/amp/threads/*.json` | Reads `usageLedger.events[]` or assistant `messages[].usage`. |
 | Codebuff | `~/.config/manicode*/projects/**/chat-messages.json` | Reads assistant metadata usage and run-state provider usage. |
 | Droid | `~/.factory/sessions/**/*.settings.json` | Reads session token snapshots and keeps the latest snapshot per session. |
 | Goose | `~/.local/share/goose/sessions/sessions.db`, macOS Application Support, or Block Goose data | Requires `sqlite3` on `PATH`. |
 | Hermes | `~/.hermes/state.db` | Requires `sqlite3` on `PATH`. |
 | Kilo | `~/.local/share/kilo/kilo.db` | Requires `sqlite3` on `PATH`. |
-| OpenClaw | `~/.openclaw`, `~/.clawdbot`, `~/.moltbot`, and `~/.moldbot` JSONL sessions | Tracks model-change rows for following assistant usage. |
-| Pi | `~/.pi/agent/sessions/**/*.jsonl` | Reads assistant message usage rows. |
+| OpenClaw | JSONL sessions under `~/.openclaw`, `~/.clawdbot`, `~/.moltbot`, and `~/.moldbot`; per-agent `openclaw-agent.sqlite` | Tracks model changes per session; SQLite records take precedence over migrated JSONL copies. |
+| Pi | `~/.pi/agent/sessions/**/*.jsonl` | Reads assistant usage, excludes copied fork prefixes and derived subagent artifacts. Existing ccusage `pi.stores` configuration adds named stores. |
+| Grok Build | `~/.grok/sessions/**/updates.jsonl` | Reads completed turns, splits cache-inclusive input, deduplicates event IDs, and preserves recorded billing ticks. |
+| ZCode | `~/.zcode/cli/db/db.sqlite` | Reads completed model-usage ledger rows, supports legacy optional columns, and bounds cache slices within inclusive input. |
+| Antigravity | Conversation SQLite files under `~/.gemini/antigravity*` and `~/.config/antigravity` | Reads generation/step protobuf usage and billed retries, merging response identities across stores and backups. |
 | DeepSeek Harness (dsh) | `~/.dsh/sessions/**/session*.jsonl` or `session*.jsonl.zstd` | Reads plain or Zstandard-compressed Session formats 0–4; selects the latest generation and excludes inherited fork usage. |
 
 TokenFlow intentionally does not upload source file paths, session IDs, prompts, or responses.
@@ -219,7 +222,11 @@ Environment overrides:
 | `GEMINI_HOME` | Gemini config home. Defaults to `~/.gemini`. |
 | `OPENCODE_DB` | Explicit OpenCode SQLite database path. |
 | `OPENCODE_HOME` | OpenCode data home. Defaults to `~/.local/share/opencode`. |
-| `KIMI_DATA_DIR` | Kimi data root, or comma-separated roots. Defaults to `~/.kimi`. |
+| `KIMI_DATA_DIR` | Kimi data root, or comma-separated roots. Defaults to `~/.kimi` and `~/.kimi-code`. |
+| `GEMINI_DATA_DIR` | Gemini JSON/JSONL discovery directories, or comma-separated directories. Defaults to `~/.gemini/tmp`; `GEMINI_HOME` remains supported. |
+| `GROK_HOME` | Grok Build home. Defaults to `~/.grok`. |
+| `ZCODE_HOME` | ZCode home, or comma-separated roots. Defaults to `~/.zcode`. |
+| `ANTIGRAVITY_DATA_DIR` | Antigravity roots or conversation directories, comma-separated. Defaults include Gemini Antigravity CLI/IDE/backup and `~/.config/antigravity/conversations`. |
 | `QWEN_DATA_DIR` | Qwen data root, or comma-separated roots. Defaults to `~/.qwen`. |
 | `AMP_DATA_DIR` | Amp data root, or comma-separated roots. Defaults to `~/.local/share/amp`. |
 | `CODEBUFF_DATA_DIR` | Codebuff/Manicode data root or `projects` root, comma-separated. Defaults to `~/.config/manicode`, `~/.config/manicode-dev`, and `~/.config/manicode-staging`. |

@@ -6,11 +6,12 @@ runtime libraries are identified separately below.
 
 ## ccusage
 
-- Project: https://github.com/ryoppippi/ccusage
+- Project: https://github.com/ccusage/ccusage
 - Copyright: Copyright (c) 2025 ryoppippi
 - License: MIT
 - Used for: local agent source discovery patterns, token field mapping, Kimi/Qwen parsing behavior,
-  and cost accounting semantics.
+  Grok/ZCode ledger accounting, Antigravity protobuf field mappings, OpenClaw SQLite migration,
+  Codex compaction/fork deduplication, Pi stores, and cost accounting semantics.
 
 ## cc-switch
 

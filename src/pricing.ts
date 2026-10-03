@@ -323,7 +323,9 @@ export function normalizeAgentModelForUsage(
   return {
     model: displayModel,
     originalModel,
-    ...(resolvedProviderPricingModel
+    ...(raw.includes("/") || raw.startsWith("hf:") || /^(global|us|eu|apac)\./i.test(raw)
+      ? { pricingModel: raw.trim().replace(/\[1m\]$/i, "") }
+      : resolvedProviderPricingModel
       ? { pricingModel: resolvedProviderPricingModel }
       : useOriginalPricing
         ? { pricingModel: originalModel }

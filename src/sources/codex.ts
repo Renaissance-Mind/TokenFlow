@@ -5,6 +5,8 @@ import type { UsageEvent, UsageTotals } from "../types.js";
 interface ParseOptions {
   sourcePath: string;
   serviceTier?: "standard" | "fast" | "priority";
+  compactionHistory?: Map<string, string>;
+  useReplayPlan?: boolean;
 }
 
 interface JsonlUsageParser {
@@ -44,6 +46,10 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
   let previousTotal: CumulativeUsage | null = null;
   // Codex subagent rollouts begin with a replay of their parent's history.
   let suppressInheritedSubagentReplay = false;
+  const compacted = new Set<string>();
+  const emitted = new Set<string>();
+  const pending = new Map<string, { event: ParsedCodexUsageEvent; threadUsage: CumulativeUsage | null }>();
+  let latestResponse: string | null = null;
 
   function setCurrentModel(model: string): void {
     const normalized = normalizeAgentModelForUsage("codex", model);
@@ -59,7 +65,9 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
         !line.includes("turn_context") &&
         !line.includes("session_meta") &&
         !line.includes("inter_agent_communication_metadata") &&
-        !line.includes("thread_settings_applied")
+        !line.includes("thread_settings_applied") &&
+        !line.includes("token_usage_record") &&
+        !line.includes("compacted")
       ) {
         return;
       }
@@ -74,6 +82,36 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
       if (!isRecord(row)) return;
       const type = stringField(row, "type");
       const payload = recordField(row, "payload");
+
+      if (type === "compacted") {
+        const id = stringField(payload, "compaction_response_id");
+        if (!id) return;
+        compacted.add(id);
+        const request = pending.get(id);
+        if (request && !emitted.has(id)) { events.push(request.event); emitted.add(id); pending.delete(id); }
+        return;
+      }
+      if (type === "token_usage_record") {
+        const id = stringField(payload, "response_id");
+        const usage = recordField(payload, "usage");
+        const timestamp = stringField(row, "timestamp");
+        if (!id || !usage || !timestamp || emitted.has(id)) return;
+        const bucketStart = toUtcHalfHourStart(timestamp);
+        if (!bucketStart) return;
+        const totals = normalizeUsage(usage);
+        if (isZero(totals)) return;
+        options.compactionHistory?.set(id, timestamp);
+        const rawModel = modelFromContextPayload(payload || {});
+        const model = rawModel ? normalizeAgentModelForUsage("codex", rawModel) : currentModel;
+        const event: ParsedCodexUsageEvent = { agent: "codex", model: model.model,
+          ...(model.pricingModel ? { pricingModel: model.pricingModel } : {}),
+          ...codexPricingFields(model, effectiveServiceTier(currentServiceTier, options.serviceTier)),
+          messageId: id, sessionId, sourcePath: options.sourcePath, timestamp, bucketStart, ...totals };
+        latestResponse = id;
+        if (compacted.has(id)) { events.push(event); emitted.add(id); }
+        else if (!pending.has(id)) pending.set(id, { event, threadUsage: recordField(payload, "thread_token_usage") ? normalizeUsage(recordField(payload, "thread_token_usage")!) : null });
+        return;
+      }
 
       if (type === "inter_agent_communication_metadata" && payload?.trigger_turn === true) {
         suppressInheritedSubagentReplay = false;
@@ -90,7 +128,7 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
         const payloadSessionId =
           stringField(payload, "session_id") || stringField(payload, "sessionId") || stringField(payload, "id");
         if (payloadSessionId && !sessionId) {
-          suppressInheritedSubagentReplay = isSubagentSession(payload);
+          suppressInheritedSubagentReplay = !options.useReplayPlan && isSubagentSession(payload);
           sessionId = suppressInheritedSubagentReplay
             ? stringField(payload, "id") || payloadSessionId
             : payloadSessionId;
@@ -113,6 +151,11 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
       const lastUsage = recordField(info, "last_token_usage");
       const totalUsage = recordField(info, "total_token_usage");
       const delta = pickDelta(lastUsage, totalUsage, previousTotal);
+      const request = latestResponse ? pending.get(latestResponse) : null;
+      if (delta && request && (sameUsage(delta as CumulativeUsage, request.event)
+        || (request.threadUsage && totalUsage && sameUsage(request.threadUsage, normalizeUsage(totalUsage))))) {
+        pending.delete(latestResponse!); emitted.add(latestResponse!);
+      }
       // Retain the cumulative baseline while suppressing inherited events so a
       // later total-only row can still be converted to the subagent's delta.
       if (totalUsage) previousTotal = normalizeUsage(totalUsage);
@@ -137,6 +180,7 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
     },
 
     finish(): UsageEvent[] {
+      if (options.compactionHistory) for (const id of options.compactionHistory.keys()) if (!compacted.has(id)) options.compactionHistory.delete(id);
       if (seenModels.size === 1) {
         const [model] = [...seenModels.values()];
         return events.map((event) => {
@@ -190,11 +234,12 @@ function isSubagentSession(payload: Record<string, unknown>): boolean {
 function codexPricingFields(
   model: UsageModelNormalization,
   serviceTier: CodexServiceTier,
-): { costMultiplier?: string; codexServiceTier?: CodexServiceTier } {
-  if (serviceTier !== "fast") return { codexServiceTier: serviceTier };
+): { costMultiplier?: string; codexServiceTier?: CodexServiceTier; serviceTier?: CodexServiceTier } {
+  if (serviceTier !== "fast") return { codexServiceTier: serviceTier, serviceTier };
   const multiplier = codexFastMultiplier(model);
   return {
     codexServiceTier: serviceTier,
+    serviceTier,
     ...(multiplier ? { costMultiplier: multiplier } : {}),
   };
 }

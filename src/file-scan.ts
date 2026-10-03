@@ -8,17 +8,22 @@ import { promisify } from "node:util";
 import { parseAmpThread } from "./sources/amp.js";
 import { createClaudeJsonlParser } from "./sources/claude.js";
 import { createCodexJsonlParser } from "./sources/codex.js";
+import { dedupeCodexSessions, type CodexSession } from "./sources/codex-replay.js";
+import { initialSessionRecord, sqliteRows, tableColumns } from "./sources/store-io.js";
 import { parseCodebuffChatMessages } from "./sources/codebuff.js";
 import { extractDroidModelFromLine, parseDroidSettings } from "./sources/droid.js";
 import { collectDshUsage, resolveDshSessionDirs } from "./sources/dsh.js";
-import { parseGeminiSession } from "./sources/gemini.js";
+import { collectGrok } from "./sources/grok.js";
+import { collectZcode } from "./sources/zcode.js";
+import { collectAntigravity } from "./sources/antigravity.js";
+import { parseGeminiSession, createGeminiJsonlParser } from "./sources/gemini.js";
 import { parseGooseSessionRow, type GooseSessionRow } from "./sources/goose.js";
 import { parseHermesSessionRow, type HermesSessionRow } from "./sources/hermes.js";
 import { parseKiloMessageRow, type KiloMessageRow } from "./sources/kilo.js";
 import { createKimiWireJsonlParser } from "./sources/kimi.js";
 import { parseOpenCodeMessageRow, type OpenCodeMessageRow } from "./sources/opencode.js";
-import { createOpenClawJsonlParser } from "./sources/openclaw.js";
-import { createPiJsonlParser } from "./sources/pi.js";
+import { createOpenClawJsonlParser, collectOpenClawDatabases, mergeOpenClawStores } from "./sources/openclaw.js";
+import { collectPiStores } from "./sources/pi.js";
 import { createQwenChatJsonlParser } from "./sources/qwen.js";
 import type { PricingProfile, UsageEvent } from "./types.js";
 
@@ -47,9 +52,12 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
   const codexHome = process.env.CODEX_HOME || path.join(home, ".codex");
   const claudeHome = process.env.CLAUDE_HOME || path.join(home, ".claude");
   const geminiHome = process.env.GEMINI_HOME || path.join(home, ".gemini");
+  const geminiRoots = process.env.GEMINI_DATA_DIR?.trim() ? process.env.GEMINI_DATA_DIR.split(",").map((root) => root.trim()).filter(Boolean) : [path.join(geminiHome, "tmp")];
   const opencodeDataDirs = await existingDirs(resolveOpenCodeDataDirs(home));
   const opencodeDbPaths = await discoverOpenCodeDbPaths(home, opencodeDataDirs);
-  const kimiRoots = await existingDirs(resolveDataDirs("KIMI_DATA_DIR", home, ".kimi"));
+  const kimiCandidates = process.env.KIMI_DATA_DIR?.trim() ? resolveDataDirs("KIMI_DATA_DIR", home, ".kimi")
+    : [path.join(home, ".kimi"), path.join(home, ".kimi-code")];
+  const kimiRoots = await existingDirs(kimiCandidates);
   const qwenRoots = await existingDirs(resolveDataDirs("QWEN_DATA_DIR", home, ".qwen"));
   const ampRoots = await existingDirs(resolveDataDirs("AMP_DATA_DIR", home, ".local/share/amp"));
   const codebuffProjectRoots = await existingDirs(resolveCodebuffProjectRoots(home));
@@ -61,6 +69,7 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
   const piRoots = await existingDirs(resolveDataDirs("PI_AGENT_DIR", home, ".pi/agent/sessions"));
   const codexServiceTier = await readCodexServiceTier(codexHome);
   const dsh = await collectDshUsage(resolveDshSessionDirs(home));
+  const additional = await Promise.all([collectGrok(home), collectZcode(home), collectAntigravity(home)]);
 
   const codexFiles = [
     ...(await listFiles(path.join(codexHome, "sessions"), (file) =>
@@ -69,10 +78,7 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
     ...(await listFiles(path.join(codexHome, "archived_sessions"), (file) => file.endsWith(".jsonl"), 1)),
   ];
   const claudeFiles = await listFiles(path.join(claudeHome, "projects"), (file) => file.endsWith(".jsonl"));
-  const geminiFiles = await listFiles(path.join(geminiHome, "tmp"), (file) => {
-    const base = path.basename(file);
-    return base.startsWith("session-") && base.endsWith(".json");
-  });
+  const geminiFiles = await listFilesForRoots(geminiRoots, (file) => file.endsWith(".json") || file.endsWith(".jsonl"));
   const kimiFiles = await listFilesForRoots(kimiRoots.map((root) => path.join(root, "sessions")), isKimiWireFile);
   const qwenFiles = await listFilesForRoots(qwenRoots.map((root) => path.join(root, "projects")), isQwenChatFile);
   const ampFiles = await listFilesForRoots(
@@ -91,19 +97,30 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
 
   const events: UsageEvent[] = [];
   events.push(...dsh.events);
+  for (const source of additional) events.push(...source.events);
+  const codexSessions: CodexSession[] = [];
   for (const file of codexFiles) {
-    events.push(...(await readJsonlEvents(file, (options) => createCodexJsonlParser({ ...options, serviceTier: codexServiceTier }))));
+    const row = await initialSessionRecord(file);
+    const metadata = row?.payload && typeof row.payload === "object" ? row.payload as Record<string, unknown> : null;
+    const forkTime = typeof row?.timestamp === "string" ? row.timestamp : undefined;
+    const source = metadata?.source as { subagent?: { thread_spawn?: { parent_thread_id?: string } } } | undefined;
+    const compactions = new Map<string, string>();
+    codexSessions.push({ id: String(metadata?.id || file), parent: typeof metadata?.forked_from_id === "string" ? metadata.forked_from_id : source?.subagent?.thread_spawn?.parent_thread_id,
+      forkTime, compactions, events: await readJsonlEvents(file, (options) => createCodexJsonlParser({ ...options, serviceTier: codexServiceTier, compactionHistory: compactions, useReplayPlan: true })) });
   }
+  events.push(...dedupeCodexSessions(codexSessions));
   for (const file of claudeFiles) {
     events.push(...(await readJsonlEvents(file, createClaudeJsonlParser)));
   }
   for (const file of geminiFiles) {
-    const raw = await fs.readFile(file, "utf8");
-    events.push(...parseGeminiSession(raw, { sourcePath: file }));
+    const fallbackTimestamp = await fileModifiedTimestamp(file) || undefined;
+    if (file.endsWith(".jsonl")) events.push(...await readJsonlEvents(file, (options) => createGeminiJsonlParser({ ...options, fallbackTimestamp })));
+    else events.push(...parseGeminiSession(await fs.readFile(file, "utf8"), { sourcePath: file, fallbackTimestamp }));
   }
   for (const file of kimiFiles) {
     const model = await readKimiModelForWireFile(file);
-    events.push(...(await readJsonlEvents(file, (options) => createKimiWireJsonlParser({ ...options, model }))));
+    const fallbackTimestamp = await fileModifiedTimestamp(file);
+    events.push(...(await readJsonlEvents(file, (options) => createKimiWireJsonlParser({ ...options, model, fallbackTimestamp: fallbackTimestamp || undefined }))));
   }
   for (const file of qwenFiles) {
     events.push(...(await readJsonlEvents(file, createQwenChatJsonlParser)));
@@ -136,20 +153,24 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
   for (const dbPath of kiloDbPaths) {
     events.push(...(await readKiloEvents(dbPath)));
   }
+  const openclawEvents: UsageEvent[] = [];
   for (const file of openclawFiles) {
     const fallbackTimestamp = await fileModifiedTimestamp(file);
-    events.push(...(await readJsonlEvents(file, (options) => createOpenClawJsonlParser({ ...options, fallbackTimestamp }))));
+    openclawEvents.push(...(await readJsonlEvents(file, (options) => createOpenClawJsonlParser({ ...options, fallbackTimestamp }))));
   }
-  for (const file of piFiles) {
-    events.push(...(await readJsonlEvents(file, createPiJsonlParser)));
-  }
+  const openclawDatabase = await collectOpenClawDatabases(openclawRoots);
+  events.push(...mergeOpenClawStores(openclawEvents, openclawDatabase.events));
+  const piStores = await collectPiStores(home, piRoots);
+  events.push(...piStores.events);
   const opencodeEvents = await readOpenCodeEvents(opencodeDbPaths, opencodeMessageFiles);
   events.push(...opencodeEvents.events);
 
   return {
-    events,
+    events: dedupeTranscriptEvents(events),
     pricingProfiles: [],
     sources: [
+      ...additional.map((source) => source.source),
+      ...piStores.sources.filter((source) => source.agent !== "pi"),
       {
         agent: "dsh",
         path: sourcePathLabel(dsh.roots, resolveDshSessionDirs(home)),
@@ -170,7 +191,7 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
       },
       {
         agent: "gemini",
-        path: path.join(geminiHome, "tmp"),
+        path: geminiRoots.join(","),
         files: geminiFiles.length,
         exists: await exists(path.join(geminiHome, "tmp")),
       },
@@ -182,7 +203,7 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
       },
       {
         agent: "kimi",
-        path: sourcePathLabel(kimiRoots, resolveDataDirs("KIMI_DATA_DIR", home, ".kimi")),
+        path: sourcePathLabel(kimiRoots, kimiCandidates),
         files: kimiFiles.length,
         exists: kimiRoots.length > 0,
       },
@@ -231,14 +252,14 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
       {
         agent: "openclaw",
         path: sourcePathLabel(openclawRoots, resolveOpenClawRoots(home)),
-        files: openclawFiles.length,
+        files: openclawFiles.length + openclawDatabase.files.length,
         exists: openclawRoots.length > 0,
       },
       {
         agent: "pi",
-        path: sourcePathLabel(piRoots, resolveDataDirs("PI_AGENT_DIR", home, ".pi/agent/sessions")),
-        files: piFiles.length,
-        exists: piRoots.length > 0,
+        path: piStores.sources.find((source) => source.agent === "pi")?.path || sourcePathLabel(piRoots, resolveDataDirs("PI_AGENT_DIR", home, ".pi/agent/sessions")),
+        files: piStores.sources.find((source) => source.agent === "pi")?.files || 0,
+        exists: piStores.sources.find((source) => source.agent === "pi")?.exists || false,
       },
     ],
   };
@@ -412,9 +433,11 @@ async function readOpenCodeEvents(dbPaths: string[], messageFiles: string[]): Pr
   const events: UsageEvent[] = [];
   const sourcePaths = new Set<string>();
   const seenIds = new Set<string>();
+  const aggregateRows: Array<{ row: OpenCodeMessageRow; path: string }> = [];
 
   for (const dbPath of dbPaths) {
     for (const row of await readOpenCodeDbRows(dbPath)) {
+      if (row.aggregate) { aggregateRows.push({ row, path: dbPath }); continue; }
       const event = parseOpenCodeMessageRow(row, dbPath);
       if (!event) continue;
       if (row.id && seenIds.has(row.id)) continue;
@@ -437,19 +460,57 @@ async function readOpenCodeEvents(dbPaths: string[], messageFiles: string[]): Pr
     sourcePaths.add(file);
   }
 
+  const covered = new Set(events.map((event) => event.sessionId));
+  for (const { row, path: sourcePath } of aggregateRows) {
+    if (covered.has(row.session_id)) continue;
+    const event = parseOpenCodeMessageRow(row, sourcePath);
+    if (event) { events.push(event); covered.add(row.session_id); sourcePaths.add(sourcePath); }
+  }
   events.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
   return { events, sourcePaths: [...sourcePaths].sort((a, b) => a.localeCompare(b)) };
 }
 
 async function readOpenCodeDbRows(dbPath: string): Promise<OpenCodeMessageRow[]> {
-  const { stdout } = await execFileAsync("sqlite3", ["-readonly", dbPath, openCodeMessageQuery()], {
-    maxBuffer: 64 * 1024 * 1024,
-  });
   const rows: OpenCodeMessageRow[] = [];
-  for (const line of String(stdout).split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    rows.push(JSON.parse(trimmed) as OpenCodeMessageRow);
+  if ((await tableColumns(dbPath, "message")).has("data")) {
+    const { stdout } = await execFileAsync("sqlite3", ["-readonly", dbPath, openCodeMessageQuery()], { maxBuffer: 64 * 1024 * 1024 });
+    for (const line of String(stdout).split(/\r?\n/)) if (line.trim()) rows.push(JSON.parse(line) as OpenCodeMessageRow);
+  }
+  const v2 = await tableColumns(dbPath, "session_message");
+  const sessions = await tableColumns(dbPath, "session_v2");
+  if (["id", "session_id", "data", "type"].every((column) => v2.has(column))) {
+    const messages = await sqliteRows<OpenCodeMessageRow & { type: string; seq?: number }>(dbPath,
+      `SELECT id,session_id,data,type,${v2.has("seq") ? "seq" : "NULL AS seq"},${v2.has("time_created") ? "time_created" : "NULL AS time_created"} FROM session_message;`);
+    const cutoffs = new Map<string, number>();
+    if (v2.has("seq") && ["id", "fork_session_id", "fork_boundary"].every((column) => sessions.has(column))) {
+      for (const fork of await sqliteRows<{ id: string; fork_session_id: string; fork_boundary: string }>(dbPath,
+        "SELECT id,fork_session_id,fork_boundary FROM session_v2 WHERE fork_session_id IS NOT NULL AND fork_boundary IS NOT NULL;")) {
+        let boundary: { type?: string; messageID?: string };
+        try { boundary = JSON.parse(fork.fork_boundary); } catch { continue; }
+        const parent = messages.filter((row) => row.session_id === fork.fork_session_id);
+        const at = parent.find((row) => row.id === boundary.messageID)?.seq;
+        if (at === undefined || at === null) continue;
+        if (boundary.type === "through") cutoffs.set(fork.id, at);
+        else if (boundary.type === "before") {
+          const preceding = parent.map((row) => row.seq).filter((seq): seq is number => typeof seq === "number" && seq < at);
+          if (preceding.length) cutoffs.set(fork.id, Math.max(...preceding));
+        }
+      }
+    }
+    rows.push(...messages.filter((row) => row.type === "assistant" && !(row.seq !== undefined && row.seq !== null && cutoffs.has(row.session_id) && row.seq <= cutoffs.get(row.session_id)!)));
+  }
+  for (const table of ["session_v2", "session"]) {
+    const columns = await tableColumns(dbPath, table);
+    if (!["id", "time_created", "tokens_input", "tokens_output", "tokens_cache_read", "tokens_cache_write"].every((column) => columns.has(column))) continue;
+    const totals = await sqliteRows<Record<string, unknown>>(dbPath, `SELECT id,time_created,tokens_input,tokens_output,tokens_cache_read,tokens_cache_write,
+      ${columns.has("model") ? "model" : "NULL AS model"},${columns.has("cost") ? "cost" : "NULL AS cost"},${columns.has("tokens_reasoning") ? "tokens_reasoning" : "0 AS tokens_reasoning"} FROM ${table};`);
+    for (const row of totals) {
+      let model: unknown = row.model || "unknown";
+      if (typeof model === "string" && /^[{"[]/.test(model)) { try { model = JSON.parse(model); } catch { /* Plain model names remain valid. */ } }
+      rows.push({ id: `session:${row.id}`, session_id: String(row.id), time_created: Number(row.time_created), aggregate: true,
+        data: JSON.stringify({ model, cost: row.cost, tokens: { input: row.tokens_input, output: row.tokens_output,
+          reasoning: row.tokens_reasoning, cache: { read: row.tokens_cache_read, write: row.tokens_cache_write } } }) });
+    }
   }
   return rows;
 }
@@ -498,7 +559,8 @@ async function readSqliteJsonRows<T>(dbPath: string, query: string): Promise<T[]
 }
 
 async function readKimiModelForWireFile(filePath: string): Promise<string | null> {
-  const root = path.dirname(path.dirname(path.dirname(path.dirname(filePath))));
+  const parts = filePath.split(path.sep);
+  const root = parts.slice(0, parts.lastIndexOf("sessions")).join(path.sep) || path.sep;
   const configPath = path.join(root, "config.json");
   const content = await fs.readFile(configPath, "utf8").catch((error: unknown) => {
     if (isNodeError(error) && error.code === "ENOENT") return "";
@@ -670,18 +732,25 @@ function sourcePathLabel(existing: string[], candidates: string[]): string {
 
 function isKimiWireFile(filePath: string): boolean {
   if (path.basename(filePath) !== "wire.jsonl") return false;
-  const sessionDir = path.basename(path.dirname(filePath));
-  const groupDir = path.basename(path.dirname(path.dirname(filePath)));
-  const sessionsDir = path.basename(path.dirname(path.dirname(path.dirname(filePath))));
-  return Boolean(sessionDir && groupDir && sessionsDir === "sessions");
+  const parts = filePath.split(path.sep);
+  const index = parts.lastIndexOf("sessions");
+  const length = parts.length - index - 1;
+  return index >= 0 && (length === 3 || (length === 5 && parts[index + 3] === "agents"));
 }
 
 function isQwenChatFile(filePath: string): boolean {
-  return (
-    filePath.endsWith(".jsonl") &&
-    path.basename(path.dirname(filePath)) === "chats" &&
-    path.basename(path.dirname(path.dirname(path.dirname(filePath)))) === "projects"
-  );
+  return filePath.endsWith(".jsonl");
+}
+
+function dedupeTranscriptEvents(events: UsageEvent[]): UsageEvent[] {
+  const seen = new Set<string>();
+  return events.filter((event) => {
+    if (!["kimi", "qwen", "gemini", "claude"].includes(event.agent)) return true;
+    const key = event.messageId ? `${event.agent}|${event.agent === "claude" ? "" : event.sessionId}|${event.messageId}`
+      : [event.agent,event.sessionId,event.timestamp,event.model,event.inputTokens,event.outputTokens,event.cachedInputTokens,event.cacheCreationTokens,event.reasoningOutputTokens,event.totalTokens].join("|");
+    if (seen.has(key)) return false;
+    seen.add(key); return true;
+  });
 }
 
 function isCodebuffChatMessagesFile(filePath: string): boolean {

@@ -11,6 +11,7 @@ const KIMI_FOR_CODING_K2_6_CUTOFF_MS = 1_776_698_890_072;
 interface ParseOptions {
   sourcePath: string;
   model?: string | null;
+  fallbackTimestamp?: string;
 }
 
 interface JsonlUsageParser {
@@ -31,37 +32,43 @@ export function createKimiWireJsonlParser(options: ParseOptions): JsonlUsagePars
 
   return {
     pushLine(line: string): void {
-      if (!line.includes("StatusUpdate") || !line.includes("token_usage")) return;
+      if (!line.includes("usage.record") && (!line.includes("StatusUpdate") || !line.includes("token_usage"))) return;
       const parsed = JSON.parse(line) as unknown;
       if (!isRecord(parsed)) return;
+      const modern = parsed.type === "usage.record";
+      if (modern && parsed.usageScope !== "turn") return;
       const message = recordField(parsed, "message");
-      if (stringField(message, "type") !== "StatusUpdate") return;
+      if (!modern && stringField(message, "type") !== "StatusUpdate") return;
       const payload = recordField(message, "payload");
-      const tokenUsage = recordField(payload, "token_usage");
+      const tokenUsage = modern ? recordField(parsed, "usage") : recordField(payload, "token_usage");
       if (!tokenUsage) return;
 
-      const timestamp = timestampFromSeconds(parsed.timestamp);
+      const timestamp = modern
+        ? (Number.isFinite(Number(parsed.time)) && parsed.time !== undefined ? new Date(Number(parsed.time)).toISOString() : options.fallbackTimestamp)
+        : timestampFromSeconds(parsed.timestamp);
       if (!timestamp) return;
       const bucketStart = toUtcHalfHourStart(timestamp);
       if (!bucketStart) return;
 
       const totals = applyTotalTokenFallback(
         {
-          inputTokens: nonNegativeInt(tokenUsage.input_other),
-          cachedInputTokens: nonNegativeInt(tokenUsage.input_cache_read),
+          inputTokens: nonNegativeInt(modern ? tokenUsage.inputOther : tokenUsage.input_other),
+          cachedInputTokens: nonNegativeInt(modern ? tokenUsage.inputCacheRead : tokenUsage.input_cache_read),
           outputTokens: nonNegativeInt(tokenUsage.output),
           reasoningOutputTokens: 0,
-          cacheCreationTokens: nonNegativeInt(tokenUsage.input_cache_creation),
+          cacheCreationTokens: nonNegativeInt(modern ? tokenUsage.inputCacheCreation : tokenUsage.input_cache_creation),
           totalTokens: 0,
         },
         nonNegativeInt(tokenUsage.total),
       );
       if (isZeroUsage(totals)) return;
 
+      const eventModel = modern ? normalizeKimiModel(stringField(parsed, "model")?.replace(/^kimi-code\//, "") || DEFAULT_MODEL) : model;
       events.push({
+        ...(!modern && stringField(payload, "message_id") ? { messageId: stringField(payload, "message_id")! } : {}),
         agent: "kimi",
-        model: model.model,
-        pricingModel: model.pricingModel || kimiPricingModel(model.originalModel, timestamp) || model.model,
+        model: eventModel.model,
+        pricingModel: eventModel.pricingModel || kimiPricingModel(eventModel.originalModel, timestamp) || eventModel.model,
         sessionId,
         sourcePath: options.sourcePath,
         timestamp,
@@ -93,6 +100,9 @@ function timestampFromSeconds(value: unknown): string | null {
 }
 
 function sessionIdFromWirePath(filePath: string): string | null {
+  const parts = filePath.split(path.sep);
+  const sessions = parts.lastIndexOf("sessions");
+  if (sessions >= 0 && parts[sessions + 2]) return parts[sessions + 2];
   const parent = path.basename(path.dirname(filePath));
   return parent && parent !== "." ? parent : null;
 }

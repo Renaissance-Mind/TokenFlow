@@ -57,6 +57,7 @@ export function createClaudeJsonlParser(options: ParseOptions): JsonlUsageParser
       );
       const fastMultiplier = model.pricingModel ? claudeFastMultiplier(model.pricingModel) : null;
       events.push({
+        ...(dedupeId ? { messageId: dedupeId } : {}),
         agent: "claude",
         model: model.displayModel,
         ...(model.pricingModel ? { pricingModel: model.pricingModel } : {}),

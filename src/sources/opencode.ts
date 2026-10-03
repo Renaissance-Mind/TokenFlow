@@ -1,12 +1,15 @@
 import { normalizeAgentModelForUsage } from "../pricing.js";
 import { toUtcHalfHourStart } from "../time.js";
 import type { UsageEvent } from "../types.js";
+import { applyTotalTokenFallback } from "../token-totals.js";
+import { optionalDecimalString } from "./ccusage-common.js";
 
 export interface OpenCodeMessageRow {
   id: string;
   session_id: string;
   time_created?: number;
   data: string;
+  aggregate?: boolean;
 }
 
 export function parseOpenCodeMessageRow(row: OpenCodeMessageRow, sourcePath = "opencode.db"): UsageEvent | null {
@@ -24,16 +27,19 @@ export function parseOpenCodeMessageRow(row: OpenCodeMessageRow, sourcePath = "o
   const cacheCreationTokens = intField(cache?.write);
   const totalTokens =
     inputTokens + outputTokens + reasoningOutputTokens + cachedInputTokens + cacheCreationTokens;
-  if (totalTokens === 0) return null;
+  if (totalTokens === 0 && !(row.aggregate && Number(value.cost) > 0)) return null;
 
   const timestampMs =
     typeof time?.created === "number" ? time.created : typeof row.time_created === "number" ? row.time_created : 0;
   const timestamp = new Date(timestampMs).toISOString();
   const bucketStart = toUtcHalfHourStart(timestamp);
   if (!bucketStart) return null;
+  const modelRef = objectField(value, "model");
+  const rawModel = stringField(modelRef?.id) || stringField(modelRef?.modelID) || stringField(value.modelID) || stringField(value.model) || "unknown";
+  const provider = stringField(modelRef?.providerID) || stringField(value.providerID);
   const model = normalizeAgentModelForUsage(
     "opencode",
-    stringField(value.modelID) || stringField(value.model) || "unknown",
+    provider ? `${provider}/${rawModel}` : rawModel,
   );
 
   return {
@@ -44,12 +50,8 @@ export function parseOpenCodeMessageRow(row: OpenCodeMessageRow, sourcePath = "o
     sourcePath,
     timestamp,
     bucketStart,
-    inputTokens,
-    cachedInputTokens,
-    outputTokens,
-    reasoningOutputTokens,
-    cacheCreationTokens,
-    totalTokens,
+    ...applyTotalTokenFallback({ inputTokens, cachedInputTokens, outputTokens, reasoningOutputTokens, cacheCreationTokens, totalTokens }, intField(tokens.total)),
+    ...(Number(value.cost) > 0 ? { recordedCostUsd: optionalDecimalString(value.cost) } : {}),
   };
 }
 

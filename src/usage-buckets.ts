@@ -66,6 +66,12 @@ export function aggregateEvents(events: UsageEvent[], pricingProfiles: PricingPr
     bucket.pricingModel ||= event.pricingModel;
     bucket.costMultiplier ||= event.costMultiplier;
     bucket.recordedCostUsd = addUsdStrings(bucket.recordedCostUsd, event.recordedCostUsd);
+    if (event.recordedCostUsd !== undefined) {
+      bucket.recordedUsage ||= { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningOutputTokens: 0, cacheCreationTokens: 0, totalTokens: 0 };
+      addTotals(bucket.recordedUsage, event);
+      addLongContextTotals(bucket.recordedUsage, event, pricingProfiles);
+      addFastTotals(bucket.recordedUsage as UsageBucket, event, pricingProfiles);
+    }
     const pricing = calculateBucketCost(bucket, pricingProfiles);
     bucket.cost = pricing.cost;
     bucket.pricingStatus = pricing.status;
@@ -81,17 +87,14 @@ function calculateBucketCost(
   bucket: UsageBucket,
   pricingProfiles: PricingProfile[],
 ): { cost: CostBreakdown; status: "priced" | "unpriced" } {
-  if (bucket.recordedCostUsd) {
-    return {
-      cost: {
-        inputUsd: "0.000000",
-        outputUsd: "0.000000",
-        cacheReadUsd: "0.000000",
-        cacheCreationUsd: "0.000000",
-        totalUsd: bucket.recordedCostUsd,
-      },
-      status: "priced",
-    };
+  if (bucket.recordedCostUsd !== undefined) {
+    const remainder = { ...bucket, recordedCostUsd: undefined, recordedUsage: undefined };
+    if (bucket.recordedUsage) for (const [key, value] of Object.entries(bucket.recordedUsage)) {
+      if (key.endsWith("Tokens") && typeof value === "number") (remainder as unknown as Record<string, unknown>)[key] = Math.max(0, Number((bucket as unknown as Record<string, unknown>)[key] || 0) - value);
+    }
+    const unrecorded = bucket.recordedUsage && remainder.totalTokens > 0 ? calculateBucketCost(remainder, pricingProfiles)
+      : { cost: ZERO_COST, status: "priced" as const };
+    return { cost: { ...unrecorded.cost, totalUsd: addUsdStrings(bucket.recordedCostUsd, unrecorded.cost.totalUsd)! }, status: unrecorded.status };
   }
   const pricing = resolvePricingAt(bucket.pricingModel || bucket.model, bucket.bucketStart, pricingProfiles);
   if (!pricing) return { cost: ZERO_COST, status: "unpriced" };
@@ -99,6 +102,10 @@ function calculateBucketCost(
 }
 
 function calculateBucketTokenCost(bucket: UsageBucket, pricing: PricingProfile): CostBreakdown {
+  if (bucket.agent === "zcode" && bucket.pricingModel?.startsWith("zai/")) pricing = {
+    ...pricing, cacheCreationUsdPerMillion: pricing.inputUsdPerMillion,
+    cacheCreationAbove200kUsdPerMillion: pricing.inputAbove200kUsdPerMillion,
+  };
   if (!bucket.costMultiplier || !bucket.fastInputTokens) {
     return calculateCost(bucket.agent, bucket, pricing, bucket.costMultiplier || "1");
   }
@@ -170,7 +177,7 @@ function addFastTotals(
   event: UsageEvent,
   pricingProfiles: PricingProfile[],
 ): void {
-  if (!event.costMultiplier) return;
+  if (!event.costMultiplier && event.serviceTier !== "fast") return;
 
   target.fastInputTokens = (target.fastInputTokens || 0) + event.inputTokens;
   target.fastCachedInputTokens = (target.fastCachedInputTokens || 0) + event.cachedInputTokens;

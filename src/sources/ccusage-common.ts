@@ -50,7 +50,7 @@ export function makeUsageEvent(parts: UsageEventParts): UsageEvent | null {
     },
     parts.totalTokens || 0,
   );
-  if (isZeroUsage(totals)) return null;
+  if (isZeroUsage(totals) && !(Number(parts.recordedCostUsd) > 0)) return null;
 
   const normalizedModel = normalizeAgentModelForUsage(parts.agent, parts.model || "unknown");
 
@@ -92,9 +92,11 @@ export function positiveNumberField(value: Record<string, unknown> | null | unde
 }
 
 export function optionalDecimalString(value: unknown): string | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
   const number = Number(value);
   if (!Number.isFinite(number) || number < 0) return undefined;
-  return String(number);
+  if (number >= 1e21) return undefined;
+  return number.toFixed(10).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
 }
 
 export function timestampFromValue(value: unknown): string | null {

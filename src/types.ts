@@ -14,6 +14,9 @@ export type AgentSource =
   | "openclaw"
   | "pi"
   | "dsh"
+  | "grok"
+  | "zcode"
+  | "antigravity"
   | "unknown";
 
 export interface UsageTotals {
@@ -53,6 +56,8 @@ export interface UsageTotals {
 }
 
 export interface UsageEvent extends UsageTotals {
+  messageId?: string;
+  serviceTier?: "standard" | "fast";
   agent: AgentSource;
   model: string;
   pricingModel?: string;
@@ -92,6 +97,7 @@ export interface CostBreakdown {
 }
 
 export interface UsageBucket extends UsageTotals {
+  recordedUsage?: UsageTotals;
   agent: AgentSource;
   model: string;
   pricingModel?: string;

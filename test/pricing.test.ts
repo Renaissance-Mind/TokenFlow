@@ -1940,7 +1940,7 @@ describe("pricing", () => {
     });
     expect(normalizeAgentModelForUsage("kimi", "moonshotai/Kimi-K2.6-Fast")).toMatchObject({
       model: "kimi-k2.6-fast",
-      pricingModel: "moonshotai/Kimi-K2.6",
+      pricingModel: "moonshotai/Kimi-K2.6-Fast",
     });
     expect(resolvePricing("moonshotai/Kimi-K2.6-TEE")).toMatchObject({
       modelId: "moonshotai/Kimi-K2.6-TEE",

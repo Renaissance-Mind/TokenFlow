@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import { tokenUsageDir } from "./config.js";
 import type { DailyReplacementScope, UnknownReplacementScope } from "./ingest-payload.js";
 import type { UsageBucket } from "./types.js";
+import { pricingSignals } from "./ingest-payload.js";
 
 const SYNC_STATE_VERSION = 3;
 const DEFAULT_MAX_BUCKETS_PER_SYNC = 60;
@@ -134,6 +135,7 @@ export function bucketFingerprint(bucket: UsageBucket): string {
         reasoningOutputTokens: bucket.reasoningOutputTokens,
         cacheCreationTokens: bucket.cacheCreationTokens,
         totalTokens: bucket.totalTokens,
+        pricingSignals: pricingSignals(bucket),
         cost: bucket.cost,
         pricingStatus: bucket.pricingStatus,
       }),
