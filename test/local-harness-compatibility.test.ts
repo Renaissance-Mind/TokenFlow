@@ -313,6 +313,38 @@ describe("local harness compatibility", () => {
     });
   });
 
+  it.each([
+    ["account:zai-individual-coding-plan", "zai"],
+    ["account:zai-start-plan", "zai"],
+    ["builtin:zai-start-plan", "zai"],
+    [" ACCOUNT:ZAI-START-PLAN ", "zai"],
+    [" Z.AI ", "zai"],
+    ["custom:zai-start-plan", "unpriced-zcode-custom"],
+    ["account:other-plan", "unpriced-zcode-custom"],
+  ])("attributes ZCode provider %s from its native ledger", async (provider, prefix) => {
+    // Provider IDs and model names follow ccusage 10763b4 ZCode parser tests.
+    const home = await root();
+    const dir = path.join(home, ".zcode", "cli", "db");
+    await fs.mkdir(dir, { recursive: true });
+    sqlite(path.join(dir, "db.sqlite"), `
+      CREATE TABLE session(id TEXT,directory TEXT);
+      CREATE TABLE model_usage(id TEXT,session_id TEXT,started_at INTEGER,model_id TEXT,status TEXT,input_tokens INTEGER,output_tokens INTEGER,provider_id TEXT);
+      INSERT INTO session VALUES('s','/project');
+      INSERT INTO model_usage VALUES('u1','s',1786909042666,'GLM-5.3','completed',100,10,'${provider}');
+      INSERT INTO model_usage VALUES('u2','s',1786909042666,'GLM-5.3-Flash','completed',100,10,'${provider}');
+    `);
+    process.env.ZCODE_HOME = path.join(home, ".zcode");
+    const { events } = await collectZcode(home);
+    expect(events).toHaveLength(2);
+    expect(events.map((event) => event.pricingModel)).toEqual([
+      prefix === "zai" ? "zai/glm-5.3" : "unpriced-zcode-custom-glm-5.3",
+      prefix === "zai" ? "zai/glm-5.3-flash" : "unpriced-zcode-custom-glm-5.3-flash",
+    ]);
+    expect(events[0]).toMatchObject({ inputTokens: 100, outputTokens: 10, totalTokens: 110 });
+    const payload = toUsageSnapshotPayload(aggregateEvents(events));
+    expect(JSON.stringify(payload)).toContain(events[0].pricingModel);
+  });
+
   it("reads only completed ZCode ledger rows, tolerates optional schema columns and deduplicates roots", async () => {
     const home = await root();
     const dir = path.join(home, "zcode", "cli", "db");

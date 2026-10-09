@@ -71,7 +71,7 @@ Home: /Users/alice/.tokenflow
 | OpenClaw | JSONL sessions under `~/.openclaw`, `~/.clawdbot`, `~/.moltbot`, and `~/.moldbot`; per-agent `openclaw-agent.sqlite` | Tracks model changes per session; SQLite records take precedence over migrated JSONL copies. |
 | Pi | `~/.pi/agent/sessions/**/*.jsonl` | Reads assistant usage, excludes copied fork prefixes and derived subagent artifacts. Existing ccusage `pi.stores` configuration adds named stores. |
 | Grok Build | `~/.grok/sessions/**/updates.jsonl` | Reads completed turns, splits cache-inclusive input, deduplicates event IDs, and preserves recorded billing ticks. |
-| ZCode | `~/.zcode/cli/db/db.sqlite` | Reads completed model-usage ledger rows, supports legacy optional columns, and bounds cache slices within inclusive input. |
+| ZCode | `~/.zcode/cli/db/db.sqlite` | Reads completed model-usage ledger rows, supports legacy optional columns and current Z.ai account/builtin plan IDs, and bounds cache slices within inclusive input. |
 | Antigravity | Conversation SQLite files under `~/.gemini/antigravity*` and `~/.config/antigravity` | Reads generation/step protobuf usage and billed retries, merging response identities across stores and backups. |
 | DeepSeek Harness (dsh) | `~/.dsh/sessions/**/session*.jsonl` or `session*.jsonl.zstd` | Reads plain or Zstandard-compressed Session formats 0–4; selects the latest generation and excludes inherited fork usage. |
 

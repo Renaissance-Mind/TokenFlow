@@ -42,14 +42,15 @@ export function parseZcodeRow(
     totalTokens: nonNegativeInt(row.computed_total_tokens),
   });
   if (event && row.provider_id) {
-    const provider = String(row.provider_id).toLowerCase();
-    event.pricingModel = [
+    const provider = String(row.provider_id).trim().toLowerCase();
+    const isZaiProvider = [
       "zai",
       "z.ai",
       "zai-coding-plan",
       "builtin:zai-coding-plan",
       "builtin:bigmodel-coding-plan",
-    ].includes(provider)
+    ].includes(provider) || provider.startsWith("account:zai-") || provider.startsWith("builtin:zai-");
+    event.pricingModel = isZaiProvider
       ? `zai/${model.toLowerCase()}`
       : `unpriced-zcode-custom-${model.toLowerCase()}`;
   } else if (event && /^glm[-/]/i.test(model))
