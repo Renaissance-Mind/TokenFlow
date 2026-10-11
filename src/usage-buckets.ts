@@ -14,7 +14,7 @@ export function aggregateEvents(events: UsageEvent[], pricingProfiles: PricingPr
 
   for (const event of events) {
     const bucketStart = event.bucketStart;
-    const key = `${event.agent}|${event.model}|${event.pricingModel || event.model}|${bucketStart}`;
+    const key = `${event.agent}|${event.model}|${event.pricingModel || event.model}|${bucketStart}${event.serviceTier === "flex" ? "|flex" : ""}`;
     const bucket =
       buckets.get(key) ||
       ({
@@ -60,6 +60,7 @@ export function aggregateEvents(events: UsageEvent[], pricingProfiles: PricingPr
         pricingStatus: "unpriced",
       } satisfies UsageBucket);
 
+    bucket.serviceTier = event.serviceTier === "flex" ? "flex" : "standard";
     addTotals(bucket, event);
     addLongContextTotals(bucket, event, pricingProfiles);
     addFastTotals(bucket, event, pricingProfiles);
@@ -102,14 +103,17 @@ function calculateBucketCost(
 }
 
 function calculateBucketTokenCost(bucket: UsageBucket, pricing: PricingProfile): CostBreakdown {
+  if (bucket.serviceTier === "flex") return calculateCost(bucket.agent, bucket, pricing, pricing.flexMultiplier || "1");
   if (bucket.agent === "zcode" && bucket.pricingModel?.startsWith("zai/")) pricing = {
     ...pricing, cacheCreationUsdPerMillion: pricing.inputUsdPerMillion,
     cacheCreationAbove200kUsdPerMillion: pricing.inputAbove200kUsdPerMillion,
   };
-  if (!bucket.costMultiplier || !bucket.fastInputTokens) {
+  const hasFast = (bucket.fastInputTokens || 0) + (bucket.fastOutputTokens || 0) + (bucket.fastCacheCreationTokens || 0) > 0;
+  const multiplier = bucket.costMultiplier || (hasFast ? pricing.fastMultiplier : undefined);
+  if (!multiplier || !hasFast) {
     return calculateCost(bucket.agent, bucket, pricing, bucket.costMultiplier || "1");
   }
-  const extraMultiplier = subtractDecimalString(bucket.costMultiplier, "1");
+  const extraMultiplier = subtractDecimalString(multiplier, "1");
   if (extraMultiplier === "0.000000") return calculateCost(bucket.agent, bucket, pricing);
 
   const standardCost = calculateCost(bucket.agent, bucket, pricing);

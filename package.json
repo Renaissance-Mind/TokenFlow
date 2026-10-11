@@ -1,6 +1,6 @@
 {
   "name": "@renaissancemind/tokenflow",
-  "version": "0.2.69",
+  "version": "0.2.70",
   "description": "Local token usage collector for multi-device AI agent accounting.",
   "repository": {
     "type": "git",
@@ -37,6 +37,7 @@
     "vitest": "^1.6.0"
   },
   "dependencies": {
-    "fzstd": "0.1.1"
+    "fzstd": "0.1.1",
+    "smol-toml": "1.9.1"
   }
 }

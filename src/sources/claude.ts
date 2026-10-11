@@ -39,12 +39,17 @@ export function createClaudeJsonlParser(options: ParseOptions): JsonlUsageParser
       const usage = recordField(message, "usage") || recordField(row, "usage");
       if (!usage) return;
 
-      const dedupeId = stringField(message, "id") || stringField(row, "requestId");
-      if (dedupeId && seen.has(dedupeId)) return;
-
       const timestamp = stringField(row, "timestamp");
       const bucketStart = timestamp ? toUtcHalfHourStart(timestamp) : null;
       if (!timestamp || !bucketStart) return;
+      const messageId = stringField(message, "id");
+      const requestId = stringField(row, "requestId") || stringField(row, "request_id");
+      const sessionId = stringField(row, "sessionId") || stringField(row, "session_id");
+      const dedupeId = messageId || requestId ? JSON.stringify([
+        messageId, requestId,
+        ...(requestId ? [] : [sessionId || options.sourcePath, ...(messageId?.startsWith("msg_") ? [] : [timestamp])]),
+      ]) : null;
+      if (dedupeId && seen.has(dedupeId)) return;
 
       const totals = normalizeClaudeUsage(usage);
       if (isZero(totals)) return;
@@ -62,7 +67,7 @@ export function createClaudeJsonlParser(options: ParseOptions): JsonlUsageParser
         model: model.displayModel,
         ...(model.pricingModel ? { pricingModel: model.pricingModel } : {}),
         ...(fastMultiplier ? { costMultiplier: fastMultiplier } : {}),
-        sessionId: stringField(row, "sessionId") || stringField(row, "session_id"),
+        sessionId,
         sourcePath: options.sourcePath,
         timestamp,
         bucketStart,

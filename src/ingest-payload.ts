@@ -236,6 +236,7 @@ export function pricingSignals(bucket: UsageBucket): Record<string, unknown> {
     signals[snake(key)] = value;
   }
   if (bucket.pricingModel) signals.pricing_model = bucket.pricingModel;
+  if (bucket.serviceTier) signals.service_tier = bucket.serviceTier;
   if (bucket.recordedCostUsd !== undefined) {
     signals.recorded_cost_usd = bucket.recordedCostUsd;
     if (bucket.recordedUsage) signals.recorded_usage = Object.fromEntries(Object.entries(bucket.recordedUsage)

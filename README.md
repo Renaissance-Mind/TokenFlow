@@ -18,7 +18,7 @@ Existing `tokenusage` installs keep working: the package still exposes a `tokenu
 
 [Features](#features) - [Install](#install) - [Quick Start](#quick-start) - [Commands](#commands) - [Configuration](#configuration) - [Development](#development)
 
-TokenFlow is an installable local collector for multi-device AI-agent usage accounting. It scans local Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, Pi, Grok Build, ZCode, Antigravity, and DeepSeek Harness (dsh) usage data, aggregates token counts into UTC half-hour buckets by agent and model, calculates known costs, and uploads only changed usage metadata to a TokenFlow server.
+TokenFlow is an installable local collector for multi-device AI-agent usage accounting. It scans local Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, Pi, Grok Build, ZCode, Antigravity, GitHub Copilot, and DeepSeek Harness (dsh) usage data, aggregates token counts into UTC half-hour buckets by agent and model, calculates known costs, and uploads only changed usage metadata to a TokenFlow server.
 
 Prompts and responses stay on your machine. Uploaded payloads contain counts, model names, bucket timestamps, pricing status, and optional device metadata.
 
@@ -44,7 +44,7 @@ Home: /Users/alice/.tokenflow
 ## Features
 
 - 🔐 **Local-first collection** - reads agent logs locally and uploads metadata only.
-- 🤖 **Multi-agent support** - Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, Pi, Grok Build, ZCode, Antigravity, and DeepSeek Harness (dsh).
+- 🤖 **Multi-agent support** - Codex, Claude Code, Gemini CLI, OpenCode, Kimi CLI, Qwen Code, Amp, Codebuff, Droid, Goose, Hermes, Kilo, OpenClaw, Pi, Grok Build, ZCode, Antigravity, GitHub Copilot, and DeepSeek Harness (dsh).
 - 📊 **Half-hour UTC buckets** - keeps local usage detail while dashboards can still summarize by day.
 - 💸 **Cost-aware accounting** - separates fresh input, cached input, cache creation, output, and reasoning output tokens.
 - 🧾 **Unpriced model visibility** - unknown models are counted and marked as `unpriced` instead of silently disappearing.
@@ -56,7 +56,7 @@ Home: /Users/alice/.tokenflow
 
 | Source | Local data read | Notes |
 | --- | --- | --- |
-| Codex | `~/.codex/sessions/**/rollout-*.jsonl` and archived session JSONL | Parses rollout token events, counts unreported compactions, and excludes inherited fork history. |
+| Codex | `~/.codex/sessions/**/rollout-*.jsonl` and archived session JSONL | Parses rollout token events, preserves Standard/Fast/Flex tiers, counts unreported compactions, and excludes inherited fork history. The selected TOML profile supplies a fallback tier for unclassified records. |
 | Claude Code | `~/.claude/projects/**/*.jsonl` | Parses project JSONL usage data. |
 | Gemini CLI | `~/.gemini/tmp/**/*.{json,jsonl}` | Reads per-request usage, JSONL settlement records and stats; preserves legacy cumulative session parsing. |
 | OpenCode | `~/.local/share/opencode/opencode*.db` and legacy message JSON | Reads legacy and v2 message tables, excludes copied fork rows, and uses uncovered session counters as fallback. Requires `sqlite3`. |
@@ -72,6 +72,7 @@ Home: /Users/alice/.tokenflow
 | Pi | `~/.pi/agent/sessions/**/*.jsonl` | Reads assistant usage, excludes copied fork prefixes and derived subagent artifacts. Existing ccusage `pi.stores` configuration adds named stores. |
 | Grok Build | `~/.grok/sessions/**/updates.jsonl` | Reads completed turns, splits cache-inclusive input, deduplicates event IDs, and preserves recorded billing ticks. |
 | ZCode | `~/.zcode/cli/db/db.sqlite` | Reads completed model-usage ledger rows, supports legacy optional columns and current Z.ai account/builtin plan IDs, and bounds cache slices within inclusive input. |
+| GitHub Copilot | `~/.copilot/session-state/*/events.jsonl`, existing `~/.copilot/otel/**/*.jsonl` | Reads native shutdown/checkpoint records without enabling telemetry. Reconciles cumulative usage and existing OTel calls, and retains persistent unattributed AI credits at $0.01 per credit. |
 | Antigravity | Conversation SQLite files under `~/.gemini/antigravity*` and `~/.config/antigravity` | Reads generation/step protobuf usage and billed retries, merging response identities across stores and backups. |
 | DeepSeek Harness (dsh) | `~/.dsh/sessions/**/session*.jsonl` or `session*.jsonl.zstd` | Reads plain or Zstandard-compressed Session formats 0–4; selects the latest generation and excludes inherited fork usage. |
 
@@ -228,7 +229,9 @@ Environment overrides:
 | `GEMINI_DATA_DIR` | Gemini JSON/JSONL discovery directories, or comma-separated directories. Defaults to `~/.gemini/tmp`; `GEMINI_HOME` remains supported. |
 | `GROK_HOME` | Grok Build home. Defaults to `~/.grok`. |
 | `ZCODE_HOME` | ZCode home, or comma-separated roots. Defaults to `~/.zcode`. |
-| `ANTIGRAVITY_DATA_DIR` | Antigravity roots or conversation directories, comma-separated. Defaults include Gemini Antigravity CLI/IDE/backup and `~/.config/antigravity/conversations`. |
+| `COPILOT_HOME` | Copilot data root. Defaults to `~/.copilot`. |
+| `COPILOT_OTEL_FILE_EXPORTER_PATH` | Optional existing OTel JSONL file to read; TokenFlow does not enable export. |
+| `ANTIGRAVITY_DATA_DIR` | Antigravity roots or conversation directories, comma-separated. Defaults include Gemini Antigravity CLI/IDE/backup/ACP and `~/.config/antigravity/conversations`. |
 | `QWEN_DATA_DIR` | Qwen data root, or comma-separated roots. Defaults to `~/.qwen`. |
 | `AMP_DATA_DIR` | Amp data root, or comma-separated roots. Defaults to `~/.local/share/amp`. |
 | `CODEBUFF_DATA_DIR` | Codebuff/Manicode data root or `projects` root, comma-separated. Defaults to `~/.config/manicode`, `~/.config/manicode-dev`, and `~/.config/manicode-staging`. |

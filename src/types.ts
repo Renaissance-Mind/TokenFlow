@@ -17,6 +17,7 @@ export type AgentSource =
   | "grok"
   | "zcode"
   | "antigravity"
+  | "copilot"
   | "unknown";
 
 export interface UsageTotals {
@@ -57,7 +58,7 @@ export interface UsageTotals {
 
 export interface UsageEvent extends UsageTotals {
   messageId?: string;
-  serviceTier?: "standard" | "fast";
+  serviceTier?: "standard" | "fast" | "flex";
   agent: AgentSource;
   model: string;
   pricingModel?: string;
@@ -80,6 +81,7 @@ export interface PricingRate {
   cacheCreationAbove200kUsdPerMillion?: string;
   longContextThresholdTokens?: number;
   fastMultiplier?: string;
+  flexMultiplier?: string;
 }
 
 export interface PricingProfile extends PricingRate {
@@ -97,6 +99,7 @@ export interface CostBreakdown {
 }
 
 export interface UsageBucket extends UsageTotals {
+  serviceTier?: "standard" | "flex";
   recordedUsage?: UsageTotals;
   agent: AgentSource;
   model: string;

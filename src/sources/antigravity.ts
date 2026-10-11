@@ -239,6 +239,7 @@ export async function collectAntigravity(home: string) {
     ".gemini/antigravity-cli/conversations",
     ".gemini/antigravity-ide/conversations",
     ".gemini/antigravity-backup/conversations",
+    ".gemini/antigravity-acp/conversations",
     ".config/antigravity/conversations",
   ]);
   const files = [

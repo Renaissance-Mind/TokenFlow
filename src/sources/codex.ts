@@ -4,7 +4,7 @@ import type { UsageEvent, UsageTotals } from "../types.js";
 
 interface ParseOptions {
   sourcePath: string;
-  serviceTier?: "standard" | "fast" | "priority";
+  serviceTier?: "standard" | "fast" | "priority" | "flex";
   compactionHistory?: Map<string, string>;
   useReplayPlan?: boolean;
 }
@@ -23,7 +23,7 @@ interface CumulativeUsage {
   totalTokens: number;
 }
 
-type CodexServiceTier = "standard" | "fast";
+type CodexServiceTier = "standard" | "fast" | "flex";
 
 interface ParsedCodexUsageEvent extends UsageEvent {
   codexServiceTier?: CodexServiceTier;
@@ -255,6 +255,7 @@ function effectiveServiceTier(
   fallbackTier: ParseOptions["serviceTier"],
 ): CodexServiceTier {
   if (recordedTier) return recordedTier;
+  if (fallbackTier === "flex") return "flex";
   return fallbackTier === "fast" || fallbackTier === "priority" ? "fast" : "standard";
 }
 
@@ -270,6 +271,7 @@ function codexServiceTierFromSettings(payload: Record<string, unknown> | null): 
   const value = stringField(settings, "service_tier");
   if (value === "default" || value === "standard") return "standard";
   if (value === "fast" || value === "priority") return "fast";
+  if (value === "flex") return "flex";
   return null;
 }
 

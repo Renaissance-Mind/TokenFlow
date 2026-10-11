@@ -124,6 +124,7 @@ export function markSyncPlanUploaded(state: SyncState, plan: IncrementalSyncPlan
 export function bucketSyncKey(bucket: UsageBucket): string {
   const identity = ["half_hour", bucket.agent, bucket.model, bucket.bucketStart];
   if (bucket.pricingModel && bucket.pricingModel !== bucket.model) identity.push(bucket.pricingModel);
+  if (bucket.serviceTier === "flex") identity.push("flex");
   return identity.join("\t");
 }
 

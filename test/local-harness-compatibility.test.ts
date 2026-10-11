@@ -87,7 +87,7 @@ describe("local harness compatibility", () => {
 
   it("counts a Claude provider response copied across session logs only once", async () => {
     const home = await root();
-    const message = { timestamp: "2026-06-09T00:00:00Z", type: "assistant", sessionId: "parent", message: { id: "provider-response-1", model: "claude-sonnet-4-6", usage: { input_tokens: 100, output_tokens: 20 } } };
+    const message = { timestamp: "2026-06-09T00:00:00Z", type: "assistant", requestId: "request-1", sessionId: "parent", message: { id: "provider-response-1", model: "claude-sonnet-4-6", usage: { input_tokens: 100, output_tokens: 20 } } };
     await put(path.join(home, ".claude/projects/project/parent.jsonl"), jsonl(message));
     await put(path.join(home, ".claude/projects/project/child.jsonl"), jsonl({ ...message, sessionId: "child" }));
     const events = (await collectLocalUsage(home)).events.filter((event) => event.agent === "claude");
@@ -371,9 +371,9 @@ describe("local harness compatibility", () => {
     });
   });
 
-  it("decodes Antigravity step/generator metadata, counts retries and merges copied identities", async () => {
+  it.each(["configured", "acp"])("decodes Antigravity %s metadata, counts retries and merges copied identities", async (mode) => {
     const home = await root();
-    const dir = path.join(home, "antigravity", "conversations");
+    const dir = mode === "acp" ? path.join(home, ".gemini/antigravity-acp/conversations") : path.join(home, "antigravity", "conversations");
     await fs.mkdir(dir, { recursive: true });
     const file = path.join(dir, "session.db");
     const usage = proto(
@@ -403,7 +403,8 @@ describe("local harness compatibility", () => {
       INSERT INTO gen_metadata VALUES(1,X'${generation.toString("hex")}'); INSERT INTO steps VALUES(1,X'${step.toString("hex")}');`,
     );
     await fs.copyFile(file, path.join(dir, "backup.db"));
-    process.env.ANTIGRAVITY_DATA_DIR = path.join(home, "antigravity");
+    if (mode === "acp") delete process.env.ANTIGRAVITY_DATA_DIR;
+    else process.env.ANTIGRAVITY_DATA_DIR = path.join(home, "antigravity");
     const result = await collectAntigravity(home);
     expect(result.events).toHaveLength(2);
     expect(

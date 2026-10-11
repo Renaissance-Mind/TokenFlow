@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
+import { parse as parseToml } from "smol-toml";
 
 import { parseAmpThread } from "./sources/amp.js";
 import { createClaudeJsonlParser } from "./sources/claude.js";
@@ -16,6 +17,7 @@ import { collectDshUsage, resolveDshSessionDirs } from "./sources/dsh.js";
 import { collectGrok } from "./sources/grok.js";
 import { collectZcode } from "./sources/zcode.js";
 import { collectAntigravity } from "./sources/antigravity.js";
+import { collectCopilot } from "./sources/copilot.js";
 import { parseGeminiSession, createGeminiJsonlParser } from "./sources/gemini.js";
 import { parseGooseSessionRow, type GooseSessionRow } from "./sources/goose.js";
 import { parseHermesSessionRow, type HermesSessionRow } from "./sources/hermes.js";
@@ -69,7 +71,7 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
   const piRoots = await existingDirs(resolveDataDirs("PI_AGENT_DIR", home, ".pi/agent/sessions"));
   const codexServiceTier = await readCodexServiceTier(codexHome);
   const dsh = await collectDshUsage(resolveDshSessionDirs(home));
-  const additional = await Promise.all([collectGrok(home), collectZcode(home), collectAntigravity(home)]);
+  const additional = await Promise.all([collectGrok(home), collectZcode(home), collectAntigravity(home), collectCopilot(home)]);
 
   const codexFiles = [
     ...(await listFiles(path.join(codexHome, "sessions"), (file) =>
@@ -265,23 +267,20 @@ export async function collectLocalUsage(home = os.homedir()): Promise<Collection
   };
 }
 
-async function readCodexServiceTier(codexHome: string): Promise<"standard" | "fast" | "priority"> {
+async function readCodexServiceTier(codexHome: string): Promise<"standard" | "fast" | "priority" | "flex"> {
   const configPath = path.join(codexHome, "config.toml");
   const config = await fs.readFile(configPath, "utf8").catch(() => "");
   const tier = codexServiceTierFromConfig(config);
   return tier || "standard";
 }
 
-function codexServiceTierFromConfig(config: string): "fast" | "priority" | null {
-  for (const line of config.split(/\r?\n/)) {
-    const setting = line.split("#")[0]?.trim();
-    if (!setting) continue;
-    const [key, ...valueParts] = setting.split("=");
-    if (key?.trim() !== "service_tier") continue;
-    const value = valueParts.join("=").trim().replace(/^["']|["']$/g, "");
-    if (value === "fast" || value === "priority") return value;
-  }
-  return null;
+export function codexServiceTierFromConfig(content: string): "standard" | "fast" | "priority" | "flex" | null {
+  let config: Record<string, unknown>;
+  try { config = parseToml(content); } catch { return null; }
+  const profiles = config.profiles as Record<string, { service_tier?: unknown }> | undefined;
+  const value = (typeof config.profile === "string" ? profiles?.[config.profile]?.service_tier : undefined) ?? config.service_tier;
+  if (value === "default" || value === "standard") return "standard";
+  return value === "fast" || value === "priority" || value === "flex" ? value : null;
 }
 
 async function readJsonlEvents(
