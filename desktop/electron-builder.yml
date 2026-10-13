@@ -11,6 +11,13 @@ files:
 extraResources:
   - from: collector
     to: collector
+    filter:
+      - '**/*'
+      - '!node_modules/**'
+  - from: collector/node_modules
+    to: collector/node_modules
+    filter:
+      - '**/*'
 asar: true
 npmRebuild: false
 mac:
