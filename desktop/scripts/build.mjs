@@ -63,10 +63,18 @@ for(const name of ['proper-lockfile','proper-lockfile/node_modules/signal-exit',
 }
 const config={main:path.join(work,'collector.cjs'),mainFormat:'commonjs',executable:runtime,output,disableExperimentalSEAWarning:true,useSnapshot:false,useCodeCache:false,execArgv:['--no-warnings'],execArgvExtension:'none'};
 const configPath=path.join(work,'sea.json');await fs.writeFile(configPath,JSON.stringify(config));
-execFileSync(host,['--build-sea',configPath],{stdio:'inherit'});
+// Node 26's built-in Mach-O SEA writer currently produces crashing x64 binaries.
+// The documented blob/postject route preserves the Intel executable layout.
+if(platform === 'darwin' && arch === 'x64'){
+  const blob=path.join(work,'collector.blob');const blobConfig={...config,output:blob};delete blobConfig.executable;
+  await fs.writeFile(configPath,JSON.stringify(blobConfig));
+  execFileSync(runtime,['--experimental-sea-config',configPath],{stdio:'inherit'});
+  await fs.copyFile(runtime,output);execFileSync('codesign',['--remove-signature',output]);
+  execFileSync(process.execPath,[path.join(desktop,'node_modules/postject/dist/cli.js'),output,'NODE_SEA_BLOB',blob,'--sentinel-fuse','NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2','--macho-segment-name','NODE_SEA'],{stdio:'inherit'});
+}else execFileSync(host,['--build-sea',configPath],{stdio:'inherit'});
 if(platform !== 'win')await fs.chmod(output,0o755);
 if(platform === 'darwin'){
-  execFileSync('codesign',['--remove-signature',output]);
+  if(arch !== 'x64')execFileSync('codesign',['--remove-signature',output]);
   execFileSync('strip',['-S','-x',output]);
   execFileSync('codesign',['--force','--sign','-',output],{stdio:'inherit'});
 }

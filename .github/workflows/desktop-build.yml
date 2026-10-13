@@ -14,8 +14,13 @@ jobs:
         include:
           - os: macos-latest
             platform: mac
+            artifact: mac-arm64
+          - os: macos-15-intel
+            platform: mac
+            artifact: mac-x64
           - os: windows-latest
             platform: win
+            artifact: win
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +50,7 @@ jobs:
         run: node desktop/scripts/installer-smoke.mjs
       - uses: actions/upload-artifact@v4
         with:
-          name: tokenflow-tauri-${{ matrix.platform }}
+          name: tokenflow-tauri-${{ matrix.artifact }}
           path: |
             desktop/src-tauri/target/release/bundle/dmg/*.dmg
             desktop/src-tauri/target/release/bundle/nsis/*.exe

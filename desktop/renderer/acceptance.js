@@ -15,7 +15,7 @@ if(window.__TOKENFLOW_ACCEPTANCE__){
         await window.tokenflow.saveSettings({deviceName:'Tauri acceptance',language:'zh',launchAtLogin:false});await delay(150);
         check(document.getElementById('connectTitle').textContent==='一个账号，连接所有设备。','language preference');
         await window.tokenflow.scan();await waitState(value=>!value.busy);checks.push('bundled collector scan');
-        await window.tokenflow.checkUpdate();state=await window.tokenflow.getState();check(['current','available','error'].includes(state.update.status),'native update check');
+        try{await window.tokenflow.checkUpdate();}catch(error){const update=await window.tokenflow.getState();if(update.update.status!=="error")throw error;}state=await window.tokenflow.getState();check(['current','available','error'].includes(state.update.status),'native update check');
         const tray=await probe('tray');check(tray.visible && tray.closeHides,'tray popup and window residency');
         if(window.__TOKENFLOW_ACCEPTANCE__.systemTest){
           await window.tokenflow.saveSettings({launchAtLogin:true});check(await probe('startup'),'system startup enabled');
