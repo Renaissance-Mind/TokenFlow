@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, shell, screen, session, safeStorage, utilityProcess, powerMonitor, dialog } from "electron";
+import { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, shell, screen, session, safeStorage, utilityProcess, powerMonitor, dialog, net } from "electron";
 import type { IpcMainInvokeEvent, UtilityProcess } from "electron";
 import updater from "electron-updater";
 import fs from "node:fs/promises";
@@ -6,15 +6,17 @@ import path from "node:path";
 import os from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
-import { ApiError, apiRequest, checkedLoginUrl, createPkce, normalizeDesktopServer } from "./auth.js";
+import { ApiError, apiRequest, checkedLoginUrl, createPkce, normalizeDesktopServer, setDesktopHttpClient } from "./auth.js";
 import type { DesktopSecret, DesktopState, LocalSummary, Settings } from "./contracts.js";
+import { sameRendererLocation } from "./ipc-origin.js";
 
 const { autoUpdater } = updater;
 const here = path.dirname(fileURLToPath(import.meta.url));
 const renderer = path.join(here, "../renderer/index.html");
 app.setName("TokenFlow");
 if (process.env.TOKENFLOW_DESKTOP_DATA) app.setPath("userData", path.resolve(process.env.TOKENFLOW_DESKTOP_DATA));
-if (!app.requestSingleInstanceLock()) app.quit();
+const collectorOnly = process.argv.includes("--collector-sync");
+if (!collectorOnly && !app.requestSingleInstanceLock()) app.exit(0);
 
 let localWindow: BrowserWindow | null = null;
 let dashboardWindow: BrowserWindow | null = null;
@@ -69,6 +71,8 @@ function emit(): void {
   const text = state.settings.trayMetric === "tokens" ? tokens : cost;
   if (process.platform === "darwin") tray.setTitle(state.settings.trayMetric === "icon" ? "" : text, { fontType: "monospacedDigit" });
   tray.setToolTip(`TokenFlow · ${cost} · ${tokens} tokens${state.settings.paused ? " · paused" : ""}${state.error ? `\n${state.error}` : ""}`);
+  const panel = Menu.getApplicationMenu()?.getMenuItemById("status-panel");
+  if (panel) panel.label = `Status panel${process.platform === "darwin" && tray.getTitle() ? ` · ${tray.getTitle()}` : ""}`;
 }
 function compactTokens(value: number): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
@@ -246,7 +250,7 @@ async function pollLogin(flow: any, verifier: string, existing: string | undefin
   }
 }
 function configureLoginItem(): void {
-  if (app.isPackaged && !process.env.TOKENFLOW_DESKTOP_DATA && ["darwin", "win32"].includes(process.platform)) {
+  if (app.isPackaged && (!process.env.TOKENFLOW_DESKTOP_DATA || process.env.TOKENFLOW_SYSTEM_TEST === "1") && ["darwin", "win32"].includes(process.platform)) {
     app.setLoginItemSettings({ openAtLogin: state.settings.launchAtLogin, args: ["--background"] });
   }
 }
@@ -263,7 +267,7 @@ async function configureBundledCollector(): Promise<void> {
     if (state.hasCollector) {
       const { installAutoSync } = await loadCollector("scheduler") as typeof import("../../dist/scheduler.js");
       await installAutoSync(state.settings.serverUrl, os.homedir(), {
-        env: { ...process.env, TOKENFLOW_AUTO_SYNC_COMMAND: `${command} sync --auto` },
+        env: { ...process.env, TOKENFLOW_AUTO_SYNC_COMMAND: `TOKENFLOW_HOME=${quote(tokenUsageDir())} ${quote(process.execPath)} --collector-sync` },
       });
     }
   } else if (process.platform === "win32") {
@@ -367,7 +371,8 @@ async function runJob(action: "scan" | "sync"): Promise<void> {
   finally { state.busy = null; emit(); }
 }
 function checkSender(event: IpcMainInvokeEvent): void {
-  if (event.senderFrame !== event.sender.mainFrame || event.senderFrame.url.split("?")[0] !== pathToFileURL(renderer).href) throw new Error("Untrusted desktop request");
+  const local = event.sender === localWindow?.webContents || event.sender === popup?.webContents;
+  if (!local || event.senderFrame !== event.sender.mainFrame || !sameRendererLocation(event.senderFrame.url, renderer)) throw new Error("Untrusted desktop request");
 }
 function handle(name: string, action: (...args: any[]) => unknown): void {
   ipcMain.handle(`tokenflow:${name}`, async (event, ...args) => {
@@ -385,7 +390,7 @@ async function updateAction(action: unknown): Promise<void> {
   if (action !== "check") throw new Error("Invalid update action");
   if (!app.isPackaged) { state.update = { status: "current", message: "Updates are available in the installed app." }; return; }
   state.update = { status: "checking" }; emit();
-  const response = await fetch("https://api.github.com/repos/Renaissance-Mind/TokenFlow/releases?per_page=30", { signal: AbortSignal.timeout(30_000) });
+  const response = await net.fetch("https://api.github.com/repos/Renaissance-Mind/TokenFlow/releases?per_page=30", { signal: AbortSignal.timeout(30_000) });
   if (!response.ok) throw new Error(`Update service returned ${response.status}`);
   const releases = await response.json() as Array<{ tag_name: string; draft: boolean; prerelease: boolean }>;
   const release = releases.find((item) => /^desktop-v\d+\.\d+\.\d+$/.test(item.tag_name) && !item.draft && !item.prerelease);
@@ -444,7 +449,8 @@ async function initialize(): Promise<void> {
   Menu.setApplicationMenu(Menu.buildFromTemplate([
     ...(process.platform === "darwin" ? [{ label: "TokenFlow", submenu: [{ role: "about" as const }, { label: "Settings…", accelerator: "CmdOrCtrl+,", click: showLocal }, { type: "separator" as const }, { role: "hide" as const }, { role: "hideOthers" as const }, { role: "unhide" as const }, { type: "separator" as const }, { role: "quit" as const }] }] : []),
     { label: "File", submenu: [{ label: "Dashboard", accelerator: "CmdOrCtrl+D", click: () => void showDashboard() }, { label: "Settings", click: showLocal }, { role: "close" }] },
-    { role: "editMenu" }, { role: "viewMenu" }, { role: "windowMenu" },
+    { role: "editMenu" }, { label: "View", submenu: [{ role: "reload" }, { role: "toggleDevTools" }, { type: "separator" },
+      { id: "status-panel", label: "Status panel", accelerator: "CmdOrCtrl+Shift+T", click: togglePopup }, { role: "togglefullscreen" }] }, { role: "windowMenu" },
   ]));
   dashboardSession().setPermissionRequestHandler((_contents, permission, callback) => callback(permission === "clipboard-sanitized-write"));
   dashboardSession().webRequest.onCompleted({ urls: ["*://*/api/auth/logout"] }, (details) => {
@@ -470,8 +476,26 @@ async function initialize(): Promise<void> {
   timers.push(setInterval(() => { void restoreSession(); }, 24 * 60 * 60 * 1000));
   powerMonitor.on("resume", () => { if (!state.settings.paused) void runJob(state.hasCollector ? "sync" : "scan"); });
   ready = true; emit();
-  if (!process.argv.includes("--background")) showLocal();
-  void restoreSession(!process.argv.includes("--background"));
+  const background = process.argv.includes("--background") || (process.platform === "darwin" && app.getLoginItemSettings().wasOpenedAtLogin);
+  if (!background) showLocal();
+  void restoreSession(!background);
   void runJob(state.hasCollector && !state.settings.paused ? "sync" : "scan");
 }
-void app.whenReady().then(initialize).catch((error) => { dialog.showErrorBox("TokenFlow could not start", message(error)); app.exit(1); });
+async function scheduledCollector(): Promise<void> {
+  if (process.platform === "darwin") app.setActivationPolicy("prohibited");
+  const { desktopAgentIsRunning } = await loadCollector("collector") as typeof import("../../dist/collector.js");
+  if (await desktopAgentIsRunning()) { app.exit(0); return; }
+  await ensureWorker();
+  await new Promise<void>((resolve, reject) => {
+    pendingJob = { id: ++workerCounter, resolve: () => resolve(), reject };
+    worker!.postMessage({ id: workerCounter, action: "sync" });
+  });
+  worker?.kill(); app.exit(0);
+}
+void app.whenReady().then(async () => {
+  setDesktopHttpClient((input, init) => net.fetch(input as string, init));
+  if (collectorOnly) await scheduledCollector(); else await initialize();
+}).catch((error) => {
+  if (collectorOnly) console.error(message(error)); else dialog.showErrorBox("TokenFlow could not start", message(error));
+  app.exit(1);
+});

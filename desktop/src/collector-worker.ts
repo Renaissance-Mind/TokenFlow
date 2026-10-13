@@ -3,6 +3,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { summarizeLocal } from "./summary.js";
 import { readEmbeddedSqlite } from "./sqlite.js";
+import { net } from "electron";
 
 const runtime = process.env.TOKENFLOW_COLLECTOR_PATH;
 if (!runtime || !process.parentPort) throw new Error("Collector worker must be launched by TokenFlow Desktop");
@@ -13,6 +14,8 @@ const { readPricingCatalog } = await load("server-pricing-catalog") as typeof im
 const { aggregateEvents } = await load("usage-buckets") as typeof import("../../dist/usage-buckets.js");
 const { syncLocalUsage } = await load("collector") as typeof import("../../dist/collector.js");
 const { setSqliteReader } = await load("sources/store-io") as typeof import("../../dist/sources/store-io.js");
+const { setHttpClient } = await load("http-client") as typeof import("../../dist/http-client.js");
+setHttpClient((input, init) => net.fetch(input as string, init));
 
 setSqliteReader(readEmbeddedSqlite);
 

@@ -4,6 +4,9 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import electronPath from 'electron';
 
 const helper = process.env.TOKENFLOW_AUTH_TEST_SERVER;
 if (!helper) throw new Error('Set TOKENFLOW_AUTH_TEST_SERVER to TokenFlow_Server/scripts/desktop-test-server.mjs');
@@ -44,6 +47,9 @@ await withDesktopTestServer(async ({url,approve,request,db}) => {
     state = await local.evaluate(() => window.tokenflow.getState());
     assert.equal(state.settings.paused,true); assert.equal(state.error,null);
     await instance.close();
+    await promisify(execFile)(electronPath,[desktop,'--collector-sync'],{env,timeout:60_000});
+    const afterHeadless = JSON.parse(await fs.readFile(path.join(env.TOKENFLOW_HOME,'config.json'),'utf8'));
+    assert.ok(Date.parse(afterHeadless.lastSyncAt) >= Date.parse(config.lastSyncAt));
     const authFile = path.join(env.TOKENFLOW_DESKTOP_DATA,'desktop-auth.bin');
     const pendingFile = path.join(env.TOKENFLOW_DESKTOP_DATA,'desktop-auth.pending.bin');
     await fs.rename(authFile,pendingFile);

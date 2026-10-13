@@ -30,6 +30,19 @@ try {
   assert.ok(state.summary.sources.some((source) => source.agent === 'copilot'));
   assert.equal(await page.locator('#sync').isDisabled(), true);
   assert.equal(await page.locator('#github').isEnabled(), true);
+  const trayState = await instance.evaluate(({Menu}) => {
+    const item = Menu.getApplicationMenu().getMenuItemById('status-panel');
+    const label = item.label;
+    item.click();
+    return {label};
+  });
+  if (process.platform === 'darwin') assert.equal(trayState.label,'Status panel · $0.00');
+  await expect.poll(() => instance.windows().some((win) => win.url().includes('mode=tray'))).toBe(true);
+  const panel = instance.windows().find((win) => win.url().includes('mode=tray'));
+  await panel.waitForLoadState('domcontentloaded');
+  await expect(panel.locator('#cost')).toHaveText('$0.00');
+  await panel.screenshot({path:path.join(output,'desktop-tray.png')});
+  await panel.evaluate(() => window.tokenflow.openSettings());
   await page.locator('#deviceName').fill('Desktop acceptance');
   await page.locator('#language').selectOption('zh');
   await page.locator('#launchAtLogin').uncheck();
@@ -40,6 +53,13 @@ try {
   await page.locator('#refresh').click();
   await expect.poll(async () => (await page.evaluate(() => window.tokenflow.getState())).busy).toBe(null);
   assert.equal(await page.locator('#error').isVisible(), false);
+  if (process.env.TOKENFLOW_SYSTEM_TEST === '1') {
+    await page.evaluate(() => window.tokenflow.saveSettings({launchAtLogin:true}));
+    const launch = await instance.evaluate(({app}) => app.getLoginItemSettings({args:['--background']}));
+    assert.equal(launch.openAtLogin,true);
+    await page.evaluate(() => window.tokenflow.saveSettings({launchAtLogin:false}));
+    assert.equal((await instance.evaluate(({app}) => app.getLoginItemSettings({args:['--background']}))).openAtLogin,false);
+  }
   await instance.evaluate(({ BrowserWindow }) => {
     const parent = BrowserWindow.getAllWindows()[0];
     parent.close();
@@ -57,6 +77,7 @@ try {
   assert.deepEqual(errors, []);
   console.log('Desktop smoke passed: bundled collector, local statistics, settings, language, window close, and update action.');
 } finally {
+  if (process.env.TOKENFLOW_SYSTEM_TEST === '1') await instance.evaluate(({app}) => app.setLoginItemSettings({openAtLogin:false,args:['--background']})).catch(() => {});
   await instance.close();
   await fs.rm(temp, { recursive: true, force: true });
 }

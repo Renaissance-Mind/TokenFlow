@@ -8,6 +8,7 @@ import {
 } from "./ingest-payload.js";
 import type { RemoteApiTokenStatus, RemoteDeviceStatus } from "./status.js";
 import type { UsageBucket } from "./types.js";
+import { tokenFlowFetch } from "./http-client.js";
 
 const INGEST_CHUNK_SIZE = 20;
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -246,7 +247,7 @@ async function fetchWithTimeout(url: string, init: RequestInit): Promise<Respons
     controller.abort();
   }, timeoutMs);
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    return await tokenFlowFetch(url, { ...init, signal: controller.signal });
   } catch (error) {
     if (timedOut) throw new Error(`timed out after ${timeoutMs}ms`);
     throw error;

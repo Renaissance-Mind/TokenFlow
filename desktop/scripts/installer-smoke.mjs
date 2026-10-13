@@ -16,7 +16,7 @@ try {
   await fs.access(executable);
   await fs.access(path.join(destination,'resources','collector','desktop-cli.mjs'));
   execFileSync(process.execPath,[path.join(desktop,'scripts','smoke.mjs')],{
-    stdio:'inherit',env:{...process.env,TOKENFLOW_EXECUTABLE:executable},timeout:120_000,
+    stdio:'inherit',env:{...process.env,TOKENFLOW_EXECUTABLE:executable,TOKENFLOW_SYSTEM_TEST:'1'},timeout:120_000,
   });
   console.log('Windows EXE installed successfully with its bundled collector and runtime.');
 } finally {

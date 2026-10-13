@@ -3,6 +3,8 @@ import { createHash, randomBytes } from "node:crypto";
 export class ApiError extends Error {
   constructor(message: string, public readonly status: number) { super(message); }
 }
+let configuredFetch: typeof fetch | undefined;
+export function setDesktopHttpClient(client: typeof fetch): void { configuredFetch = client; }
 export function normalizeDesktopServer(value: string): string {
   const url = new URL(value.trim());
   if (url.username || url.password || url.search || url.hash || (url.pathname !== "/" && url.pathname !== "")) {
@@ -17,7 +19,7 @@ export function createPkce(): { verifier: string; challenge: string } {
   return { verifier, challenge: createHash("sha256").update(verifier).digest("base64url") };
 }
 export async function apiRequest(server: string, endpoint: string, body?: unknown, token?: string, signal?: AbortSignal): Promise<Record<string, any>> {
-  const response = await fetch(`${normalizeDesktopServer(server)}${endpoint}`, {
+  const response = await (configuredFetch || fetch)(`${normalizeDesktopServer(server)}${endpoint}`, {
     method: body === undefined ? "GET" : "POST", redirect: "error",
     headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),

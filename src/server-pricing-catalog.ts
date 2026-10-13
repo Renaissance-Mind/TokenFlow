@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { tokenFlowFetch } from "./http-client.js";
 import os from "node:os";
 import path from "node:path";
 import { tokenUsageDir } from "./config.js";
@@ -116,7 +117,7 @@ export async function refreshPricingCatalog(
   const cached = await readPricingCatalog(serverUrl, home);
   let response: Response;
   try {
-    response = await fetch(`${serverUrl}/api/pricing/catalog`, {
+    response = await tokenFlowFetch(`${serverUrl}/api/pricing/catalog`, {
       headers: cached ? { "If-None-Match": `"${cached.version}"` } : {},
       signal: AbortSignal.timeout(10_000),
     });

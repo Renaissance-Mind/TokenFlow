@@ -8,6 +8,8 @@ The menu bar on macOS can show today’s estimated cost, today’s tokens, or on
 
 Automatic sync runs every ten minutes while the app is running. Closing a window keeps the app in the tray. Preferences control login startup and pausing automatic sync; manual sync remains available while paused. On macOS, a bundled collector also refreshes the existing launchd task, which continues syncing after the desktop app quits. Its scheduled sync yields while the app owns collection. Windows collection runs in the resident app; choosing Quit stops it until the next launch.
 
+Desktop authorization, sync, and pricing requests follow the system network proxy configuration. The macOS scheduled collector uses the same Chromium network stack without opening a window.
+
 Existing `~/.tokenflow/config.json` and legacy `~/.tokenusage/config.json` are reused. An existing device can be linked to its dashboard account without creating a duplicate device. Changing the account clears the upload ledger so that the new account receives a full snapshot. Desktop dashboard credentials use the operating system credential store, with a recovery journal for interrupted sign-ins. The collector’s device token remains in its existing private config for CLI compatibility. Signing out disconnects the current collector device and revokes desktop authorization while retaining historical usage. Prompts, responses, session IDs, and source paths are not uploaded.
 
 ## Development
