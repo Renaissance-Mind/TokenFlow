@@ -47,7 +47,7 @@ npm run dist:win --prefix desktop
 node desktop/scripts/packaged-smoke.mjs
 ```
 
-Outputs are under `desktop/src-tauri/target/release/bundle`. macOS builds the host architecture by default. To build Intel on Apple Silicon, install the Rust `x86_64-apple-darwin` target, set `TOKENFLOW_TARGET=x86_64-apple-darwin`, and pass `--target x86_64-apple-darwin` to the build. Windows uses an x64 NSIS installer. CI builds and checks both platforms on native runners; its installers are unsigned and omit updater artifacts.
+Outputs are under `desktop/src-tauri/target/release/bundle`. macOS builds the host architecture by default. To build Intel on Apple Silicon, install the Rust `x86_64-apple-darwin` target, set `TOKENFLOW_TARGET=x86_64-apple-darwin`, and pass `--target x86_64-apple-darwin` to the build. This cross build executes the Intel Node runtime and requires Rosetta on Apple Silicon. Windows uses an x64 NSIS installer. CI builds and checks both platforms on native runners; its installers are unsigned and omit updater artifacts.
 
 Set `APPLE_SIGNING_IDENTITY` to a full Developer ID Application identity for macOS signing. Public distribution also needs notarization with the distributor’s Apple credentials. Windows signing uses Tauri’s Windows signing configuration and the distributor’s certificate.
 

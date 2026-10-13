@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-const call = (action: string, payload: unknown = null) => invoke("bridge", { action, payload });
+const call = (action: string, payload: unknown = null) => invoke("bridge", { action, payload }).catch(error => {throw error instanceof Error ? error : new Error(String(error));});
 Object.defineProperty(window,"tokenflow",{value:Object.freeze({
   getState:()=>call("state"),login:(provider:string)=>call("login",provider),cancelLogin:()=>call("cancel-login"),
   saveSettings:(settings:unknown)=>call("settings",settings),sync:()=>call("sync"),scan:()=>call("scan"),
