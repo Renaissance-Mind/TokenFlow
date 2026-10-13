@@ -22,7 +22,7 @@ try {
         const pricing = await request('/api/pricing/status');
         const start = await request('/api/desktop/start',{provider,code_challenge:challenge,device_name:'Desktop deployment verification',platform:'darwin'});
         const flow = await start.json();
-        if (!start.ok) throw new Error(flow.error);
+        if (!start.ok) throw new Error(`${server} ${provider} desktop start ${start.status}: ${flow.error}`);
         const poll = await request('/api/desktop/poll',{code:flow.code,code_verifier:verifier});
         const login = await net.fetch(flow.login_url,{redirect:'manual',signal:AbortSignal.timeout(30_000)});
         const verify = await request('/desktop/verify?code='+encodeURIComponent(flow.user_code));

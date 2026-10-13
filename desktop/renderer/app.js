@@ -28,6 +28,7 @@ function render(state) {
     const count = document.createElement('span'); count.textContent = number(agent.tokens);
     el.append(dot,name,count); return el;
   }));
+  $('agents').hidden = trayMode && !state.summary?.agents?.length;
   const days = state.summary?.days || [];
   const max = Math.max(1, ...days.map((day) => day.tokens));
   $('sparkPath').setAttribute('d', days.map((day,i) => `${i ? 'L' : 'M'}${(i * 390 / 6 + 5).toFixed(2)},${(110 - day.tokens / max * 95).toFixed(2)}`).join(' '));

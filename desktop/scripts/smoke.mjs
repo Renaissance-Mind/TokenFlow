@@ -41,6 +41,9 @@ try {
   const panel = instance.windows().find((win) => win.url().includes('mode=tray'));
   await panel.waitForLoadState('domcontentloaded');
   await expect(panel.locator('#cost')).toHaveText('$0.00');
+  await expect(panel.locator('main')).toHaveCSS('opacity','1');
+  const googlePosition = await panel.locator('#google').boundingBox();
+  assert.ok(googlePosition.y + googlePosition.height <= 520);
   await panel.screenshot({path:path.join(output,'desktop-tray.png')});
   await panel.evaluate(() => window.tokenflow.openSettings());
   await page.locator('#deviceName').fill('Desktop acceptance');
