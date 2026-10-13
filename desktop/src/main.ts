@@ -453,7 +453,11 @@ async function initialize(): Promise<void> {
   handle("state", () => state); handle("login", startLogin);
   handle("cancel-login", () => { loginController?.abort(); });
   handle("settings", saveSettings); handle("sync", () => runJob("sync")); handle("scan", () => runJob("scan"));
-  handle("dashboard", showDashboard); handle("open-settings", showLocal); handle("logout", logoutDesktop); handle("update", updateAction);
+  handle("dashboard", showDashboard); handle("open-settings", showLocal); handle("logout", logoutDesktop);
+  handle("update", async (action: unknown) => {
+    try { await updateAction(action); }
+    catch (error) { state.update = { status: "error", message: message(error) }; throw error; }
+  });
   autoUpdater.autoDownload = false; autoUpdater.autoInstallOnAppQuit = false;
   autoUpdater.on("update-available", (info) => { state.update = { status: "available", version: info.version }; emit(); });
   autoUpdater.on("update-not-available", () => { state.update = { status: "current" }; emit(); });

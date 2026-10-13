@@ -46,7 +46,13 @@ try {
     if (parent.isDestroyed() || parent.isVisible()) throw new Error('Closing the window must retain background collection');
     parent.show();
   });
-  await page.evaluate(() => window.tokenflow.checkUpdate());
+  try { await page.evaluate(() => window.tokenflow.checkUpdate()); }
+  catch (error) {
+    if (!executablePath) throw error;
+    const update = (await page.evaluate(() => window.tokenflow.getState())).update;
+    assert.equal(update.status,'error'); assert.ok(update.message);
+    assert.equal(await page.locator('#update').isEnabled(),true);
+  }
   if (!executablePath) assert.equal((await page.evaluate(() => window.tokenflow.getState())).update.status, 'current');
   assert.deepEqual(errors, []);
   console.log('Desktop smoke passed: bundled collector, local statistics, settings, language, window close, and update action.');

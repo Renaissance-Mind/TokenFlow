@@ -48,6 +48,9 @@ jobs:
         run: npm run dist:${{ matrix.platform }} --prefix desktop -- --publish never
       - name: Test packaged desktop process
         run: node desktop/scripts/packaged-smoke.mjs
+      - name: Install and test the Windows EXE
+        if: matrix.platform == 'win'
+        run: node desktop/scripts/installer-smoke.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: tokenflow-desktop-${{ matrix.platform }}
