@@ -15,6 +15,7 @@ if(window.__TOKENFLOW_ACCEPTANCE__){
         await window.tokenflow.saveSettings({deviceName:'Tauri acceptance',language:'zh',launchAtLogin:false});await delay(150);
         check(document.getElementById('connectTitle').textContent==='一个账号，连接所有设备。','language preference');
         await window.tokenflow.scan();await waitState(value=>!value.busy);checks.push('bundled collector scan');
+        await window.tokenflow.checkUpdate();state=await window.tokenflow.getState();check(['current','available','error'].includes(state.update.status),'native update check');
         const tray=await probe('tray');check(tray.visible && tray.closeHides,'tray popup and window residency');
         if(window.__TOKENFLOW_ACCEPTANCE__.systemTest){
           await window.tokenflow.saveSettings({launchAtLogin:true});check(await probe('startup'),'system startup enabled');
@@ -42,6 +43,6 @@ if(window.__TOKENFLOW_ACCEPTANCE__){
         }
       }
       await invoke('acceptance_report',{report:{ok:true,framework:'tauri',version:state.version,collectorVersion:state.collectorVersion,checks}});
-    }catch(error){await invoke('acceptance_report',{report:{ok:false,error:error.message,checks}});}
+    }catch(error){await invoke('acceptance_report',{report:{ok:false,error:String(error?.message || error),checks}});}
   })();
 }
