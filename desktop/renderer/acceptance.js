@@ -29,15 +29,16 @@ if(window.__TOKENFLOW_ACCEPTANCE__){
         state=await waitState(value=>value?.hasDashboard && value.hasCollector && !value.busy);
         check(state.account?.name==='Desktop acceptance','authenticated account');
         let proof;
-        for(let i=0;i<100;i++){proof=await probe('dashboard');if(proof.page.ready)break;await delay(150);}
-        check(proof.httpOnly && proof.page.ready && proof.page.localBridge==='undefined' && proof.page.location.includes('/dashboard'),'authenticated dashboard and privilege boundary');
+        for(let i=0;i<100;i++){proof=await probe('dashboard');if(proof.page.ready && ["denied","unavailable"].includes(proof.page.ipc))break;await delay(150);}
+        check(proof.httpOnly && proof.page.ready && proof.page.localBridge==='undefined' && proof.page.location.includes('/dashboard') && ['denied','unavailable'].includes(proof.page.ipc),'authenticated dashboard and privilege boundary');
         if(phase==='auth'){
           await window.tokenflow.saveSettings({paused:true});await window.tokenflow.sync();
           state=await waitState(value=>!value.busy);check(state.settings.paused && !!state.lastSyncAt,'manual sync while paused');
+          const headless=await probe('headless');check(headless.success && headless.ownerPreserved,'scheduled collector yields to resident app');
           await probe('stage_recovery');checks.push('credential recovery journal staged');
         }else if(phase==='logout'){
-          check(state.settings.paused,'restored settings');await window.tokenflow.logout();
-          state=await window.tokenflow.getState();check(!state.hasCollector && !state.hasDashboard,'logout clears local authorization');
+          check(state.settings.paused,'restored settings');await probe('dashboard_logout');
+          state=await waitState(value=>!value.hasDashboard && !value.hasCollector);check(!state.hasCollector && !state.hasDashboard,'logout clears local authorization');
         }
       }
       await invoke('acceptance_report',{report:{ok:true,framework:'tauri',version:state.version,collectorVersion:state.collectorVersion,checks}});

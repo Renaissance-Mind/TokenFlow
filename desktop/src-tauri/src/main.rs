@@ -292,12 +292,14 @@ async fn set_session(app: &tauri::AppHandle, runtime: &Runtime, payload: &Value)
         .min_inner_size(800.0, 640.0)
         .visible(false)
         .data_directory(runtime.data.join("webview"))
+        .initialization_script("document.addEventListener('click', event => { const button=event.target.closest?.('[onclick=\"logout()\"]'); if(button){event.preventDefault();event.stopImmediatePropagation();location.href='tokenflow://logout';} }, true);")
         .on_navigation(move |url| {
-            if url.origin().ascii_serialization() == origin && url.path() == "/" {
+            if url.as_str() == "tokenflow://logout" || (url.origin().ascii_serialization() == origin && url.path() == "/") {
+                let logout=url.as_str() == "tokenflow://logout";
                 let app = handle.clone();
                 tauri::async_runtime::spawn(async move {
                     let runtime = app.state::<Arc<Runtime>>();
-                    let _ = runtime.call("logout", Value::Null).await;
+                    let _ = runtime.call(if logout {"logout"}else{"dashboard-expired"}, Value::Null).await;
                 });
                 return false;
             }
@@ -324,7 +326,7 @@ async fn set_session(app: &tauri::AppHandle, runtime: &Runtime, payload: &Value)
         &time::format_description::well_known::Rfc3339,
     )
     .map_err(message)?;
-    let cookie = cookie::Cookie::build(("tu_session", token.to_string()))
+    let mut cookie = cookie::Cookie::build(("tu_session", token.to_string()))
         .domain(
             server
                 .host_str()
@@ -333,10 +335,13 @@ async fn set_session(app: &tauri::AppHandle, runtime: &Runtime, payload: &Value)
         )
         .path("/")
         .http_only(true)
-        .secure(server.scheme() == "https")
         .same_site(cookie::SameSite::Lax)
         .expires(expires)
         .build();
+    // WebKit treats the presence of NSHTTPCookieSecure as secure, including FALSE.
+    if server.scheme() == "https" {
+        cookie.set_secure(true);
+    }
     window.set_cookie(cookie).map_err(message)?;
     let me = runtime
         .http
@@ -577,6 +582,29 @@ async fn acceptance_probe(
             runtime.delete_secret("authorization")?;
             Ok(Value::Null)
         }
+        "headless" => {
+            let home = std::env::var("TOKENFLOW_HOME").map_err(message)?;
+            let marker = PathBuf::from(home).join("desktop-agent.json");
+            let before: Value =
+                serde_json::from_slice(&tokio::fs::read(&marker).await.map_err(message)?)
+                    .map_err(message)?;
+            let status = Command::new(std::env::current_exe().map_err(message)?)
+                .arg("--collector-sync")
+                .status()
+                .await
+                .map_err(message)?;
+            let after: Value =
+                serde_json::from_slice(&tokio::fs::read(marker).await.map_err(message)?)
+                    .map_err(message)?;
+            Ok(json!({"success":status.success(),"ownerPreserved":before["pid"]==after["pid"]}))
+        }
+        "dashboard_logout" => {
+            app.get_webview_window("dashboard")
+                .ok_or("Dashboard missing")?
+                .eval("document.querySelector('[onclick=\"logout()\"]')?.click();")
+                .map_err(message)?;
+            Ok(Value::Null)
+        }
         "dashboard" => {
             let dashboard = app
                 .get_webview_window("dashboard")
@@ -590,7 +618,7 @@ async fn acceptance_probe(
                 .any(|cookie| cookie.name() == "tu_session" && cookie.http_only() == Some(true));
             let (sender, receiver) = oneshot::channel();
             let sender = Mutex::new(Some(sender));
-            dashboard.eval_with_callback("JSON.stringify({location:location.href,localBridge:typeof window.tokenflow,ready:!!document.getElementById('app') && !document.getElementById('app').classList.contains('hidden')})",move |value|{if let Some(sender)=sender.lock().unwrap().take(){let _=sender.send(value);}}).map_err(message)?;
+            dashboard.eval_with_callback("if(!window.__ipcDenied){window.__ipcDenied='pending';if(window.__TAURI__?.core){window.__TAURI__.core.invoke('bridge',{action:'state',payload:null}).then(()=>window.__ipcDenied='allowed',()=>window.__ipcDenied='denied');}else{window.__ipcDenied='unavailable';}}JSON.stringify({ipc:window.__ipcDenied,location:location.href,localBridge:typeof window.tokenflow,ready:!!document.getElementById('app') && !document.getElementById('app').classList.contains('hidden')})",move |value|{if let Some(sender)=sender.lock().unwrap().take(){let _=sender.send(value);}}).map_err(message)?;
             let value = tokio::time::timeout(Duration::from_secs(10), receiver)
                 .await
                 .map_err(message)?
@@ -720,14 +748,12 @@ async fn start(
 fn main() {
     let headless = std::env::args().any(|value| value == "--collector-sync");
     let background = std::env::args().any(|value| value == "--background") || headless;
+    let autostart = tauri_plugin_autostart::Builder::new().args(["--background"]);
+    #[cfg(target_os = "macos")]
+    let autostart = autostart.macos_launcher(tauri_plugin_autostart::MacosLauncher::LaunchAgent);
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .plugin(
-            tauri_plugin_autostart::Builder::new()
-                .args(["--background"])
-                .macos_launcher(tauri_plugin_autostart::MacosLauncher::LaunchAgent)
-                .build(),
-        )
+        .plugin(autostart.build())
         .plugin(tauri_plugin_updater::Builder::new().build());
     if !headless {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, _, _| {
@@ -735,6 +761,8 @@ fn main() {
         }));
     }
     builder.invoke_handler(tauri::generate_handler![bridge,acceptance_report,acceptance_probe]).setup(move |app|{
+        #[cfg(target_os="macos")]
+        if headless {app.set_activation_policy(tauri::ActivationPolicy::Prohibited);}
         let data=std::env::var("TOKENFLOW_DESKTOP_DATA").map(PathBuf::from).unwrap_or(app.path().app_data_dir()?);std::fs::create_dir_all(&data)?;
         let secret_service=if std::env::var("TOKENFLOW_DESKTOP_DATA").is_ok(){format!("ai.renaissancemind.tokenflow.{}",format!("{:x}",Sha256::digest(data.to_string_lossy().as_bytes()))[..16].to_string())}else{"ai.renaissancemind.tokenflow".into()};
         let runtime=Arc::new(Runtime{input:AsyncMutex::new(None),child:AsyncMutex::new(None),waiters:AsyncMutex::new(HashMap::new()),sequence:AtomicU64::new(1),state:Mutex::new(Value::Null),quitting:AtomicBool::new(false),http:reqwest::Client::builder().timeout(Duration::from_secs(30)).redirect(reqwest::redirect::Policy::none()).build()?,data,secret_service,sidecar:sidecar_path()?,updater:AsyncMutex::new(None),downloaded:AsyncMutex::new(None)});
@@ -747,8 +775,8 @@ fn main() {
             let dashboard=MenuItem::with_id(app,"dashboard","Open Dashboard",true,None::<&str>)?;let settings=MenuItem::with_id(app,"settings","Settings",true,Some("CmdOrCtrl+,"))?;let panel=MenuItem::with_id(app,"panel","Status panel",true,Some("CmdOrCtrl+Shift+T"))?;let quit=MenuItem::with_id(app,"quit","Quit TokenFlow",true,None::<&str>)?;
             let menu=Menu::with_items(app,&[&dashboard,&settings,&panel,&PredefinedMenuItem::separator(app)?,&quit])?;
             let icon=tauri::image::Image::from_bytes(include_bytes!("../../assets/trayTemplate.png"))?;
-            TrayIconBuilder::with_id("tokenflow").icon(icon).icon_as_template(cfg!(target_os="macos")).menu(&menu).show_menu_on_left_click(false).on_menu_event(|app,event|match event.id.as_ref(){"dashboard"=>{let _=show_dashboard(app);},"settings"=>{let _=show_local(app);},"panel"=>{let _=toggle_tray(app);},"quit"=>{let app=app.clone();tauri::async_runtime::spawn(async move {let runtime=app.state::<Arc<Runtime>>();runtime.quitting.store(true,Ordering::SeqCst);let _=runtime.call("shutdown",Value::Null).await;app.exit(0);});},_=>{}}).on_tray_icon_event(|tray,event|{if let TrayIconEvent::Click{button:MouseButton::Left,button_state:MouseButtonState::Up,..}=event {let _=toggle_tray(tray.app_handle());}}).build(app)?;
-            
+            TrayIconBuilder::with_id("tokenflow").icon(icon).icon_as_template(cfg!(target_os="macos")).menu(&menu).show_menu_on_left_click(false).on_menu_event(|app,event|match event.id.as_ref(){"dashboard"=>{let app=app.clone();tauri::async_runtime::spawn(async move {let runtime=app.state::<Arc<Runtime>>();let _=runtime.call("dashboard",Value::Null).await;});},"settings"=>{let _=show_local(app);},"panel"=>{let _=toggle_tray(app);},"quit"=>{let app=app.clone();tauri::async_runtime::spawn(async move {let runtime=app.state::<Arc<Runtime>>();runtime.quitting.store(true,Ordering::SeqCst);let _=runtime.call("shutdown",Value::Null).await;app.exit(0);});},_=>{}}).on_tray_icon_event(|tray,event|{if let TrayIconEvent::Click{button:MouseButton::Left,button_state:MouseButtonState::Up,..}=event {let _=toggle_tray(tray.app_handle());}}).build(app)?;
+
         }
         let app_handle=app.handle().clone();tauri::async_runtime::spawn(async move {if let Err(error)=start(app_handle.clone(),runtime.clone(),headless,background).await {eprintln!("TokenFlow startup: {error}");if headless {app_handle.exit(1);}else {let _=app_handle.emit_to("main","tokenflow:failure",error);}}});
         Ok(())

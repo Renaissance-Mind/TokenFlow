@@ -51,6 +51,16 @@ const host=await nodeBinary(hostPlatform,process.arch);
 const runtime=await nodeBinary(platform,arch);
 const binaries=path.join(desktop,'src-tauri/binaries');await fs.mkdir(binaries,{recursive:true});
 const output=path.join(binaries,`tokenflow-collector-${target}${platform === 'win'?'.exe':''}`);
+const licenses=path.join(work,'licenses');await fs.mkdir(licenses,{recursive:true});
+await fs.copyFile(path.join(platform === 'win'?path.dirname(runtime):path.dirname(path.dirname(runtime)),'LICENSE'),path.join(licenses,'Node-LICENSE'));
+const metadata=JSON.parse(execFileSync('cargo',['metadata','--manifest-path',path.join(desktop,'src-tauri/Cargo.toml'),'--locked','--format-version','1','--filter-platform',target],{encoding:'utf8',maxBuffer:20_000_000}));
+for(const pkg of metadata.packages){
+  const folder=path.dirname(pkg.manifest_path);const files=await fs.readdir(folder);
+  for(const name of files.filter(name=>/^(LICENSE|COPYING|NOTICE)(\.|-|$)/i.test(name))){const file=path.join(folder,name);if((await fs.stat(file)).isFile())await fs.copyFile(file,path.join(licenses,`${pkg.name}-${pkg.version}-${name}`));}
+}
+for(const name of ['proper-lockfile','proper-lockfile/node_modules/signal-exit','retry','signal-exit','graceful-fs','fzstd','smol-toml']){
+  const folder=path.join(root,'node_modules',name);for(const file of await fs.readdir(folder)){if(/^LICEN[SC]E/i.test(file) && (await fs.stat(path.join(folder,file))).isFile())await fs.copyFile(path.join(folder,file),path.join(licenses,name.replaceAll('/','-')+'-'+file));}
+}
 const config={main:path.join(work,'collector.cjs'),mainFormat:'commonjs',executable:runtime,output,disableExperimentalSEAWarning:true,useSnapshot:false,useCodeCache:false,execArgv:['--no-warnings'],execArgvExtension:'none'};
 const configPath=path.join(work,'sea.json');await fs.writeFile(configPath,JSON.stringify(config));
 execFileSync(host,['--build-sea',configPath],{stdio:'inherit'});
