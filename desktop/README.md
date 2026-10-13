@@ -33,7 +33,7 @@ npm test --prefix desktop
 npm run smoke --prefix desktop
 ```
 
-The desktop smoke test launches a real Electron process with isolated data directories. It checks the bundled collector, offline summary, preferences, language switching, tray residency when closing a window, and the update action, including recoverable network errors. SQLite tests read actual databases, including active WAL files and archive copies. The Windows installer check installs the actual EXE into a temporary directory, verifies its bundled runtime, launches the installed application, and uninstalls it afterwards.
+The desktop smoke test launches a real Electron process with isolated data directories. It checks the bundled collector, offline summary, preferences, language switching, tray residency when closing a window, and the update action, including recoverable network errors. Packaged checks first copy the application outside the repository and verify its dependencies so it cannot use development packages. SQLite tests read actual databases, including active WAL files and archive copies. The Windows installer check installs the actual EXE into a temporary directory, verifies its bundled runtime, launches the installed application, checks its system startup registration, and uninstalls it afterwards.
 
 To verify desktop login against the real Worker/D1 backend, check out the matching TokenFlow_Server desktop branch and run:
 

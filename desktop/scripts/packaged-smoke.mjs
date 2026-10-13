@@ -11,7 +11,7 @@ const temporary = await fs.mkdtemp(path.join(os.tmpdir(),'tokenflow-isolated-pac
 const source = process.platform === 'win32' ? path.dirname(executable) : path.resolve(executable,'../../..');
 const destination = path.join(temporary,process.platform === 'win32' ? 'TokenFlow' : 'TokenFlow.app');
 try {
-  await fs.cp(source,destination,{recursive:true});
+  await fs.cp(source,destination,{recursive:true,verbatimSymlinks:true});
   const isolatedExecutable = process.platform === 'win32' ? path.join(destination,'TokenFlow.exe') : path.join(destination,'Contents','MacOS','TokenFlow');
   const resources = process.platform === 'win32' ? path.join(destination,'resources') : path.join(destination,'Contents','Resources');
   for (const name of ['smol-toml','fzstd','proper-lockfile']) await fs.access(path.join(resources,'collector','node_modules',name,'package.json'));
