@@ -16,6 +16,7 @@ delete env.ELECTRON_RUN_AS_NODE;
 for (const key of Object.keys(env)) if (/^(CODEX_HOME|CLAUDE_HOME|GEMINI_HOME|GEMINI_DATA_DIR|OPENCODE_HOME|OPENCODE_DB|KIMI_DATA_DIR|QWEN_DATA_DIR|AMP_DATA_DIR|CODEBUFF_DATA_DIR|DROID_SESSIONS_DIR|GOOSE_PATH_ROOT|HERMES_HOME|KILO_DATA_DIR|OPENCLAW_DIR|PI_AGENT_DIR|DSH_DATA_DIR|GROK_HOME|ZCODE_HOME|COPILOT_HOME|COPILOT_OTEL_FILE_EXPORTER_PATH|ANTIGRAVITY_DATA_DIR|TOKENFLOW_SERVER_URL|TOKENUSAGE_SERVER_URL|TOKENUSAGE_HOME)$/.test(key)) delete env[key];
 const executablePath = process.env.TOKENFLOW_EXECUTABLE;
 const instance = await electron.launch({ args: executablePath ? [] : [desktop], ...(executablePath ? { executablePath } : {}), env, timeout: 60_000 });
+instance.process().stderr?.on('data',(data) => process.stderr.write(data));
 try {
   const page = await instance.firstWindow();
   await page.waitForURL(/\/renderer\/index.html(?:\?|$)/);

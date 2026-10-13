@@ -336,8 +336,9 @@ async function ensureWorker(): Promise<void> {
     serviceName: "TokenFlow Collector", stdio: "pipe", env: { ...process.env, TOKENFLOW_COLLECTOR_PATH: runtime },
   });
   const proc = worker;
+  let startupError = "";
   proc.stdout?.on("data", () => {});
-  proc.stderr?.on("data", (data) => { const line = String(data); if (!line.includes("ExperimentalWarning")) process.stderr.write(line); });
+  proc.stderr?.on("data", (data) => { const line = String(data); if (!line.includes("ExperimentalWarning")) { startupError = (startupError + line).slice(-4000); process.stderr.write(line); } });
   proc.on("exit", (code) => {
     if (worker === proc) worker = null;
     if (pendingJob) { pendingJob.reject(new Error(`Collector exited (${code})`)); pendingJob = null; }
@@ -351,7 +352,7 @@ async function ensureWorker(): Promise<void> {
         if (data.error) job.reject(new Error(data.error)); else job.resolve(data);
       }
     });
-    proc.once("exit", () => { clearTimeout(timer); reject(new Error("Collector could not start")); });
+    proc.once("exit", (code) => { clearTimeout(timer); reject(new Error(`Collector could not start (${code})${startupError ? `: ${startupError.trim()}` : ""}`)); });
   });
 }
 async function runJob(action: "scan" | "sync"): Promise<void> {
