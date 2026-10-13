@@ -396,6 +396,7 @@ if (isCliEntrypoint()) {
 }
 
 function isCliEntrypoint(): boolean {
+  if (!import.meta.url) return false;
   const entrypoint = process.argv[1];
   if (!entrypoint) return false;
   return realpathSync(entrypoint) === fileURLToPath(import.meta.url);

@@ -10,6 +10,7 @@ let dirty = false;
 const number = (n) => Number(n || 0).toLocaleString();
 const time = (value) => value ? new Date(value).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '—';
 function render(state) {
+  if (!state?.settings) return;
   current = state;
   const lang = state.settings.language === 'zh' ? 'zh' : 'en';
   const t = texts[lang]; document.documentElement.lang = lang;

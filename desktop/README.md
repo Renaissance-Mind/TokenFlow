@@ -1,66 +1,58 @@
 # TokenFlow Desktop
 
-TokenFlow Desktop combines the hosted dashboard, local collector, and a menu bar or system tray in one application. The installer includes Electron, the collector, and SQLite; users do not need Node.js, npm, or an external SQLite installation.
+TokenFlow Desktop uses Tauri 2 and the system WebView to combine the dashboard, a bundled usage collector, and the macOS menu bar or Windows tray. Users do not need Node.js, npm, or SQLite. Windows installers install WebView2 if it is missing; that step needs an internet connection.
 
-Install the DMG on macOS or run the EXE installer on Windows. On first launch, choose a device name and sign in with GitHub or Google in your default browser. Approve the desktop connection once to authorize both the dashboard and this computer’s collector.
+Install the DMG on macOS 13.5 or newer or run the EXE on Windows. On first launch, choose a device name and sign in with GitHub or Google in your default browser. Approve the connection to authorize the dashboard and this computer’s collector. Existing `~/.tokenflow/config.json` and legacy `~/.tokenusage/config.json` are reused. An existing device can be linked to its dashboard account without creating another device.
 
-The menu bar on macOS can show today’s estimated cost, today’s tokens, or only the icon. Windows displays the same information in its tray tooltip and popup. The popup and local window also show the last seven days, source availability, last sync time, and errors. Local statistics remain available offline. The full dashboard uses the existing cloud service and includes all connected devices.
+The macOS menu bar shows today’s estimated cost, tokens, or only the icon. Windows shows the same information in the tray tooltip and popup. The popup and local window include seven days of usage, source availability, sync status, and errors. Local statistics remain available offline. The full dashboard shows all connected devices through the cloud service.
 
-Automatic sync runs every ten minutes while the app is running. Closing a window keeps the app in the tray. Preferences control login startup and pausing automatic sync; manual sync remains available while paused. On macOS, a bundled collector also refreshes the existing launchd task, which continues syncing after the desktop app quits. Its scheduled sync yields while the app owns collection. Windows collection runs in the resident app; choosing Quit stops it until the next launch.
+Automatic sync runs every ten minutes while the app is running. Closing a window keeps the app in the tray. Preferences control startup and pausing automatic sync; manual sync remains available while paused. On macOS, the app installs a bundled CLI launcher under the collector’s `bin` directory and updates its launchd sync task. Scheduled sync uses native networking and yields while the app owns collection. On Windows, collection runs in the resident app and stops when the app quits. Authorization, sync, and pricing requests use the system proxy configuration.
 
-Desktop authorization, sync, and pricing requests follow the system network proxy configuration. The macOS scheduled collector uses the same Chromium network stack without opening a window.
+Dashboard authorization is stored in macOS Keychain or Windows Credential Manager. A recovery journal covers interrupted sign-ins. The collector’s device token stays in its private config for CLI compatibility. Signing out revokes desktop authorization and disconnects the current collector while retaining historical usage. Only usage counts are uploaded; prompts, responses, session IDs, and source paths stay local.
 
-Existing `~/.tokenflow/config.json` and legacy `~/.tokenusage/config.json` are reused. An existing device can be linked to its dashboard account without creating a duplicate device. Changing the account clears the upload ledger so that the new account receives a full snapshot. Desktop dashboard credentials use the operating system credential store, with a recovery journal for interrupted sign-ins. The collector’s device token remains in its existing private config for CLI compatibility. Signing out disconnects the current collector device and revokes desktop authorization while retaining historical usage. Prompts, responses, session IDs, and source paths are not uploaded.
+The JavaScript parsers run in a standalone Node executable alongside the Rust shell. This preserves the collector’s supported sources and embedded SQLite. It contributes most of the remaining application size; Tauri does not require a bundled browser engine.
 
 ## Development
 
-Use Node.js 24 or newer to build the desktop app. The standalone CLI continues to support Node.js 20 or newer.
+Install a current Rust toolchain, platform build prerequisites, and Node.js 24 or newer. The builder downloads checksum-verified official Node 26.5 binaries for the standalone collector. The standalone npm CLI still supports Node.js 20 or newer.
 
 ```sh
 npm ci
 npm ci --prefix desktop
-node desktop/node_modules/electron/install.js
 npm start --prefix desktop
 ```
-
-Some npm configurations skip dependency installation scripts. The explicit Electron install step downloads its platform runtime in that case.
 
 ```sh
 npm test
 npm run typecheck
-npm run build --prefix desktop
+npm run pack --prefix desktop
+npm run typecheck --prefix desktop
 npm test --prefix desktop
 npm run smoke --prefix desktop
 ```
 
-The desktop smoke test launches a real Electron process with isolated data directories. It checks the bundled collector, offline summary, preferences, language switching, tray residency when closing a window, and the update action, including recoverable network errors. Packaged checks first copy the application outside the repository and verify its dependencies so it cannot use development packages. SQLite tests read actual databases, including active WAL files and archive copies. The Windows installer check installs the actual EXE into a temporary directory, verifies its bundled runtime, launches the installed application, checks its system startup registration, and uninstalls it afterwards.
+The smoke test opens a real native WebView with isolated source and data directories. It checks the bundled collector, local summary, preferences, language, tray popup, and window residency. SQLite tests read actual WAL databases and immutable archives. Packaged checks copy the macOS app outside the repository. Windows checks install the actual NSIS EXE, verify its sidecar, test startup registration, and uninstall afterwards.
 
-To verify desktop login against the real Worker/D1 backend, check out the matching TokenFlow_Server desktop branch and run:
+Desktop authorization acceptance uses the real Worker/D1 service with an isolated signed-in test account. External GitHub or Google identity verification requires a real browser sign-in and is not simulated.
 
 ```sh
-cd ../TokenFlow_Server
-npm ci
-npm run test:desktop-auth
-cd ../TokenFlow/desktop
-TOKENFLOW_AUTH_TEST_SERVER=/absolute/path/TokenFlow_Server/scripts/desktop-test-server.mjs node scripts/auth-smoke.mjs
+TOKENFLOW_AUTH_TEST_SERVER=/absolute/path/TokenFlow_Server/scripts/desktop-test-server.mjs node desktop/scripts/auth-smoke.mjs
 ```
 
-These checks use an isolated signed-in test account and verify authorization, concurrent redemption, device reuse, sessions, actual collector sync, and revocation. External GitHub and Google identity verification requires a real browser sign-in and is not simulated.
-
-## Build and distribution
+## Distribution
 
 ```sh
-npm run dist:mac --prefix desktop -- --publish never
-npm run dist:win --prefix desktop -- --publish never
+npm run dist:mac --prefix desktop
+npm run dist:win --prefix desktop
 node desktop/scripts/packaged-smoke.mjs
 ```
 
-Mac builds produce Apple Silicon and Intel DMGs plus ZIPs. Windows builds produce an x64 NSIS installer. The GitHub Actions desktop workflow builds and checks each platform on its native runner and retains installer artifacts.
+Outputs are under `desktop/src-tauri/target/release/bundle`. macOS builds the host architecture by default. To build Intel on Apple Silicon, install the Rust `x86_64-apple-darwin` target, set `TOKENFLOW_TARGET=x86_64-apple-darwin`, and pass `--target x86_64-apple-darwin` to the build. Windows uses an x64 NSIS installer. CI builds and checks both platforms on native runners; its installers are unsigned and omit updater artifacts.
 
-Set `CSC_NAME` or the electron-builder certificate variables to sign release builds. The local developer certificate name omits the `Developer ID Application:` prefix. Public Mac releases need notarization using the distributor’s Apple credentials; enable `mac.notarize` when those credentials are configured. Windows release builds can use an appropriate code-signing certificate. CI builds are unsigned unless signing credentials are configured.
+Set `APPLE_SIGNING_IDENTITY` to a full Developer ID Application identity for macOS signing. Public distribution also needs notarization with the distributor’s Apple credentials. Windows signing uses Tauri’s Windows signing configuration and the distributor’s certificate.
 
-Desktop updates use published GitHub releases tagged `desktop-vX.Y.Z`. Upload the installers and generated `latest.yml`, `latest-mac.yml`, and blockmaps to that release. The app selects desktop releases separately from CLI npm releases and offers download and install actions in Preferences. No update is published by a local build.
+Updates use GitHub releases tagged `desktop-vX.Y.Z`, containing a Tauri `latest.json` manifest and signed updater artifacts. The public verification key is committed; keep its private key outside the repository. Set `TAURI_SIGNING_PRIVATE_KEY` to that key’s path and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` for release builds. Upload the generated macOS `.app.tar.gz` and Windows installer with their `.sig` files; include their URLs and signatures in the manifest. Preferences offer check, download, and install actions. Local builds do not publish updates. Builds without the release key can pass `--config '{"bundle":{"createUpdaterArtifacts":false}}'`.
 
-The corresponding server migration `0009_desktop_auth.sql` and desktop authorization endpoints must be deployed before the hosted service can authorize these apps. Deploy the migration before the Worker. Existing OAuth client settings and callback URLs continue to apply.
+The hosted server needs migration `0009_desktop_auth.sql` and its desktop authorization endpoints. Existing OAuth client settings and callback URLs continue to apply.
 
-`TOKENFLOW_DESKTOP_DATA` and `TOKENFLOW_SCAN_HOME` provide isolated directories for native acceptance tests. An isolated desktop data directory disables operating-system startup and scheduler changes. `TOKENFLOW_EXECUTABLE` selects a packaged executable for smoke tests.
+`TOKENFLOW_DESKTOP_DATA`, `TOKENFLOW_HOME`, and `TOKENFLOW_SCAN_HOME` isolate native acceptance tests. Isolated data disables startup and scheduler changes unless `TOKENFLOW_SYSTEM_TEST=1`. `TOKENFLOW_EXECUTABLE` selects a packaged executable. Test commands are enabled only when `TOKENFLOW_ACCEPTANCE_REPORT` is explicitly set and accept requests only from local windows.

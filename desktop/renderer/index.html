@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src ipc: http://ipc.localhost; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>TokenFlow</title><link rel="stylesheet" href="style.css"></head>
 <body><main>
   <header><div class="brand"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 17a15 15 0 1 0 15 15M32 25a7 7 0 1 0 7 7"/><circle cx="47" cy="17" r="4"/></svg><span>TokenFlow</span><small id="version"></small></div><button class="tray-only" id="settingsShortcut" aria-label="Settings">↗</button><span class="full-only" id="account"></span></header>
@@ -24,4 +24,4 @@
   </section>
   <details class="sources full-only"><summary><span data-text="sources">Local sources</span><span id="sourceCount"></span></summary><ul id="sourceList"></ul></details>
   <footer><span id="scanned"></span><span class="full-only" data-text="metadata">Only usage counts are uploaded.</span><button class="full-only" id="update" data-text="update">Check for updates</button><button class="full-only" id="downloadUpdate" hidden data-text="download">Download update</button><button class="full-only" id="installUpdate" hidden data-text="install">Install and restart</button><span id="updateStatus" class="full-only"></span></footer>
-</main><script src="app.js"></script></body></html>
+</main><script src="bridge.js"></script><script src="app.js"></script><script src="acceptance.js"></script></body></html>

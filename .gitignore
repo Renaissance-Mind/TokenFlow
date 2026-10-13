@@ -8,6 +8,11 @@ desktop/app/
 desktop/collector/
 desktop/release/
 desktop/test-results/
+desktop/build/
+desktop/src-tauri/target/
+desktop/src-tauri/binaries/
+desktop/src-tauri/icons/
+desktop/renderer/bridge.js
 desktop/assets/*.png
 desktop/assets/*.icns
 desktop/assets/*.ico
@@ -16,3 +21,5 @@ desktop/assets/*.ico
 /docs/*
 !/docs/i18n/
 !/docs/assets/
+
+desktop/src-tauri/gen/
