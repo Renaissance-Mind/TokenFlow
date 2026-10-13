@@ -18,21 +18,28 @@ try {
       const verifier = randomBytes(32).toString('base64url');
       const challenge = createHash('sha256').update(verifier).digest('base64url');
       const result = await instance.evaluate(async ({net},{server,provider,verifier,challenge}) => {
+        let stage = 'pricing';
+        try {
         const request = (endpoint,body) => net.fetch(server+endpoint,{method:body === undefined ? 'GET' : 'POST',headers:{'Content-Type':'application/json'},...(body === undefined ? {} : {body:JSON.stringify(body)}),signal:AbortSignal.timeout(30_000)});
         const pricing = await request('/api/pricing/status');
+        stage = 'desktop start';
         const start = await request('/api/desktop/start',{provider,code_challenge:challenge,device_name:'Desktop deployment verification',platform:'darwin'});
         const flow = await start.json();
         if (!start.ok) throw new Error(`${server} ${provider} desktop start ${start.status}: ${flow.error}; location=${start.headers.get('location')}; cf-ray=${start.headers.get('cf-ray')}; pricing=${await pricing.text()}`);
+        stage = 'desktop poll';
         const poll = await request('/api/desktop/poll',{code:flow.code,code_verifier:verifier});
+        stage = 'provider redirect';
         const login = await new Promise((resolve,reject) => {
-          const req = net.request({url:flow.login_url,redirect:'manual'});
-          req.on('redirect',(_status,status,_method,target) => {resolve({status,host:new URL(target).hostname});req.abort();});
+          const req = net.request({url:flow.login_url,redirect:'follow'});
+          req.on('redirect',(status,_method,target) => {resolve({status,host:new URL(target).hostname});req.abort();});
           req.on('error',reject);
           req.on('response',response => {resolve({status:response.statusCode,host:null});req.abort();});
           req.end();
         });
+        stage = 'approval page';
         const verify = await request('/desktop/verify?code='+encodeURIComponent(flow.user_code));
         return {pricing:pricing.status,start:start.status,poll:poll.status,pending:(await poll.json()).status,login:login.status,providerHost:login.host,verify:verify.status};
+        } catch(error) { throw new Error(`${server} ${provider} ${stage}: ${error.message}`); }
       },{server,provider,verifier,challenge});
       assert.deepEqual(result,{pricing:200,start:200,poll:200,pending:'pending',login:302,providerHost:provider === 'google' ? 'accounts.google.com' : 'github.com',verify:200});
       console.log(new URL(server).hostname+' '+provider+': live pricing, desktop start/poll, approval page, and provider redirect passed.');
