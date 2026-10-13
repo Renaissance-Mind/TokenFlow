@@ -22,7 +22,7 @@ try {
   await page.waitForLoadState('domcontentloaded');
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await expect.poll(async () => { const value = await page.evaluate(() => window.tokenflow.getState()); return !!value.summary && !value.busy; }, {timeout:60_000}).toBe(true);
+  await expect.poll(async () => { const value = await page.evaluate(() => window.tokenflow.getState()); if (value.error) throw new Error(value.error); return !!value.summary && !value.busy; }, {timeout:60_000}).toBe(true);
   let state = await page.evaluate(() => window.tokenflow.getState());
   assert.equal(state.hasCollector, false);
   assert.equal(state.summary.today.tokens, 0);

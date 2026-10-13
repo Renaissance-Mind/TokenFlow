@@ -22,11 +22,17 @@ try {
         const pricing = await request('/api/pricing/status');
         const start = await request('/api/desktop/start',{provider,code_challenge:challenge,device_name:'Desktop deployment verification',platform:'darwin'});
         const flow = await start.json();
-        if (!start.ok) throw new Error(`${server} ${provider} desktop start ${start.status}: ${flow.error}`);
+        if (!start.ok) throw new Error(`${server} ${provider} desktop start ${start.status}: ${flow.error}; location=${start.headers.get('location')}; cf-ray=${start.headers.get('cf-ray')}; pricing=${await pricing.text()}`);
         const poll = await request('/api/desktop/poll',{code:flow.code,code_verifier:verifier});
-        const login = await net.fetch(flow.login_url,{redirect:'manual',signal:AbortSignal.timeout(30_000)});
+        const login = await new Promise((resolve,reject) => {
+          const req = net.request({url:flow.login_url,redirect:'manual'});
+          req.on('redirect',(_status,status,_method,target) => {resolve({status,host:new URL(target).hostname});req.abort();});
+          req.on('error',reject);
+          req.on('response',response => {resolve({status:response.statusCode,host:null});req.abort();});
+          req.end();
+        });
         const verify = await request('/desktop/verify?code='+encodeURIComponent(flow.user_code));
-        return {pricing:pricing.status,start:start.status,poll:poll.status,pending:(await poll.json()).status,login:login.status,providerHost:new URL(login.headers.get('location')).hostname,verify:verify.status};
+        return {pricing:pricing.status,start:start.status,poll:poll.status,pending:(await poll.json()).status,login:login.status,providerHost:login.host,verify:verify.status};
       },{server,provider,verifier,challenge});
       assert.deepEqual(result,{pricing:200,start:200,poll:200,pending:'pending',login:302,providerHost:provider === 'google' ? 'accounts.google.com' : 'github.com',verify:200});
       console.log(new URL(server).hostname+' '+provider+': live pricing, desktop start/poll, approval page, and provider redirect passed.');

@@ -2,6 +2,7 @@ import { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, shell, screen, se
 import type { IpcMainInvokeEvent, UtilityProcess } from "electron";
 import updater from "electron-updater";
 import fs from "node:fs/promises";
+import { realpathSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -11,7 +12,7 @@ import type { DesktopSecret, DesktopState, LocalSummary, Settings } from "./cont
 import { sameRendererLocation } from "./ipc-origin.js";
 
 const { autoUpdater } = updater;
-const here = path.dirname(fileURLToPath(import.meta.url));
+const here = path.join(realpathSync.native(app.getAppPath()), "app");
 const renderer = path.join(here, "../renderer/index.html");
 app.setName("TokenFlow");
 if (process.env.TOKENFLOW_DESKTOP_DATA) app.setPath("userData", path.resolve(process.env.TOKENFLOW_DESKTOP_DATA));
@@ -36,7 +37,7 @@ const dashboardSession = () => session.fromPartition("persist:tokenflow-dashboar
 const settingsPath = () => path.join(app.getPath("userData"), "settings.json");
 const secretPath = () => path.join(app.getPath("userData"), "desktop-auth.bin");
 const pendingSecretPath = () => path.join(app.getPath("userData"), "desktop-auth.pending.bin");
-const runtime = app.isPackaged ? path.join(process.resourcesPath, "collector") : path.resolve(here, "../collector");
+const runtime = app.isPackaged ? path.join(realpathSync.native(process.resourcesPath), "collector") : path.resolve(here, "../collector");
 const loadCollector = (name: string) => import(pathToFileURL(path.join(runtime, `${name}.js`)).href);
 const collectorConfig = async () => await loadCollector("config") as typeof import("../../dist/config.js");
 const state: DesktopState = {
