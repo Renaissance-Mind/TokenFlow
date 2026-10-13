@@ -10,8 +10,8 @@ interface SyncCommandOptions {
   env?: Record<string, string | undefined>;
 }
 
-export async function installAutoSync(serverUrl: string, home = os.homedir()): Promise<string> {
-  const syncCommand = buildSyncCommand(serverUrl);
+export async function installAutoSync(serverUrl: string, home = os.homedir(), options: SyncCommandOptions = {}): Promise<string> {
+  const syncCommand = buildSyncCommand(serverUrl, options);
   if (process.platform === "darwin") return installLaunchAgent(syncCommand, home);
   if (process.platform === "linux") return installSystemdUserTimer(syncCommand, home);
   return "automatic sync is not installed on this platform; run tokenflow sync manually or add it to your scheduler";

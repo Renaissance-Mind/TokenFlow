@@ -1,5 +1,7 @@
 [![TokenFlow teaser](../assets/teaser_zh.png)](https://tokenflow.renaissancemind.ai/)
 
+[TokenFlow Desktop](../../desktop/README.md) 将看板、采集器和菜单栏／系统托盘整合为 macOS 与 Windows 应用，内置运行环境，支持通过浏览器进行 GitHub／Google 登录。安装包的构建与发布说明见桌面版文档。
+
 **语言:** [English](../../README.md) | 简体中文 | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Español](README.es.md) | [Türkçe](README.tr.md) | [Русский](README.ru.md)
 
 > 面向真实 AI Agent 工作流的本地优先 token 统计工具。

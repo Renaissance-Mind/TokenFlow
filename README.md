@@ -7,6 +7,8 @@ npm install -g @renaissancemind/tokenflow && tokenflow init
 Existing `tokenusage` installs keep working: the package still exposes a `tokenusage` command, reads existing
 `~/.tokenusage/config.json` files, and accepts the old `TOKENUSAGE_*` environment variables as fallbacks.
 
+[TokenFlow Desktop](desktop/README.md) brings the dashboard, collector, and menu bar/system tray into a macOS or Windows application, with bundled runtimes and browser-based GitHub/Google sign-in. See its build and distribution instructions for installation packages.
+
 **Language:** English | [简体中文](docs/i18n/README.zh-CN.md) | [繁體中文](docs/i18n/README.zh-TW.md) | [日本語](docs/i18n/README.ja.md) | [한국어](docs/i18n/README.ko.md) | [Español](docs/i18n/README.es.md) | [Türkçe](docs/i18n/README.tr.md) | [Русский](docs/i18n/README.ru.md)
 
 > Private, local-first token accounting for the AI agents you actually use.

@@ -4,6 +4,13 @@ dist/
 *.log
 .DS_Store
 AGENTS.md
+desktop/app/
+desktop/collector/
+desktop/release/
+desktop/test-results/
+desktop/assets/*.png
+desktop/assets/*.icns
+desktop/assets/*.ico
 
 # Keep development notes local; only user docs and assets belong in docs/.
 /docs/*

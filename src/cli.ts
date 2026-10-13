@@ -16,6 +16,7 @@ import {
   syncPing,
 } from "./api.js";
 import { tryOpenBrowser } from "./browser.js";
+import { desktopAgentIsRunning, syncLocalUsage } from "./collector.js";
 import {
   configPath,
   DEFAULT_SERVER_URL,
@@ -172,38 +173,17 @@ async function runInitialSync(serverUrl: string): Promise<void> {
 
 async function cmdSync(argv: string[]): Promise<void> {
   const options = parseOptions(argv);
-  const config = await readConfig();
-  const uploadToken = config?.apiToken || config?.deviceToken;
-  if (!config || !uploadToken) throw new Error("Not logged in. Run tokenflow login first.");
-  const serverUrl = normalizeServerUrl(optionString(options, "server-url") || config.serverUrl);
-  const deviceName = config.deviceName || os.hostname();
-  const collection = await collectLocalUsage();
-  const pricing = await refreshPricingCatalog(serverUrl);
-  if (pricing.warning && !options.auto) process.stderr.write(`${pricing.warning}\n`);
-  const buckets = aggregateEvents(collection.events, [...pricing.catalog?.profiles || [], ...collection.pricingProfiles]);
-  const syncState = await readSyncState();
-  const plan = planIncrementalSync(buckets, syncState, { maxBuckets: Number.MAX_SAFE_INTEGER });
-  const shouldIngest = plan.buckets.length > 0;
-  const result = shouldIngest
-    ? await ingestUsageSnapshot({
-        serverUrl,
-        uploadToken,
-        deviceName,
-        platform: process.platform,
-        buckets,
-      })
-    : { accepted: 0, updated: 0 };
-  if (shouldIngest) {
-    await writeSyncState(
-      markSyncPlanUploaded(syncState, { buckets, replaceDailyBuckets: [], replaceUnknownBuckets: [] }, new Date().toISOString()),
-    );
+  if (options.auto && await desktopAgentIsRunning()) return;
+  const result = await syncLocalUsage({ serverUrl: optionString(options, "server-url") });
+  if (!result) {
+    if (!options.auto) process.stdout.write("Another TokenFlow sync is already running.\n");
+    return;
   }
-  await syncPing(serverUrl, uploadToken, { deviceName, platform: process.platform });
-  await writeConfig({ ...config, serverUrl, lastSyncAt: new Date().toISOString() });
+  if (result.warning && !options.auto) process.stderr.write(`${result.warning}\n`);
   if (!options.auto) {
-    process.stdout.write(`Parsed events: ${collection.events.length}\n`);
-    process.stdout.write(`Uploaded snapshot: ${result.accepted} of ${buckets.length} local buckets (${result.updated} daily records)\n`);
-    const unpricedBuckets = countUnpricedBuckets(buckets);
+    process.stdout.write(`Parsed events: ${result.events}\n`);
+    process.stdout.write(`Uploaded snapshot: ${result.uploaded} of ${result.buckets.length} local buckets (${result.updated} daily records)\n`);
+    const unpricedBuckets = countUnpricedBuckets(result.buckets);
     if (unpricedBuckets > 0) {
       process.stdout.write(`Unpriced buckets: ${unpricedBuckets} (cost for these buckets is recorded as $0.000000)\n`);
     }

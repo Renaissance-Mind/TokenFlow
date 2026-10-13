@@ -1,0 +1,61 @@
+name: Build TokenFlow Desktop
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [caopu/tokenflow-desktop]
+    paths: [desktop/**, src/**, package.json, package-lock.json, vitest.config.ts, .github/workflows/desktop-build.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: mac
+          - os: windows-latest
+            platform: win
+    runs-on: ${{ matrix.os }}
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install collector dependencies
+        run: npm ci --ignore-scripts
+      - name: Install desktop dependencies
+        run: npm ci --prefix desktop --ignore-scripts
+      - name: Install Electron runtime
+        run: node desktop/node_modules/electron/install.js
+      - name: Check collector types
+        run: npm run typecheck
+      - name: Test collector on macOS
+        if: matrix.platform == 'mac'
+        run: npm test
+      - name: Build desktop
+        run: npm run build --prefix desktop
+      - name: Test authorization validation and embedded SQLite
+        run: npm test --prefix desktop
+      - name: Test native desktop process
+        run: npm run smoke --prefix desktop
+      - name: Build installation packages
+        run: npm run dist:${{ matrix.platform }} --prefix desktop -- --publish never
+      - name: Test packaged desktop process
+        run: node desktop/scripts/packaged-smoke.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tokenflow-desktop-${{ matrix.platform }}
+          path: |
+            desktop/release/*.dmg
+            desktop/release/*.exe
+            desktop/release/*.zip
+            desktop/release/*.yml
+            desktop/release/*.blockmap
+          if-no-files-found: error
+          retention-days: 14

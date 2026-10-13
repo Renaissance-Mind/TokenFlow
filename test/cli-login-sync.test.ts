@@ -101,6 +101,8 @@ async function prepareUsageHome(prefix: string): Promise<string> {
   process.env.GROK_HOME = path.join(root, "grok");
   process.env.ZCODE_HOME = path.join(root, "zcode");
   process.env.ANTIGRAVITY_DATA_DIR = path.join(root, "antigravity");
+  process.env.COPILOT_HOME = path.join(root, "copilot");
+  process.env.DSH_HOME = path.join(root, "dsh");
   process.env.PI_AGENT_DIR = path.join(root, "pi");
 
   await fs.mkdir(path.join(root, "codex", "sessions", "2026", "06", "09"), { recursive: true });

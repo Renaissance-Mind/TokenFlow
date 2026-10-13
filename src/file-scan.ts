@@ -1,9 +1,7 @@
-import { execFile } from "node:child_process";
 import { createReadStream } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { promisify } from "node:util";
 import { parse as parseToml } from "smol-toml";
 
 import { parseAmpThread } from "./sources/amp.js";
@@ -29,7 +27,6 @@ import { collectPiStores } from "./sources/pi.js";
 import { createQwenChatJsonlParser } from "./sources/qwen.js";
 import type { PricingProfile, UsageEvent } from "./types.js";
 
-const execFileAsync = promisify(execFile);
 const MAX_JSONL_LINE_CHARS = 16 * 1024 * 1024;
 
 interface JsonlUsageParser {
@@ -472,8 +469,7 @@ async function readOpenCodeEvents(dbPaths: string[], messageFiles: string[]): Pr
 async function readOpenCodeDbRows(dbPath: string): Promise<OpenCodeMessageRow[]> {
   const rows: OpenCodeMessageRow[] = [];
   if ((await tableColumns(dbPath, "message")).has("data")) {
-    const { stdout } = await execFileAsync("sqlite3", ["-readonly", dbPath, openCodeMessageQuery()], { maxBuffer: 64 * 1024 * 1024 });
-    for (const line of String(stdout).split(/\r?\n/)) if (line.trim()) rows.push(JSON.parse(line) as OpenCodeMessageRow);
+    rows.push(...await readSqliteJsonRows<OpenCodeMessageRow>(dbPath, openCodeMessageQuery()));
   }
   const v2 = await tableColumns(dbPath, "session_message");
   const sessions = await tableColumns(dbPath, "session_v2");
@@ -545,16 +541,8 @@ async function readKiloEvents(dbPath: string): Promise<UsageEvent[]> {
 }
 
 async function readSqliteJsonRows<T>(dbPath: string, query: string): Promise<T[]> {
-  const { stdout } = await execFileAsync("sqlite3", ["-readonly", dbPath, query], {
-    maxBuffer: 64 * 1024 * 1024,
-  });
-  const rows: T[] = [];
-  for (const line of String(stdout).split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    rows.push(JSON.parse(trimmed) as T);
-  }
-  return rows;
+  const rows = await sqliteRows<Record<string, string>>(dbPath, query);
+  return rows.map((row) => JSON.parse(Object.values(row)[0]) as T);
 }
 
 async function readKimiModelForWireFile(filePath: string): Promise<string | null> {

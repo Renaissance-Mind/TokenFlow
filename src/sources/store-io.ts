@@ -8,6 +8,13 @@ import { createInterface } from "node:readline";
 import { promisify } from "node:util";
 
 const execute = promisify(execFile);
+type SqliteReader = (file: string, query: string) => Promise<object[]>;
+let embeddedSqliteReader: SqliteReader | undefined;
+
+// Desktop supplies its bundled SQLite runtime; CLI installs retain sqlite3 support.
+export function setSqliteReader(reader: SqliteReader): void {
+  embeddedSqliteReader = reader;
+}
 
 export function sourceRoots(
   name: string,
@@ -50,6 +57,7 @@ export async function sqliteRows<T extends object>(
   file: string,
   query: string,
 ): Promise<T[]> {
+  if (embeddedSqliteReader) return await embeddedSqliteReader(file, query) as T[];
   const { stdout } = await execute(
     "sqlite3",
     [
