@@ -1,3 +1,4 @@
+import { discoveredFile, scannedBytes } from "../scan-progress.js";
 import { execFile } from "node:child_process";
 import { createReadStream } from "node:fs";
 import fs from "node:fs/promises";
@@ -11,9 +12,20 @@ const execute = promisify(execFile);
 type SqliteReader = (file: string, query: string) => Promise<object[]>;
 let embeddedSqliteReader: SqliteReader | undefined;
 
-// Desktop supplies its bundled SQLite runtime; CLI installs retain sqlite3 support.
 export function setSqliteReader(reader: SqliteReader): void {
   embeddedSqliteReader = reader;
+}
+
+export async function initializeSqliteReader(): Promise<void> {
+  if (embeddedSqliteReader) return;
+  try {
+    const sqliteModule = "node:sqlite";
+    const { DatabaseSync } = await import(sqliteModule);
+    setSqliteReader(async (file, query) => {
+      const db = new DatabaseSync(file.startsWith("file:") ? (await import("node:url")).fileURLToPath(new URL(file)) : file, { readOnly: true, timeout: 5000 });
+      try { db.exec("PRAGMA query_only=ON"); return db.prepare(query).all(); } finally { db.close(); }
+    });
+  } catch { /* Node 20 retains the existing sqlite3 executable reader. */ }
 }
 
 export function sourceRoots(
@@ -48,7 +60,7 @@ export async function storeFiles(
   for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
     const file = path.join(root, entry.name);
     if (entry.isDirectory()) files.push(...(await storeFiles(file, accept)));
-    else if (entry.isFile() && accept(file)) files.push(file);
+    else if (entry.isFile() && accept(file)) { files.push(file); discoveredFile(file); }
   }
   return files;
 }
@@ -137,10 +149,10 @@ export async function readStoreLines(
   file: string,
   consume: (line: string) => void,
 ): Promise<void> {
-  const lines = createInterface({
-    input: createReadStream(file),
-    crlfDelay: Infinity,
-  });
+  const stream = createReadStream(file);
+  let consumed = 0;
+  stream.on("data", chunk => { consumed += Buffer.byteLength(chunk); scannedBytes(file, consumed); });
+  const lines = createInterface({ input: stream, crlfDelay: Infinity });
   for await (const line of lines) if (line.trim()) consume(line);
 }
 

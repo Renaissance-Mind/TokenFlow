@@ -1,27 +1,51 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
-<title>TokenFlow</title><link rel="stylesheet" href="style.css"></head>
+<title>TokenFlow Settings</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="progress.css"><link rel="stylesheet" href="settings.css"></head>
 <body><main>
-  <header><div class="brand"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 17a15 15 0 1 0 15 15M32 25a7 7 0 1 0 7 7"/><circle cx="47" cy="17" r="4"/></svg><span>TokenFlow</span><small id="version"></small></div><button class="tray-only" id="settingsShortcut" aria-label="Settings">↗</button><span class="full-only" id="account"></span></header>
-  <section class="overview" aria-labelledby="todayTitle">
-    <div class="daily"><p class="eyebrow" id="todayTitle" data-text="today">THIS COMPUTER / TODAY</p><div class="amount" id="cost">—</div><p class="token-line"><strong id="tokens">—</strong> <span data-text="tokens">tokens</span></p><p id="priceNote" class="muted" data-text="estimate">Estimated from recorded usage</p></div>
-    <div class="week full-only"><div class="section-label"><span data-text="week">LAST SEVEN DAYS</span><span id="weekTotal">—</span></div><svg id="spark" viewBox="0 0 400 120" role="img" aria-label="Usage over the last seven days"><path id="sparkPath"/></svg><div class="axis"><span id="weekStart">—</span><span data-text="todayShort">Today</span></div></div>
+<section class="operation-progress" id="operationProgress" hidden aria-live="polite"><span id="progressLabel"></span><div class="progress-track" id="progressTrack" role="progressbar" aria-valuemin="0" aria-valuemax="100"><span class="progress-fill" id="progressFill"></span></div><span id="progressPercent"></span></section>
+<header><div class="brand"><span>TokenFlow</span></div><nav class="breadcrumbs settings-only" aria-label="Navigation"><button id="breadcrumbDashboard" data-text="dashboardTitle">Dashboard</button><span aria-hidden="true">/</span><span data-text="settings">Settings</span></nav><div class="header-actions"><span id="account" class="tray-only"></span><button id="settingsShortcut" class="tray-only" data-text="settings">Settings</button><button id="dashboardShortcut" class="settings-only" data-text="backDashboard">Back to Dashboard</button></div></header>
+<div class="settings-shell"><aside class="settings-nav settings-only" aria-label="Settings sections"><button class="active" data-section="pageTitle" data-text="settings" aria-current="page">Settings</button><button data-section="authentication" data-text="accountNav">Account</button><button data-section="preferencesSection" data-text="preferences">Preferences</button><button data-section="cliSection" data-text="cliUpdates">CLI & updates</button></aside>
+<div class="content">
+<div class="page-intro settings-only"><h1 id="pageTitle" data-text="settings">Settings</h1><p data-text="settingsSubtitle">Your App and CLI, connected.</p></div>
+  <section class="tray-only usage" aria-labelledby="todayTitle">
+    <div class="section-label full-only"><h1 data-text="dashboardTitle">Dashboard</h1><span id="connection"></span></div>
+    <section class="overview">
+      <div class="daily"><p class="eyebrow" id="todayTitle" data-text="today">TODAY</p><div class="amount" id="cost">—</div><p class="token-line"><strong id="tokens">—</strong> <span data-text="tokens">tokens</span></p><p id="priceNote" class="muted" data-text="estimate">Estimated from recorded usage</p></div>
+      <div class="week full-only"><div class="section-label"><span data-text="week">LAST SEVEN DAYS</span><span id="weekTotal">—</span></div><svg id="spark" viewBox="0 0 400 120" role="img" aria-label="Usage over the last seven days"><path id="sparkPath"/></svg><div class="axis"><span id="weekStart">—</span><span data-text="todayShort">Today</span></div></div>
+    </section>
+    <div class="agents" id="agents" aria-label="Usage by agent"></div>
+    <div class="operation"><span class="status-dot" id="statusDot"></span><span id="status" role="status" aria-live="polite"></span><button id="refresh" data-text="refresh">Refresh</button><button id="sync" data-text="sync">Sync now →</button></div>
+    <div class="loading" id="loading" role="status" hidden><span class="spinner" aria-hidden="true"></span><div><strong id="loadingTitle"></strong><p data-text="loadingHint">Your statistics will appear as soon as reading finishes.</p></div><div class="loading-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></div></div>
+    <p class="empty-state" id="empty" hidden data-text="empty">No recorded usage today.</p>
+    <details class="sources full-only"><summary><span data-text="sources">Local sources</span><span id="sourceCount"></span></summary><ul id="sourceList"></ul></details>
   </section>
-  <div class="agents" id="agents" aria-label="Usage by agent"></div>
-  <div class="operation"><span class="status-dot" id="statusDot"></span><span id="status" role="status"></span><button id="refresh" data-text="refresh">Refresh</button><button id="sync" data-text="sync">Sync now →</button></div>
-  <p id="error" class="error" role="alert" hidden></p><p id="notice" class="muted" hidden></p>
-  <section id="loginSection" aria-labelledby="connectTitle">
-    <h1 id="connectTitle" data-text="connect">One account. Every device.</h1><p id="connectDescription" class="muted" data-text="connectDescription">Connect this computer and see your full dashboard. Your prompts and responses stay here.</p>
-    <nav class="login-options"><button id="github"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1a11 11 0 0 0-3.5 21.4c.5.1.7-.2.7-.5v-2c-3 .7-3.6-1.3-3.6-1.3-.5-1.2-1.2-1.5-1.2-1.5-1-.7.1-.7.1-.7 1.1.1 1.7 1.1 1.7 1.1 1 1.7 2.6 1.2 3.2.9.1-.7.4-1.2.7-1.5-2.4-.3-5-1.2-5-5.4 0-1.2.5-2.2 1.1-2.9-.1-.3-.5-1.4.1-2.9 0 0 .9-.3 3 1.1a10.4 10.4 0 0 1 5.5 0c2.1-1.4 3-1.1 3-1.1.6 1.5.2 2.6.1 2.9.7.7 1.1 1.7 1.1 2.9 0 4.2-2.5 5.1-5 5.4.4.3.7 1 .7 2v3c0 .3.2.6.7.5A11 11 0 0 0 12 1"/></svg><span data-text="github">Continue with GitHub</span> ↗</button><button id="google"><span class="google-icon" aria-hidden="true">G</span><span data-text="google">Continue with Google</span> ↗</button></nav>
-    <div id="loginPending" hidden><p><span data-text="waiting">Finish signing in in your browser.</span> <strong id="loginCode"></strong></p><button id="cancel" data-text="cancel">Cancel login</button></div>
-  </section>
-  <section id="connectedSection" hidden><div class="connected-actions"><button id="dashboard" data-text="dashboard">Open full dashboard ↗</button><button id="logout" data-text="logout">Sign out</button></div></section>
-  <section class="settings full-only" aria-labelledby="settingsTitle"><div class="section-label"><h2 id="settingsTitle" data-text="settings">PREFERENCES</h2><span id="collectorVersion"></span></div>
-    <form id="preferences"><div class="setting-grid"><label><span data-text="device">Device name</span><input id="deviceName" maxlength="120" required autocomplete="off"></label><label><span data-text="server">Server</span><input id="serverUrl" type="url" required spellcheck="false"></label><label><span data-text="menuMetric">Menu bar display</span><select id="trayMetric"><option value="cost" data-text="costMetric">Today’s cost</option><option value="tokens" data-text="tokenMetric">Today’s tokens</option><option value="icon" data-text="iconMetric">Icon only</option></select></label><label><span data-text="language">Language</span><select id="language"><option value="en">English</option><option value="zh">简体中文</option></select></label></div>
-      <div class="toggle-row"><label class="toggle"><input id="launchAtLogin" type="checkbox"><span data-text="launch">Start at login</span></label><label class="toggle"><input id="paused" type="checkbox"><span data-text="pause">Pause automatic sync</span></label><button type="submit" id="save" data-text="save">Save preferences →</button></div>
-    </form>
-  </section>
-  <details class="sources full-only"><summary><span data-text="sources">Local sources</span><span id="sourceCount"></span></summary><ul id="sourceList"></ul></details>
-  <footer><span id="scanned"></span><span class="full-only" data-text="metadata">Only usage counts are uploaded.</span><button class="full-only" id="update" data-text="update">Check for updates</button><button class="full-only" id="downloadUpdate" hidden data-text="download">Download update</button><button class="full-only" id="installUpdate" hidden data-text="install">Install and restart</button><span id="updateStatus" class="full-only"></span></footer>
-</main><script src="app.js"></script></body></html>
+
+<p id="error" class="error" role="alert" hidden></p><p id="notice" class="muted" hidden></p>
+<section class="settings-only auth" id="authentication" aria-labelledby="connectTitle">
+  <div class="section-label"><h2 id="connectTitle" data-text="accountTitle">Account & sync</h2><span id="authStatus"></span></div>
+  <div id="connectedSection" hidden><div class="account-identity"><span data-text="yourAccount">Your account</span><strong id="accountDetails"></strong></div><div class="account-actions"><button id="switchAccount" data-text="switchAccount">Switch account</button><button id="logout" data-text="logout">Sign out App & CLI</button></div></div>
+  <p id="connectDescription" class="muted" data-text="connectDescription">Account and sync settings are shared with the terminal.</p>
+  <nav class="login-options" id="loginSection"><button id="github" data-text="github">Sign in with GitHub</button><button id="google" data-text="google">Sign in with Google</button></nav>
+  <div id="loginPending" hidden><p id="loginStatus" data-text="loginStarting">Starting browser sign-in…</p><p id="loginInstructions"><span data-text="waiting">Finish signing in in your browser.</span> <strong id="loginCode"></strong></p><button id="cancel" data-text="cancel">Cancel login</button></div>
+  <form id="tokenForm"><label><span data-text="apiToken">Read-write API token</span><input id="apiToken" type="password" placeholder="tu_api_…" autocomplete="off" spellcheck="false" required></label><button type="submit" id="saveToken" data-text="saveToken">Connect token</button></form>
+</section>
+<section class="settings settings-only" id="preferencesSection" aria-labelledby="settingsTitle">
+  <div class="section-label"><h2 id="settingsTitle" data-text="preferences">Preferences</h2></div>
+  <form id="preferences"><div class="setting-grid">
+    <label><span data-text="device">Device name</span><input id="deviceName" maxlength="120" required autocomplete="off"></label>
+    <label><span data-text="server">Server</span><input id="serverUrl" type="url" required spellcheck="false"></label>
+    <label><span data-text="menuMetric">Menu bar display</span><select id="trayMetric"><option value="cost" data-text="costMetric">Today’s cost</option><option value="tokens" data-text="tokenMetric">Today’s tokens</option><option value="icon" data-text="iconMetric">Icon only</option></select></label>
+    <label><span data-text="language">Language</span><select id="language"><option value="en">English</option><option value="zh">简体中文</option></select></label>
+  </div><div class="toggle-row">
+    <label class="toggle"><span class="toggle-copy"><span data-text="launch">Start at login</span><small data-text="launchHint">Open TokenFlow when you sign in to your computer</small></span><input id="launchAtLogin" type="checkbox" role="switch"></label>
+    <label class="toggle"><span class="toggle-copy"><span data-text="pause">Pause automatic sync</span><small data-text="pauseHint">Manual sync is always available</small></span><input id="paused" type="checkbox" role="switch"></label>
+    <div class="save-row"><span id="savedStatus" role="status"></span><button type="submit" id="save" data-text="save">Save preferences</button></div>
+  </div></form>
+</section>
+<section class="settings-only cli-settings" id="cliSection" aria-labelledby="cliTitle"><div class="section-label"><h2 id="cliTitle" data-text="cliUpdates">CLI & updates</h2></div>
+  <div class="update-row"><div class="update-details"><div class="version-line"><span data-text="cliTitle">CLI</span><span id="collectorVersion"></span></div><code id="cliPath"></code><p class="muted" id="cliSource"></p></div><div class="cli-actions"><button id="checkCliUpdate" data-text="checkCliUpdate">Check CLI updates</button><button id="upgradeCli" hidden data-text="upgradeCli">Upgrade CLI</button><span id="cliUpdateStatus" role="status"></span></div></div>
+  <div class="update-row app-update-row"><div class="update-details"><div class="version-line"><span data-text="appTitle">TokenFlow App</span><span id="version"></span></div><span id="updateStatus" role="status"></span></div><div class="cli-actions"><button id="update" data-text="update">Check App updates</button><button id="downloadUpdate" hidden data-text="download">Download update</button><button id="installUpdate" hidden data-text="install">Install and restart</button></div></div>
+</section>
+<footer class="tray-only"><span id="scanned"></span><span class="full-only" data-text="metadata">Only usage counts are uploaded.</span><button id="trayDashboard" data-text="dashboard">Dashboard</button></footer>
+</div></div></main><script type="module" src="app.js"></script></body></html>

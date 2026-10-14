@@ -1,3 +1,4 @@
+import { scanFile, discoveredFile, scannedBytes } from "../scan-progress.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { makeUsageEvent } from "./ccusage-common.js";
@@ -233,7 +234,7 @@ export function mergeAntigravityUsage(rows: IdentifiedUsage[]): UsageEvent[] {
     .map((row) => row.event);
 }
 
-export async function collectAntigravity(home: string) {
+export async function planAntigravity(home: string) {
   const roots = sourceRoots("ANTIGRAVITY_DATA_DIR", home, [
     ".gemini/antigravity/conversations",
     ".gemini/antigravity-cli/conversations",
@@ -251,105 +252,122 @@ export async function collectAntigravity(home: string) {
       ).flat(),
     ),
   ];
-  const parsed: IdentifiedUsage[] = [];
-  for (const file of files) {
-    const stat = await fs.stat(file);
-    if (!stat.size) continue;
-    const snapshot = await archivedSqliteSnapshot(file);
-    try {
-      const database = snapshot.path;
-      if (!(await tableColumns(database, "gen_metadata")).has("data")) continue;
-      const generation = (
-        await sqliteRows<{ hex: string }>(
-          database,
-          "SELECT hex(data) AS hex FROM gen_metadata ORDER BY idx;",
-        )
-      ).map((row) => parseAntigravityMetadata(row.hex, false));
-      const stepColumns = await tableColumns(database, "steps");
-      const steps = stepColumns.has("metadata")
-        ? (
-            await sqliteRows<{ hex: string }>(
-              database,
-              "SELECT hex(metadata) AS hex FROM steps WHERE metadata IS NOT NULL ORDER BY idx;",
-            )
-          ).map((row) => parseAntigravityMetadata(row.hex, true))
-        : [];
-      const trajectoryColumns = await tableColumns(
-        database,
-        "trajectory_metadata_blob",
-      );
-      const trajectories = trajectoryColumns.has("data")
-        ? await sqliteRows<{ hex: string }>(
-            database,
-            "SELECT hex(data) AS hex FROM trajectory_metadata_blob ORDER BY rowid;",
-          )
-        : [];
-      const trajectoryTime = trajectories
-        .map((row) =>
-          timestamp(nested(decodeProto(Buffer.from(row.hex, "hex")), 2)),
-        )
-        .find(Boolean);
-      const generationModel = [...generation]
-        .reverse()
-        .find((row) => row.model)?.model;
-      let currentModel: string | undefined;
-      for (const meta of [...steps, ...generation]) {
-        if (meta === generation[0]) currentModel = undefined;
-        currentModel = meta.model || currentModel;
-        for (const usage of meta.usages) {
-          const identities = (
-            [
-              [11, "response"],
-              [12, "provider"],
-              [7, "message"],
-            ] as const
-          ).flatMap(([field, name]) =>
-            text(usage, field) ? [`${name}:${text(usage, field)}`] : [],
-          );
-          const output = Math.max(
-            number(usage, 3),
-            number(usage, 10) + number(usage, 9),
-          );
-          const visible = Math.max(
-            number(usage, 10),
-            output - number(usage, 9),
-          );
-          const time = meta.time || trajectoryTime || stat.mtime.toISOString();
-          const event = makeUsageEvent({
-            agent: "antigravity",
-            model:
-              normalizeModel(modelName(number(usage, 1))) ||
-              currentModel ||
-              (steps.includes(meta) ? generationModel : undefined) ||
-              "gemini-internal-model",
-            sourcePath: file,
-            sessionId: path.basename(file, ".db"),
-            timestamp: time,
-            inputTokens: number(usage, 2),
-            cachedInputTokens: number(usage, 5),
-            cacheCreationTokens: number(usage, 4),
-            outputTokens: visible,
-            reasoningOutputTokens: output - visible,
-          });
-          if (event)
-            parsed.push({
-              event,
-              identities,
-              rank: meta.time ? 3 : trajectoryTime ? 1 : 0,
-            });
-        }
-      }
-    } finally {
-      await snapshot.close();
-    }
-  }
   return {
-    events: mergeAntigravityUsage(parsed),
-    source: {
-      agent: "antigravity",
-      path: roots.join(","),
-      files: files.length,
-      exists: files.length > 0,
+    files: files,
+    collect: async () => {
+      const parsed: IdentifiedUsage[] = [];
+      for (const file of files) {
+        await scanFile(file, async () => {
+          const stat = await fs.stat(file);
+          if (!stat.size) return;
+          const snapshot = await archivedSqliteSnapshot(file);
+          try {
+            const database = snapshot.path;
+            if (!(await tableColumns(database, "gen_metadata")).has("data"))
+              return;
+            const generation = (
+              await sqliteRows<{
+                hex: string;
+              }>(
+                database,
+                "SELECT hex(data) AS hex FROM gen_metadata ORDER BY idx;",
+              )
+            ).map((row) => parseAntigravityMetadata(row.hex, false));
+            const stepColumns = await tableColumns(database, "steps");
+            const steps = stepColumns.has("metadata")
+              ? (
+                  await sqliteRows<{
+                    hex: string;
+                  }>(
+                    database,
+                    "SELECT hex(metadata) AS hex FROM steps WHERE metadata IS NOT NULL ORDER BY idx;",
+                  )
+                ).map((row) => parseAntigravityMetadata(row.hex, true))
+              : [];
+            const trajectoryColumns = await tableColumns(
+              database,
+              "trajectory_metadata_blob",
+            );
+            const trajectories = trajectoryColumns.has("data")
+              ? await sqliteRows<{
+                  hex: string;
+                }>(
+                  database,
+                  "SELECT hex(data) AS hex FROM trajectory_metadata_blob ORDER BY rowid;",
+                )
+              : [];
+            const trajectoryTime = trajectories
+              .map((row) =>
+                timestamp(nested(decodeProto(Buffer.from(row.hex, "hex")), 2)),
+              )
+              .find(Boolean);
+            const generationModel = [...generation]
+              .reverse()
+              .find((row) => row.model)?.model;
+            let currentModel: string | undefined;
+            for (const meta of [...steps, ...generation]) {
+              if (meta === generation[0]) currentModel = undefined;
+              currentModel = meta.model || currentModel;
+              for (const usage of meta.usages) {
+                const identities = (
+                  [
+                    [11, "response"],
+                    [12, "provider"],
+                    [7, "message"],
+                  ] as const
+                ).flatMap(([field, name]) =>
+                  text(usage, field) ? [`${name}:${text(usage, field)}`] : [],
+                );
+                const output = Math.max(
+                  number(usage, 3),
+                  number(usage, 10) + number(usage, 9),
+                );
+                const visible = Math.max(
+                  number(usage, 10),
+                  output - number(usage, 9),
+                );
+                const time =
+                  meta.time || trajectoryTime || stat.mtime.toISOString();
+                const event = makeUsageEvent({
+                  agent: "antigravity",
+                  model:
+                    normalizeModel(modelName(number(usage, 1))) ||
+                    currentModel ||
+                    (steps.includes(meta) ? generationModel : undefined) ||
+                    "gemini-internal-model",
+                  sourcePath: file,
+                  sessionId: path.basename(file, ".db"),
+                  timestamp: time,
+                  inputTokens: number(usage, 2),
+                  cachedInputTokens: number(usage, 5),
+                  cacheCreationTokens: number(usage, 4),
+                  outputTokens: visible,
+                  reasoningOutputTokens: output - visible,
+                });
+                if (event)
+                  parsed.push({
+                    event,
+                    identities,
+                    rank: meta.time ? 3 : trajectoryTime ? 1 : 0,
+                  });
+              }
+            }
+          } finally {
+            await snapshot.close();
+          }
+        });
+      }
+      return {
+        events: mergeAntigravityUsage(parsed),
+        source: {
+          agent: "antigravity",
+          path: roots.join(","),
+          files: files.length,
+          exists: files.length > 0,
+        },
+      };
     },
   };
 }
+
+export async function collectAntigravity(home: string) { return (await planAntigravity(home)).collect(); }

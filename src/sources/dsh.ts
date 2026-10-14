@@ -1,3 +1,4 @@
+import { scanFile, discoveredFile, scannedBytes } from "../scan-progress.js";
 import { createReadStream } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -118,9 +119,15 @@ export function createDshParser(sourcePath: string): DshParser {
   };
 }
 
-export async function collectDshUsage(candidates: string[]): Promise<{ roots: string[]; files: string[]; events: UsageEvent[] }> {
+export async function planDshUsage(candidates: string[]) {
   const roots: string[] = [];
-  const generations = new Map<string, { version: number; files: string[] }>();
+  const generations = new Map<
+    string,
+    {
+      version: number;
+      files: string[];
+    }
+  >();
   for (const root of candidates) {
     const stat = await fs.stat(root).catch((error: NodeJS.ErrnoException) => {
       if (error.code === "ENOENT") return null;
@@ -130,22 +137,33 @@ export async function collectDshUsage(candidates: string[]): Promise<{ roots: st
     roots.push(root);
     await discoverGenerations(root, generations);
   }
-  const files = [...generations.values()].flatMap((generation) => generation.files).sort();
-  const events = new Map<string, DshUsageEvent>();
-  for (const file of files) {
-    const parser = createDshParser(file);
-    await readSessionLines(file, (line) => parser.pushLine(line));
-    for (const event of parser.finish()) {
-      const key = `${event.sessionId}:${event.eventSeq}`;
-      const previous = events.get(key);
-      if (previous) {
-        const { sourcePath: _previousPath, ...left } = previous;
-        const { sourcePath: _nextPath, ...right } = event;
-        if (JSON.stringify(left) !== JSON.stringify(right)) throw new Error(`Conflicting copies of dsh usage ${key}`);
-      } else events.set(key, event);
-    }
-  }
-  return { roots, files, events: [...events.values()] };
+  const files = [...generations.values()]
+    .flatMap((generation) => generation.files)
+    .sort();
+  files.forEach(discoveredFile);
+  return {
+    files: files,
+    collect: async () => {
+      const events = new Map<string, DshUsageEvent>();
+      for (const file of files) {
+        await scanFile(file, async () => {
+          const parser = createDshParser(file);
+          await readSessionLines(file, (line) => parser.pushLine(line));
+          for (const event of parser.finish()) {
+            const key = `${event.sessionId}:${event.eventSeq}`;
+            const previous = events.get(key);
+            if (previous) {
+              const { sourcePath: _previousPath, ...left } = previous;
+              const { sourcePath: _nextPath, ...right } = event;
+              if (JSON.stringify(left) !== JSON.stringify(right))
+                throw new Error(`Conflicting copies of dsh usage ${key}`);
+            } else events.set(key, event);
+          }
+        });
+      }
+      return { roots, files, events: [...events.values()] };
+    },
+  };
 }
 
 async function discoverGenerations(directory: string, generations: Map<string, { version: number; files: string[] }>): Promise<void> {
@@ -179,7 +197,9 @@ async function readSessionLines(file: string, onLine: (line: string) => void): P
     if (pending.length > MAX_LINE_CHARS) throw new Error(`dsh Session line too large in ${file}`);
   };
   const decoder = file.endsWith(".zstd") ? new Decompress(consume) : null;
+  let consumed = 0;
   for await (const chunk of createReadStream(file)) {
+    consumed += chunk.byteLength; scannedBytes(file, consumed);
     if (decoder) decoder.push(chunk);
     else consume(chunk);
   }
@@ -198,3 +218,5 @@ function timestampFromMillis(value: unknown): string | null {
   const date = new Date(value);
   return Number.isFinite(date.getTime()) ? date.toISOString() : null;
 }
+
+export async function collectDshUsage(candidates: string[]) { return (await planDshUsage(candidates)).collect(); }

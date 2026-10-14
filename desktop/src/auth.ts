@@ -32,6 +32,9 @@ export async function apiRequest(server: string, endpoint: string, body?: unknow
 export function checkedLoginUrl(value: unknown, server: string, provider: string): string {
   if (typeof value !== "string") throw new Error("Server did not return a login URL");
   const url = new URL(value);
-  if (url.origin !== normalizeDesktopServer(server) || url.pathname !== `/auth/login/${provider}`) throw new Error("Server returned an unexpected login URL");
+  const origin = normalizeDesktopServer(server);
+  const hostedOrigins = new Set(["https://tokenflow.renaissancemind.ai", "https://tokenusage.renaissancemind.ai"]);
+  const sameService = url.origin === origin || (hostedOrigins.has(origin) && hostedOrigins.has(url.origin));
+  if (!sameService || url.username || url.password || url.pathname !== `/auth/login/${provider}`) throw new Error("Server returned an unexpected login URL");
   return url.href;
 }

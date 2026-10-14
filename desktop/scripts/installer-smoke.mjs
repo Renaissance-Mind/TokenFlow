@@ -14,7 +14,7 @@ try {
   execFileSync(path.join(release,setup),['/S','/D='+destination],{stdio:'inherit',timeout:120_000});
   const executable = path.join(destination,'TokenFlow.exe');
   await fs.access(executable);
-  await fs.access(path.join(destination,'resources','collector','desktop-cli.mjs'));
+  await fs.access(path.join(destination,'resources','collector','dist','cli.js'));
   execFileSync(process.execPath,[path.join(desktop,'scripts','smoke.mjs')],{
     stdio:'inherit',env:{...process.env,TOKENFLOW_EXECUTABLE:executable,TOKENFLOW_SYSTEM_TEST:'1'},timeout:120_000,
   });

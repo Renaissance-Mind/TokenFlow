@@ -1,3 +1,4 @@
+import type { ScanProgress } from "./scan-progress.js";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs/promises";
@@ -19,6 +20,13 @@ export interface SyncResult {
   updated: number;
   lastSyncAt: string;
   warning?: string;
+}
+export interface SyncOptions {
+  serverUrl?: string;
+  home?: string;
+  onProgress?: (progress: ScanProgress) => void;
+  onPhase?: (phase: "scan" | "pricing" | "upload") => void;
+  onCollected?: (collection: CollectionResult) => Promise<void>;
 }
 
 export async function acquireSyncLock(): Promise<(() => Promise<void>) | null> {
@@ -42,33 +50,42 @@ export async function desktopAgentIsRunning(): Promise<boolean> {
   catch (error) { if ((error as NodeJS.ErrnoException).code === "ESRCH") return false; throw error; }
 }
 
-export async function syncLocalUsage(options: { serverUrl?: string; home?: string } = {}): Promise<SyncResult | null> {
+export async function syncLocalUsage(options: SyncOptions = {}): Promise<SyncResult | null> {
   const release = await acquireSyncLock();
   if (!release) return null;
-  try {
-    const config = await readConfig();
-    const uploadToken = config?.apiToken || config?.deviceToken;
-    if (!config || !uploadToken) throw new Error("Not logged in. Run tokenflow login first.");
-    const serverUrl = normalizeServerUrl(options.serverUrl || config.serverUrl);
-    const deviceName = config.deviceName || os.hostname();
-    const collection = await collectLocalUsage(options.home);
-    const pricing = await refreshPricingCatalog(serverUrl);
-    const buckets = aggregateEvents(collection.events, [...pricing.catalog?.profiles || [], ...collection.pricingProfiles]);
-    const state = await readSyncState();
-    const plan = planIncrementalSync(buckets, state, { maxBuckets: Number.MAX_SAFE_INTEGER });
-    const result = plan.buckets.length
-      ? await ingestUsageSnapshot({ serverUrl, uploadToken, deviceName, platform: process.platform, buckets })
-      : { accepted: 0, updated: 0 };
-    if (plan.buckets.length) await writeSyncState(markSyncPlanUploaded(state,
-      { buckets, replaceDailyBuckets: [], replaceUnknownBuckets: [] }, new Date().toISOString()));
-    await syncPing(serverUrl, uploadToken, { deviceName, platform: process.platform });
-    const latest = await readConfig();
-    if ((latest?.apiToken || latest?.deviceToken) !== uploadToken || latest?.serverUrl !== config.serverUrl) {
-      throw new Error("Collector authorization changed during sync. Retry with the current account.");
-    }
-    const lastSyncAt = new Date().toISOString();
-    await writeConfig({ ...latest!, serverUrl, lastSyncAt });
-    return { events: collection.events.length, collection, buckets, sources: collection.sources, uploaded: result.accepted,
-      updated: result.updated, lastSyncAt, warning: pricing.warning };
-  } finally { await release(); }
+  try { return await syncLocalUsageWithHeldLock(options); }
+  finally { await release(); }
+}
+
+// Desktop holds the lock in the parent process so stopping its worker releases
+// only its own lock, without leaving a stale lock or disturbing a running CLI.
+export async function syncLocalUsageWithHeldLock(options: SyncOptions = {}): Promise<SyncResult> {
+  const config = await readConfig();
+  const uploadToken = config?.apiToken || config?.deviceToken;
+  if (!config || !uploadToken) throw new Error("Not logged in. Run tokenflow login first.");
+  const serverUrl = normalizeServerUrl(options.serverUrl || config.serverUrl);
+  const deviceName = config.deviceName || os.hostname();
+  options.onPhase?.("scan");
+  const collection = await collectLocalUsage(options.home, options.onProgress);
+  await options.onCollected?.(collection);
+  options.onPhase?.("pricing");
+  const pricing = await refreshPricingCatalog(serverUrl);
+  const buckets = aggregateEvents(collection.events, [...pricing.catalog?.profiles || [], ...collection.pricingProfiles]);
+  const state = await readSyncState();
+  const plan = planIncrementalSync(buckets, state, { maxBuckets: Number.MAX_SAFE_INTEGER });
+  options.onPhase?.("upload");
+  const result = plan.buckets.length
+    ? await ingestUsageSnapshot({ serverUrl, uploadToken, deviceName, platform: process.platform, buckets })
+    : { accepted: 0, updated: 0 };
+  if (plan.buckets.length) await writeSyncState(markSyncPlanUploaded(state,
+    { buckets, replaceDailyBuckets: [], replaceUnknownBuckets: [] }, new Date().toISOString()));
+  await syncPing(serverUrl, uploadToken, { deviceName, platform: process.platform });
+  const latest = await readConfig();
+  if ((latest?.apiToken || latest?.deviceToken) !== uploadToken || latest?.serverUrl !== config.serverUrl) {
+    throw new Error("Collector authorization changed during sync. Retry with the current account.");
+  }
+  const lastSyncAt = new Date().toISOString();
+  await writeConfig({ ...latest!, serverUrl, lastSyncAt });
+  return { events: collection.events.length, collection, buckets, sources: collection.sources, uploaded: result.accepted,
+    updated: result.updated, lastSyncAt, warning: pricing.warning };
 }

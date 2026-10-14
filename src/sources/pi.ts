@@ -1,3 +1,4 @@
+import { scanFile } from "../scan-progress.js";
 import path from "node:path";
 
 import {
@@ -78,10 +79,11 @@ export function createPiJsonlParser(
   };
 }
 
-export async function collectPiStores(home: string, defaultRoots: string[]) {
-  const stores: Array<{ name: string; roots: string[] }> = [
-    { name: "pi", roots: defaultRoots },
-  ];
+export async function planPiStores(home: string, defaultRoots: string[]) {
+  const stores: Array<{
+    name: string;
+    roots: string[];
+  }> = [{ name: "pi", roots: defaultRoots }];
   let config: Record<string, unknown> | null = null;
   for (const file of [
     path.join(process.cwd(), ".ccusage", "ccusage.json"),
@@ -174,123 +176,140 @@ export async function collectPiStores(home: string, defaultRoots: string[]) {
     }
     stores.push({ name: store.name, roots });
   }
-  const events: UsageEvent[] = [];
-  const sources = [];
-  for (const store of stores) {
-    const files = (
-      await Promise.all(
-        store.roots.map((root) =>
-          storeFiles(
-            root,
-            (file) =>
-              file.endsWith(".jsonl") &&
-              !file.split(path.sep).includes("subagent-artifacts"),
+  const planned = await Promise.all(
+    stores.map(async (store) => {
+      const files = (
+        await Promise.all(
+          store.roots.map((root) =>
+            storeFiles(
+              root,
+              (file) =>
+                file.endsWith(".jsonl") &&
+                !file.split(path.sep).includes("subagent-artifacts"),
+            ),
           ),
-        ),
-      )
-    ).flat();
-    const sessions = new Map<
-      string,
-      {
-        events: UsageEvent[];
-        replay: UsageEvent[] | null;
-        parent?: string;
-        time?: string;
-      }
-    >();
-    for (const file of files) {
-      const parser = createPiJsonlParser({
-        sourcePath: file,
-        agent: store.name as AgentSource,
-      });
-      let parent: string | undefined;
-      let time: string | undefined;
-      const links: Array<{ id?: string; parentId?: string }> = [];
-      await readStoreLines(file, (line) => {
-        const record = JSON.parse(line) as Record<string, unknown>;
-        if (record.type !== "session")
-          links.push({
-            id: stringField(record, "id") || undefined,
-            parentId: stringField(record, "parentId") || undefined,
+        )
+      ).flat();
+      return { ...store, files };
+    }),
+  );
+  return {
+    files: planned.flatMap((store) => store.files),
+    collect: async () => {
+      const events: UsageEvent[] = [];
+      const sources = [];
+      for (const store of planned) {
+        const files = store.files;
+        const sessions = new Map<
+          string,
+          {
+            events: UsageEvent[];
+            replay: UsageEvent[] | null;
+            parent?: string;
+            time?: string;
+          }
+        >();
+        for (const file of files) {
+          await scanFile(file, async () => {
+            const parser = createPiJsonlParser({
+              sourcePath: file,
+              agent: store.name as AgentSource,
+            });
+            let parent: string | undefined;
+            let time: string | undefined;
+            const links: Array<{
+              id?: string;
+              parentId?: string;
+            }> = [];
+            await readStoreLines(file, (line) => {
+              const record = JSON.parse(line) as Record<string, unknown>;
+              if (record.type !== "session")
+                links.push({
+                  id: stringField(record, "id") || undefined,
+                  parentId: stringField(record, "parentId") || undefined,
+                });
+              if (line.includes('"session"')) {
+                const row = JSON.parse(line) as Record<string, unknown>;
+                if (row.type === "session") {
+                  if (typeof row.parentSession === "string")
+                    parent = path.resolve(
+                      path.dirname(file),
+                      row.parentSession.replace(/^~(?=\/|$)/, home),
+                    );
+                  time = timestampFromValue(row.timestamp) || undefined;
+                }
+              }
+              parser.pushLine(line);
+            });
+            const events = parser.finish();
+            sessions.set(path.resolve(file), {
+              events,
+              replay: piReplayPath(events, links),
+              parent,
+              time,
+            });
           });
-        if (line.includes('"session"')) {
-          const row = JSON.parse(line) as Record<string, unknown>;
-          if (row.type === "session") {
-            if (typeof row.parentSession === "string")
-              parent = path.resolve(
-                path.dirname(file),
-                row.parentSession.replace(/^~(?=\/|$)/, home),
-              );
-            time = timestampFromValue(row.timestamp) || undefined;
+        }
+        const seen = new Set<string>();
+        const key = (event: UsageEvent) =>
+          [
+            event.timestamp,
+            event.model,
+            event.inputTokens,
+            event.outputTokens,
+            event.cachedInputTokens,
+            event.cacheCreationTokens,
+            event.totalTokens,
+            event.recordedCostUsd,
+          ].join("|");
+        for (const [file, session] of sessions) {
+          const ancestry = new Set([file]);
+          let ancestor = session.parent;
+          let valid = session.replay !== null;
+          while (ancestor) {
+            if (
+              ancestry.has(ancestor) ||
+              !sessions.has(ancestor) ||
+              sessions.get(ancestor)?.replay === null
+            ) {
+              valid = false;
+              break;
+            }
+            ancestry.add(ancestor);
+            ancestor = sessions.get(ancestor)?.parent;
+          }
+          const prefix =
+            valid && session.parent && session.time
+              ? sessions
+                  .get(session.parent)
+                  ?.replay?.filter(
+                    (event) => event.timestamp <= session.time!,
+                  ) || []
+              : [];
+          let index = 0;
+          for (const event of session.events) {
+            if (prefix[index] && key(event) === key(prefix[index])) {
+              index++;
+              continue;
+            }
+            index = prefix.length;
+            const identity = `${event.sessionId}|${key(event)}`;
+            if (!seen.has(identity)) {
+              seen.add(identity);
+              events.push(event);
+            }
           }
         }
-        parser.pushLine(line);
-      });
-      const events = parser.finish();
-      sessions.set(path.resolve(file), {
-        events,
-        replay: piReplayPath(events, links),
-        parent,
-        time,
-      });
-    }
-    const seen = new Set<string>();
-    const key = (event: UsageEvent) =>
-      [
-        event.timestamp,
-        event.model,
-        event.inputTokens,
-        event.outputTokens,
-        event.cachedInputTokens,
-        event.cacheCreationTokens,
-        event.totalTokens,
-        event.recordedCostUsd,
-      ].join("|");
-    for (const [file, session] of sessions) {
-      const ancestry = new Set([file]);
-      let ancestor = session.parent;
-      let valid = session.replay !== null;
-      while (ancestor) {
-        if (
-          ancestry.has(ancestor) ||
-          !sessions.has(ancestor) ||
-          sessions.get(ancestor)?.replay === null
-        ) {
-          valid = false;
-          break;
-        }
-        ancestry.add(ancestor);
-        ancestor = sessions.get(ancestor)?.parent;
+        sources.push({
+          agent: store.name,
+          path: store.roots.join(","),
+          files: files.length,
+          exists: store.roots.length > 0,
+        });
       }
-      const prefix =
-        valid && session.parent && session.time
-          ? sessions
-              .get(session.parent)
-              ?.replay?.filter((event) => event.timestamp <= session.time!) ||
-            []
-          : [];
-      let index = 0;
-      for (const event of session.events) {
-        if (prefix[index] && key(event) === key(prefix[index])) {
-          index++;
-          continue;
-        }
-        index = prefix.length;
-        const identity = `${event.sessionId}|${key(event)}`;
-        if (!seen.has(identity)) {
-          seen.add(identity);
-          events.push(event);
-        }
-      }
-    }
-    sources.push({
-      agent: store.name,
-      path: store.roots.join(","),
-      files: files.length,
-      exists: store.roots.length > 0,
-    });
-  }
-  return { events, sources };
+      return { events, sources };
+    },
+  };
 }
 
 function piReplayPath(
@@ -337,3 +356,5 @@ function piSessionIdFromPath(filePath: string): string | null {
     ? filename.slice(filename.indexOf("_") + 1)
     : filename;
 }
+
+export async function collectPiStores(home: string, defaultRoots: string[]) { return (await planPiStores(home, defaultRoots)).collect(); }

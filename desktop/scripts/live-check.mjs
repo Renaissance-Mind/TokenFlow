@@ -5,10 +5,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { createHash, randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import {checkedLoginUrl} from '../app/auth.js';
 
 const desktop = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const temp = await fs.mkdtemp(path.join(os.tmpdir(),'tokenflow-live-check-'));
-const env = { ...process.env,TOKENFLOW_HOME:path.join(temp,'collector'),TOKENFLOW_DESKTOP_DATA:path.join(temp,'app'),TOKENFLOW_SCAN_HOME:path.join(temp,'sources') };
+const env = { ...process.env,TOKENFLOW_NODE_PATH:process.execPath,TOKENFLOW_HOME:path.join(temp,'collector'),TOKENFLOW_DESKTOP_DATA:path.join(temp,'app'),TOKENFLOW_SCAN_HOME:path.join(temp,'sources') };
 delete env.ELECTRON_RUN_AS_NODE;
 await fs.mkdir(env.TOKENFLOW_SCAN_HOME,{recursive:true});
 const instance = await electron.launch({args:[desktop],env,timeout:60_000});
@@ -38,11 +39,13 @@ try {
         });
         stage = 'approval page';
         const verify = await request('/desktop/verify?code='+encodeURIComponent(flow.user_code));
-        return {pricing:pricing.status,start:start.status,poll:poll.status,pending:(await poll.json()).status,login:login.status,providerHost:login.host,verify:verify.status};
+        return {pricing:pricing.status,start:start.status,poll:poll.status,pending:(await poll.json()).status,login:login.status,providerHost:login.host,verify:verify.status,loginUrl:flow.login_url};
         } catch(error) { throw new Error(`${server} ${provider} ${stage}: ${error.message}`); }
       },{server,provider,verifier,challenge});
-      assert.deepEqual(result,{pricing:200,start:200,poll:200,pending:'pending',login:302,providerHost:provider === 'google' ? 'accounts.google.com' : 'github.com',verify:200});
-      console.log(new URL(server).hostname+' '+provider+': live pricing, desktop start/poll, approval page, and provider redirect passed.');
+      assert.equal(checkedLoginUrl(result.loginUrl,server,provider),result.loginUrl);
+      const {loginUrl,...status} = result;
+      assert.deepEqual(status,{pricing:200,start:200,poll:200,pending:'pending',login:302,providerHost:provider === 'google' ? 'accounts.google.com' : 'github.com',verify:200});
+      console.log(new URL(server).hostname+' '+provider+': accepted login host '+new URL(loginUrl).hostname+'; live pricing, desktop start/poll, approval page, and provider redirect passed.');
     }
   }
 } finally { await instance.close(); await fs.rm(temp,{recursive:true,force:true}); }

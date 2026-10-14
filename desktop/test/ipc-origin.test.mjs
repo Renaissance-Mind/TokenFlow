@@ -18,6 +18,9 @@ test('renderer trust resolves real directory aliases and rejects other pages', a
     assert.equal(sameRendererLocation(pathToFileURL(expected).href+'?mode=tray',expected),true);
     assert.equal(sameRendererLocation(pathToFileURL(path.join(alias,'renderer','index.html')).href,expected),true);
     assert.equal(sameRendererLocation('https://example.com/renderer/index.html',expected),false);
+    assert.equal(sameRendererLocation('tokenflow://dashboard/index.html?mode=dashboard',expected),true);
+    assert.equal(sameRendererLocation('tokenflow://dashboard/other.html',expected),false);
+    assert.equal(sameRendererLocation('tokenflow://elsewhere/index.html',expected),false);
     assert.equal(sameRendererLocation(pathToFileURL(path.join(application,'renderer','other.html')).href,expected),false);
     await fs.mkdir(path.join(root,'other','renderer'),{recursive:true});
     assert.equal(sameRendererLocation(pathToFileURL(path.join(root,'other','renderer','index.html')).href,expected),false);

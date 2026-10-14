@@ -16,3 +16,6 @@ desktop/assets/*.ico
 /docs/*
 !/docs/i18n/
 !/docs/assets/
+
+desktop/node-*/
+desktop/dashboard/vendor/shoelace/

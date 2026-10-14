@@ -112,7 +112,12 @@ describe("ccusage-compatible adapter file scan", () => {
     process.env.OPENCLAW_DIR = openclawHome;
     process.env.PI_AGENT_DIR = piHome;
 
-    const result = await collectLocalUsage(root);
+    const progress: import("../src/scan-progress.js").ScanProgress[] = [];
+    const result = await collectLocalUsage(root, value => progress.push(value));
+    const final = progress.at(-1)!;
+    expect(final).toMatchObject({ stage: "processing", processedFiles: 8, totalFiles: 8, percent: 100 });
+    expect(final.readBytes).toBeGreaterThan(0);
+    expect(progress.some(value => value.stage === "reading" && value.processedFiles === 0 && value.percent === 0)).toBe(true);
 
     const newAgents = ["amp", "codebuff", "droid", "goose", "hermes", "kilo", "openclaw", "pi"];
     expect(result.events.map((event) => event.agent).filter((agent) => newAgents.includes(agent)).sort()).toEqual(

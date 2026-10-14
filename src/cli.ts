@@ -2,6 +2,8 @@
 import { execFileSync } from "node:child_process";
 import { realpathSync } from "node:fs";
 import os from "node:os";
+import path from "node:path";
+import fs from "node:fs/promises";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 
@@ -37,11 +39,20 @@ import {
 } from "./sync-state.js";
 import type { UsageBucket } from "./types.js";
 import { resolveUpdatePackageSpec } from "./update.js";
+import { desktopAction, runDesktopService } from "./desktop-service.js";
+import { initializeSqliteReader } from "./sources/store-io.js";
 import { aggregateEvents } from "./usage-buckets.js";
 
 type Command = "init" | "login" | "sync" | "status" | "device-name" | "update" | "logout" | "help";
 
 export async function main(argv: string[]): Promise<void> {
+  await initializeSqliteReader();
+  if (argv[0] === "desktop-service") return runDesktopService();
+  if (argv[0] === "--version" || argv[0] === "version") {
+    const { readFile } = await import("node:fs/promises");
+    const pkg = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+    process.stdout.write(`${pkg.version}\n`); return;
+  }
   const [rawCommand = "help", ...rest] = argv;
   const command = normalizeCommand(rawCommand);
 
@@ -73,6 +84,7 @@ async function cmdInit(argv: string[]): Promise<void> {
     deviceName,
     installedAt: existing?.installedAt || new Date().toISOString(),
     lastSyncAt: existing?.lastSyncAt,
+    autoSyncPaused: existing?.autoSyncPaused,
   };
   await writeConfig(next);
   const schedulerStatus = options["no-auto-sync"] ? "automatic sync skipped" : await installAutoSync(serverUrl);
@@ -97,12 +109,7 @@ async function cmdLogin(argv: string[]): Promise<void> {
   const apiToken = optionString(options, "api-token");
   if (apiToken) {
     await getUploadApiTokenStatus(serverUrl, apiToken);
-    await writeConfig({
-      ...(existing || { installedAt: new Date().toISOString() }),
-      serverUrl,
-      deviceName,
-      apiToken,
-    });
+    await desktopAction("api-token", { serverUrl, deviceName, token: apiToken });
     process.stdout.write("Read-write API token configured for uploads.\n");
     if (!options["no-sync"]) await runInitialSync(serverUrl);
     return;
@@ -125,13 +132,7 @@ async function cmdLogin(argv: string[]): Promise<void> {
     const status = await pollDeviceFlow(serverUrl, flow.deviceCode);
     if (status.status === "approved") {
       if (!status.token || !status.deviceId) throw new Error("Device approved without token");
-      await writeConfig({
-        ...(existing || { installedAt: new Date().toISOString() }),
-        serverUrl,
-        deviceName,
-        deviceToken: status.token,
-        deviceId: status.deviceId,
-      });
+      await desktopAction("authorize", { serverUrl, deviceName, token: status.token, deviceId: status.deviceId });
       process.stdout.write(`Device linked: ${status.deviceId}\n`);
       if (!options["no-sync"]) await runInitialSync(serverUrl);
       return;
@@ -174,6 +175,7 @@ async function runInitialSync(serverUrl: string): Promise<void> {
 async function cmdSync(argv: string[]): Promise<void> {
   const options = parseOptions(argv);
   if (options.auto && await desktopAgentIsRunning()) return;
+  if (options.auto && (await readConfig())?.autoSyncPaused) return;
   const result = await syncLocalUsage({ serverUrl: optionString(options, "server-url") });
   if (!result) {
     if (!options.auto) process.stdout.write("Another TokenFlow sync is already running.\n");
@@ -223,10 +225,30 @@ async function cmdStatus(): Promise<void> {
 async function cmdUpdate(argv: string[]): Promise<void> {
   const options = parseOptions(argv);
   const packageSpec = resolveUpdatePackageSpec(optionString(options, "source"));
-  execFileSync("npm", ["install", "-g", packageSpec], { stdio: "inherit" });
+  const currentPackage = path.dirname(fileURLToPath(new URL("../package.json", import.meta.url)));
+  const legacySlot = path.basename(currentPackage) === "tokenusage" && path.basename(path.dirname(currentPackage)) === "@renaissancemind";
+  execFileSync("npm", ["install", "-g", ...(legacySlot ? ["--force"] : []), packageSpec], { stdio: "inherit" });
+  const metadata = path.join(tokenUsageDir(), "cli-installation.json");
+  const selected = await fs.readFile(metadata, "utf8").catch((error: NodeJS.ErrnoException) => {
+    if (error.code === "ENOENT") return null;
+    throw error;
+  });
+  let active: { node: string; entrypoint: string } | null = null;
+  if (selected) {
+    const prefix = execFileSync("npm", ["root", "-g"], { encoding: "utf8" }).trim();
+    const packageDir = path.join(prefix, "@renaissancemind", "tokenflow");
+    const pkg = JSON.parse(await fs.readFile(path.join(packageDir, "package.json"), "utf8"));
+    active = { node: process.execPath, entrypoint: path.join(packageDir, "dist", "cli.js") };
+    await fs.writeFile(`${metadata}.${process.pid}.tmp`, JSON.stringify({ ...JSON.parse(selected), ...active, packageDir,
+      source: "installed", version: pkg.version, compatible: pkg.tokenflow?.desktopProtocol === 1 }), { mode: 0o600 });
+    await fs.rename(`${metadata}.${process.pid}.tmp`, metadata);
+  }
   const config = await readConfig();
   const serverUrl = normalizeServerUrl(optionString(options, "server-url") || config?.serverUrl);
-  const schedulerStatus = await installAutoSync(serverUrl);
+  const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
+  const schedulerStatus = await installAutoSync(serverUrl, os.homedir(), active ? {
+    env: { ...process.env, TOKENFLOW_AUTO_SYNC_COMMAND: `${quote(active.node)} ${quote(active.entrypoint)} sync --auto` },
+  } : {});
   process.stdout.write(`TokenFlow updated from ${packageSpec}.\n${schedulerStatus}\n`);
 }
 
@@ -236,8 +258,7 @@ async function cmdLogout(): Promise<void> {
     process.stdout.write("No TokenFlow config found.\n");
     return;
   }
-  const { deviceToken: _deviceToken, deviceId: _deviceId, apiToken: _apiToken, ...rest } = config;
-  await writeConfig(rest);
+  await desktopAction("logout");
   process.stdout.write("Local upload tokens removed.\n");
 }
 

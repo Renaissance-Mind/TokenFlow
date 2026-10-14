@@ -1,8 +1,9 @@
-import { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, shell, screen, session, safeStorage, utilityProcess, powerMonitor, dialog, net } from "electron";
-import type { IpcMainInvokeEvent, UtilityProcess } from "electron";
+import { NetworkProgress } from "./network-progress.js";
+import { app, BrowserWindow, WebContentsView, Menu, Tray, nativeImage, ipcMain, shell, screen, session, safeStorage, powerMonitor, dialog, net, protocol } from "electron";
+import type { IpcMainInvokeEvent, WebContents } from "electron";
 import updater from "electron-updater";
 import fs from "node:fs/promises";
-import { realpathSync } from "node:fs";
+import { realpathSync, watch, type FSWatcher } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -10,24 +11,35 @@ import { setTimeout as delay } from "node:timers/promises";
 import { ApiError, apiRequest, checkedLoginUrl, createPkce, normalizeDesktopServer, setDesktopHttpClient } from "./auth.js";
 import type { DesktopSecret, DesktopState, LocalSummary, Settings } from "./contracts.js";
 import { sameRendererLocation } from "./ipc-origin.js";
+import { CliClient } from "./cli-client.js";
+import { collectorHome, findCli, installCli, rememberCli, type CliInstallation } from "./cli-installation.js";
+import { appSettings, sharedSettings } from "./settings.js";
 
 const { autoUpdater } = updater;
 const here = path.join(realpathSync.native(app.getAppPath()), "app");
 const renderer = path.join(here, "../renderer/index.html");
 app.setName("TokenFlow");
+protocol.registerSchemesAsPrivileged([{ scheme: "tokenflow", privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
 if (process.env.TOKENFLOW_DESKTOP_DATA) app.setPath("userData", path.resolve(process.env.TOKENFLOW_DESKTOP_DATA));
 const collectorOnly = process.argv.includes("--collector-sync");
 if (!collectorOnly && !app.requestSingleInstanceLock()) app.exit(0);
 
-let localWindow: BrowserWindow | null = null;
+let settingsView: WebContentsView | null = null;
 let dashboardWindow: BrowserWindow | null = null;
-let dashboardLoaded = false;
+let openingDashboard: Promise<void> | null = null;
 let popup: BrowserWindow | null = null;
 let tray: Tray;
-let worker: UtilityProcess | null = null;
-let workerCounter = 0;
-let pendingJob: { id: number; resolve: (value: any) => void; reject: (error: Error) => void } | null = null;
+let cli: CliClient;
+let installation: CliInstallation | null = null;
+let dataHome = "";
+let collectionTask: Promise<void> | null = null;
+let stoppingCollection = false;
+let configWatcher: FSWatcher | undefined;
+let watchedAuthorization = "";
+let changingCollector = false;
 let secret: DesktopSecret | null = null;
+let dashboardAuthKind = "";
+let dashboardBearer: string | null = null;
 let loginController: AbortController | null = null;
 let shuttingDown = false;
 let loggingOut = false;
@@ -38,14 +50,16 @@ const settingsPath = () => path.join(app.getPath("userData"), "settings.json");
 const secretPath = () => path.join(app.getPath("userData"), "desktop-auth.bin");
 const pendingSecretPath = () => path.join(app.getPath("userData"), "desktop-auth.pending.bin");
 const runtime = app.isPackaged ? path.join(realpathSync.native(process.resourcesPath), "collector") : path.resolve(here, "../collector");
-const loadCollector = (name: string) => import(pathToFileURL(path.join(runtime, `${name}.js`)).href);
-const collectorConfig = async () => await loadCollector("config") as typeof import("../../dist/config.js");
+const standaloneNode = () => process.env.TOKENFLOW_NODE_PATH || (app.isPackaged ? path.join(realpathSync.native(process.resourcesPath), `node-${process.arch}`, process.platform === "win32" ? "node.exe" : "node") : "");
+const defaultSettings: Settings = {
+  serverUrl: process.env.TOKENFLOW_SERVER_URL || "https://tokenflow.renaissancemind.ai", deviceName: os.hostname(), launchAtLogin: true,
+  paused: false, trayMetric: "cost", language: app.getLocale().startsWith("zh") ? "zh" : "en",
+};
 const state: DesktopState = {
-  version: app.getVersion(), collectorVersion: "", settings: {
-    serverUrl: "https://tokenflow.renaissancemind.ai", deviceName: os.hostname(), launchAtLogin: true,
-    paused: false, trayMetric: "cost", language: app.getLocale().startsWith("zh") ? "zh" : "en",
-  }, account: null, hasCollector: false, hasDashboard: false, busy: null, lastSyncAt: null,
-  summary: null, login: null, error: null, notice: null, update: { status: "idle" },
+  version: app.getVersion(), collectorVersion: "", cli: { source: "managed", version: "", path: "", compatible: true, updateStatus: "idle" }, dashboardSource: "local", settings: { ...defaultSettings },
+  account: null, hasCollector: false, hasDashboard: false, busy: null, lastSyncAt: null,
+  summary: null, login: null, loginBusy: false, collectionPhase: null, collectionStartedAt: null,
+  error: null, notice: null, pendingRequests: 0, scanProgress: null, fetchProgress: null, requestProgress: { completed: 0, total: 0 }, settingsOpen: false, update: { status: "idle" },
 };
 
 function message(error: unknown): string { return error instanceof Error ? error.message : String(error); }
@@ -63,7 +77,7 @@ async function stageSecret(value: DesktopSecret): Promise<void> {
   await atomicWrite(pendingSecretPath(), safeStorage.encryptString(JSON.stringify(value)));
 }
 function emit(): void {
-  for (const win of [localWindow, popup]) if (win && !win.isDestroyed()) win.webContents.send("tokenflow:changed", state);
+  for (const contents of [dashboardWindow?.webContents, settingsView?.webContents, popup?.webContents]) if (contents && !contents.isDestroyed()) contents.send("tokenflow:changed", state);
   if (!tray || tray.isDestroyed()) return;
   const today = state.summary?.today;
   const currentDay = today?.date === new Date().toLocaleDateString("en-CA");
@@ -81,32 +95,39 @@ function compactTokens(value: number): string {
   return String(value);
 }
 function allowedWebUrl(value: string): boolean { return /^https?:\/\//.test(value) && ["http:", "https:"].includes(new URL(value).protocol); }
-function protectLocalWindow(win: BrowserWindow): void {
-  win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
-  win.webContents.on("will-navigate", (event) => event.preventDefault());
-  win.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
+function protectLocalContents(contents: WebContents): void {
+  contents.setWindowOpenHandler(() => ({ action: "deny" }));
+  contents.on("will-navigate", (event) => event.preventDefault());
+  contents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
 }
 function localPreferences() {
   return { preload: path.join(here, "preload.cjs"), nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true };
 }
-function showLocal(): void {
-  if (popup?.isVisible()) popup.hide();
-  if (!localWindow || localWindow.isDestroyed()) {
-    localWindow = new BrowserWindow({ width: 1000, height: 830, minWidth: 760, minHeight: 640,
-      title: "TokenFlow", backgroundColor: "#0b0e15", show: false, autoHideMenuBar: true, webPreferences: localPreferences() });
-    protectLocalWindow(localWindow);
-    localWindow.on("close", (event) => { if (!shuttingDown) { event.preventDefault(); localWindow!.hide(); } });
-    localWindow.once("ready-to-show", () => localWindow?.show());
-    void localWindow.loadFile(renderer);
-  } else localWindow.show();
-  localWindow.focus();
+async function showSettings(): Promise<void> {
+  popup?.hide();
+  await showDashboard();
+  const win = dashboardWindow!;
+  if (!settingsView || settingsView.webContents.isDestroyed()) {
+    settingsView = new WebContentsView({ webPreferences: localPreferences() });
+    protectLocalContents(settingsView.webContents);
+    win.contentView.addChildView(settingsView);
+    settingsView.setBackgroundColor("#ffffff");
+    const resize = () => { const { width, height } = win.getContentBounds(); settingsView?.setBounds({ x: 0, y: 0, width, height }); };
+    win.on("resize", resize); resize();
+    await settingsView.webContents.loadFile(renderer, { query: { mode: "settings" } });
+  }
+  settingsView.setVisible(true); state.settingsOpen = true; win.setTitle("TokenFlow · Settings");
+  win.show(); win.focus(); settingsView.webContents.focus(); emit();
+}
+function useLocalData(): void {
+  state.dashboardSource = "local"; emit();
 }
 function togglePopup(): void {
   if (popup?.isVisible()) { popup.hide(); return; }
   if (!popup || popup.isDestroyed()) {
     popup = new BrowserWindow({ width: 380, height: 520, frame: false, resizable: false, show: false,
       skipTaskbar: true, alwaysOnTop: true, backgroundColor: "#0b0e15", webPreferences: localPreferences() });
-    protectLocalWindow(popup);
+    protectLocalContents(popup.webContents);
     popup.on("blur", () => popup?.hide());
     void popup.loadFile(renderer, { query: { mode: "tray" } });
   }
@@ -119,88 +140,130 @@ function togglePopup(): void {
   popup.show(); popup.focus(); emit();
   if (!state.busy && (!state.summary || Date.now() - Date.parse(state.summary.scannedAt) > 60_000)) void runJob("scan");
 }
-async function showDashboard(): Promise<void> {
-  if (!state.hasDashboard) { showLocal(); return; }
+function showDashboard(): Promise<void> {
+  if (!openingDashboard) openingDashboard = openDashboard().finally(() => { openingDashboard = null; });
+  return openingDashboard;
+}
+async function openDashboard(): Promise<void> {
   popup?.hide();
-  localWindow?.hide();
   if (!dashboardWindow || dashboardWindow.isDestroyed()) {
     dashboardWindow = new BrowserWindow({ width: 1440, height: 960, minWidth: 800, minHeight: 640,
-      title: "TokenFlow Dashboard", backgroundColor: "#0b0e15", show: false, autoHideMenuBar: true,
-      webPreferences: { session: dashboardSession(), nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true } });
-    const contents = dashboardWindow.webContents;
-    contents.setWindowOpenHandler(({ url }) => {
-      if (allowedWebUrl(url)) void shell.openExternal(url);
-      return { action: "deny" };
-    });
-    contents.on("will-navigate", (event, url) => {
-      const target = new URL(url);
-      if (target.origin === state.settings.serverUrl && !target.pathname.startsWith("/auth/") && target.pathname !== "/") return;
-      event.preventDefault();
-      if (target.origin === state.settings.serverUrl) showLocal();
-      else if (allowedWebUrl(url)) void shell.openExternal(url);
-    });
-    contents.on("did-fail-load", (_event, code, description, _url, isMainFrame) => {
-      if (!isMainFrame || code === -3) return;
-      dashboardLoaded = false; state.error = `Dashboard connection failed: ${description}`; dashboardWindow?.hide(); showLocal(); emit();
-    });
+      title: "TokenFlow Dashboard", backgroundColor: "#ffffff", show: false, autoHideMenuBar: true, webPreferences: localPreferences() });
+    protectLocalContents(dashboardWindow.webContents);
     dashboardWindow.on("close", (event) => { if (!shuttingDown) { event.preventDefault(); dashboardWindow!.hide(); } });
-    dashboardWindow.once("ready-to-show", () => dashboardWindow?.show());
+    dashboardWindow.on("closed", () => { settingsView?.webContents.close(); settingsView = null; dashboardWindow = null; });
+    await dashboardWindow.loadURL("tokenflow://dashboard/index.html?mode=dashboard");
   }
-  if (!dashboardLoaded) {
-    await dashboardWindow.loadURL(`${state.settings.serverUrl}/dashboard`);
-    dashboardLoaded = true;
-  }
-  dashboardWindow.show(); dashboardWindow.focus();
+  if (state.hasDashboard) state.dashboardSource = "cloud";
+  settingsView?.setVisible(false); state.settingsOpen = false; dashboardWindow.setTitle("TokenFlow Dashboard");
+  dashboardWindow.show(); dashboardWindow.focus(); emit();
 }
-async function setDashboardSession(token: string, expiresAt: string): Promise<void> {
-  if (!token.startsWith("tu_sess_") || !Number.isFinite(Date.parse(expiresAt))) throw new Error("Server returned an invalid dashboard session");
-  await dashboardSession().cookies.set({ url: state.settings.serverUrl, name: "tu_session", value: token,
-    path: "/", httpOnly: true, secure: state.settings.serverUrl.startsWith("https:"), sameSite: "lax", expirationDate: Date.parse(expiresAt) / 1000 });
-  await dashboardSession().cookies.flushStore();
-  const response = await dashboardSession().fetch(`${state.settings.serverUrl}/api/me`, { credentials: "include", redirect: "error", signal: AbortSignal.timeout(30_000) });
-  if (!response.ok) throw new ApiError("Dashboard authorization failed", response.status);
-  const data = await response.json() as any;
-  if (!data.user?.id) throw new Error("Dashboard did not return an account");
-  state.account = { id: data.user.id, name: data.user.name || null, email: data.user.email || null };
-  state.hasDashboard = true;
+async function trackRequest<T>(action: () => Promise<T>): Promise<T> {
+  if (!state.pendingRequests) state.requestProgress = { completed: 0, total: 0 };
+  state.requestProgress.total++; state.pendingRequests++; emit();
+  try { return await action(); }
+  finally { state.pendingRequests--; state.requestProgress.completed++; emit(); }
 }
-async function restoreSession(openDashboard = false): Promise<void> {
-  if (!secret || loggingOut) return;
-  try {
-    const result = await apiRequest(secret.serverUrl, "/api/desktop/session", {}, secret.desktopToken);
-    await setDashboardSession(result.session_token, result.session_expires_at);
-    if (openDashboard) await showDashboard();
-    emit();
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 401) {
-      state.hasDashboard = false; state.account = null;
-      state.error = error.message;
-    } else state.error = `Unable to restore dashboard: ${message(error)}`;
-    emit();
+const networkProgress = new NetworkProgress(progress => { state.fetchProgress = progress; emit(); });
+const desktopFetch: typeof fetch = (input, init) => networkProgress.fetch(input, init, (url, options) => net.fetch(url as string, options));
+async function dashboardRequest(value: unknown, options: any = {}): Promise<any> {
+  if (typeof value !== "string") throw new Error("Invalid Dashboard request");
+  const url = new URL(value, "https://tokenflow.local");
+  const allowed = ["/api/me", "/api/devices", "/api/usage/summary", "/api/usage/heatmap", "/api/usage/hourly", "/api/profile/persona"];
+  const persona = url.pathname === "/api/profile/persona";
+  if (url.origin !== "https://tokenflow.local" || !allowed.includes(url.pathname) || (persona ? options.method !== "PATCH" : options.method && options.method !== "GET")) throw new Error("Unsupported Dashboard request");
+  if (persona) {
+    const key = JSON.parse(String(options.body)).persona_key;
+    if (key !== null && (typeof key !== "string" || !/^[a-z0-9_-]{1,64}$/.test(key))) throw new Error("Invalid persona preference");
+    if (state.dashboardSource === "local" || dashboardAuthKind === "device" || dashboardAuthKind === "api_key") { await atomicWrite(path.join(app.getPath("userData"), "dashboard-persona.json"), JSON.stringify({ persona_key: key })); return { persona_key: key }; }
   }
+  const endpoint = url.pathname + url.search;
+  const authorization = watchedAuthorization;
+  if (state.hasDashboard && state.dashboardSource === "cloud") {
+    try {
+      const response = await networkProgress.fetch(state.settings.serverUrl + endpoint, { ...(persona ? { method: "PATCH", body: options.body } : {}), headers: { Authorization: `Bearer ${dashboardBearer}`, ...(persona ? { "Content-Type": "application/json" } : {}) }, credentials: "omit", redirect: "error", signal: AbortSignal.timeout(15_000) }, (url, init) => dashboardSession().fetch(url as string, init));
+      const data = await response.json() as any;
+      if (authorization !== watchedAuthorization) return dashboardRequest(value, options);
+      if (!response.ok || (url.pathname === "/api/me" && !data.authenticated)) throw new ApiError(data.error || "Dashboard request failed", response.status || 401);
+      if (url.pathname === "/api/me") {
+        const preference = await readOptional(path.join(app.getPath("userData"), "dashboard-persona.json"));
+        if (preference) data.user.persona_key = JSON.parse(preference.toString()).persona_key;
+      }
+      return data;
+    } catch (error) {
+      if (authorization !== watchedAuthorization) return dashboardRequest(value, options);
+      if (persona || (error instanceof ApiError && error.status >= 400 && error.status < 500 && error.status !== 401)) throw error;
+      if (error instanceof ApiError && error.status === 401) { state.hasDashboard = false; state.account = null; }
+      state.notice = "Synced data is unavailable. Showing this device’s data.";
+      useLocalData();
+    }
+  }
+  const data = await cli.request("dashboard", { path: endpoint });
+  if (url.pathname === "/api/me") {
+    const preference = await readOptional(path.join(app.getPath("userData"), "dashboard-persona.json"));
+    if (preference) data.user.persona_key = JSON.parse(preference.toString()).persona_key;
+  }
+  return data;
 }
 async function marker(): Promise<void> {
-  const config = await collectorConfig();
-  const file = path.join(config.tokenUsageDir(), "desktop-agent.json");
-  if (state.hasCollector) await atomicWrite(file, JSON.stringify({ pid: process.pid, updatedAt: new Date().toISOString() }));
-  else await fs.rm(file, { force: true });
+  if (installation?.compatible) await cli.request("owner", { pid: state.hasCollector ? process.pid : null });
 }
-async function waitForJob(): Promise<void> { while (pendingJob) await delay(100); }
-async function mutateCollector(action: (config: Awaited<ReturnType<typeof collectorConfig>>) => Promise<void>): Promise<void> {
-  await waitForJob();
-  const { acquireSyncLock } = await loadCollector("collector") as typeof import("../../dist/collector.js");
-  const release = await acquireSyncLock();
-  if (!release) throw new Error("The CLI is syncing. Wait for it to finish and try again.");
-  try { await action(await collectorConfig()); } finally { await release(); }
+async function stopCollection(): Promise<void> {
+  const task = collectionTask;
+  if (!task) return;
+  stoppingCollection = true;
+  try { await cli.stop(); await task; } finally { stoppingCollection = false; }
+}
+async function readCollector(): Promise<any> {
+  if (installation?.compatible) return cli.request("state");
+  const raw = await readOptional(path.join(dataHome, "config.json"));
+  return { config: raw ? JSON.parse(raw.toString()) : null, home: dataHome, summary: null };
+}
+async function refreshCollector(): Promise<any> {
+  const result = await readCollector(); const config = result.config;
+  state.hasCollector = Boolean(config?.apiToken || config?.deviceToken);
+  state.lastSyncAt = config?.lastSyncAt || null;
+  state.settings = { ...state.settings, ...sharedSettings(config, defaultSettings) };
+  return config;
+}
+async function reconcileCollector(): Promise<void> {
+  if (state.loginBusy || changingCollector || loggingOut || shuttingDown || state.cli.updateStatus === "installing") return;
+  changingCollector = true;
+  try {
+    const current = await findCli({ fallbackNode: standaloneNode() });
+    if (current?.compatible && (current.entrypoint !== installation?.entrypoint || current.version !== installation?.version)) {
+      await stopCollection(); await selectCli(current); await configureScheduler(); emit();
+    }
+    if (!installation?.compatible) return;
+    const previousSettings = JSON.stringify(state.settings);
+    let config = await refreshCollector();
+    const changed = JSON.stringify([config?.serverUrl, config?.apiToken, config?.deviceToken]) !== watchedAuthorization;
+    if (!changed && ((!state.hasCollector) || (state.hasDashboard && state.dashboardSource === "cloud") || state.busy)) {
+      if (JSON.stringify(state.settings) !== previousSettings) emit();
+      return;
+    }
+    if (changed) {
+      await stopCollection(); config = await refreshCollector();
+      watchedAuthorization = JSON.stringify([config?.serverUrl, config?.apiToken, config?.deviceToken]);
+      state.hasDashboard = false; state.account = null; dashboardBearer = null; useLocalData();
+      if (secret && (secret.deviceId !== config?.deviceId || secret.serverUrl !== config?.serverUrl)) {
+        secret = null; await fs.rm(secretPath(), { force: true });
+      }
+    }
+    try { await configureCliDashboard(config); } catch (error) { state.notice = message(error); }
+    await marker(); await configureScheduler(); emit();
+  } finally { changingCollector = false; }
 }
 async function startLogin(provider: unknown): Promise<void> {
   if (provider !== "github" && provider !== "google") throw new Error("Choose GitHub or Google");
-  if (state.busy || loggingOut) throw new Error("Wait for the current operation to finish");
+  if (loginController || loggingOut || shuttingDown) throw new Error("Wait for the current sign-in to finish");
   const controller = new AbortController(); loginController = controller;
-  state.busy = "login"; state.error = null; emit();
+  state.loginBusy = true; state.error = null; emit();
   try {
+    await stopCollection();
+    controller.signal.throwIfAborted();
     const pkce = createPkce();
-    const config = await (await collectorConfig()).readConfig();
+    const config = (await readCollector()).config;
     const existing = config?.serverUrl === state.settings.serverUrl ? config.deviceToken : undefined;
     const start = await apiRequest(state.settings.serverUrl, "/api/desktop/start", {
       provider, code_challenge: pkce.challenge, device_name: state.settings.deviceName, platform: process.platform,
@@ -210,7 +273,7 @@ async function startLogin(provider: unknown): Promise<void> {
     await shell.openExternal(checkedLoginUrl(start.login_url, state.settings.serverUrl, provider));
     void pollLogin(start, pkce.verifier, existing, controller);
   } catch (error) {
-    if (loginController === controller) { state.busy = null; state.login = null; loginController = null; }
+    if (loginController === controller) { state.loginBusy = false; state.login = null; loginController = null; }
     if (!controller.signal.aborted) throw error;
   }
 }
@@ -225,19 +288,13 @@ async function pollLogin(flow: any, verifier: string, existing: string | undefin
       if (typeof token !== "string" || !token.startsWith("tu_dev_")) throw new Error("Server returned an invalid collector authorization");
       const nextSecret = { serverUrl: state.settings.serverUrl, desktopToken: result.desktop_token, deviceId: result.device_id };
       await stageSecret(nextSecret);
-      await mutateCollector(async ({ readConfig, writeConfig, tokenUsageDir }) => {
-        const current = await readConfig();
-        if (current?.serverUrl !== state.settings.serverUrl || (current.apiToken || current.deviceToken) !== token) {
-          await fs.rm(path.join(tokenUsageDir(), "sync-state.json"), { force: true });
-        }
-        await writeConfig({ ...current, apiToken: undefined, serverUrl: state.settings.serverUrl, deviceToken: token,
-          deviceId: result.device_id, deviceName: state.settings.deviceName, installedAt: current?.installedAt || new Date().toISOString() });
-        await fs.rename(pendingSecretPath(), secretPath());
-        secret = nextSecret;
-      });
-      await setDashboardSession(result.session_token, result.session_expires_at);
+      await cli.request("authorize", { serverUrl: state.settings.serverUrl, token,
+        deviceId: result.device_id, deviceName: state.settings.deviceName });
+      watchedAuthorization = JSON.stringify([state.settings.serverUrl, undefined, token]);
+      await fs.rename(pendingSecretPath(), secretPath()); secret = nextSecret;
+      await configureCliDashboard((await readCollector()).config);
       state.hasCollector = true; state.notice = null;
-      await marker(); configureLoginItem(); await configureBundledCollector();
+      await marker(); configureLoginItem(); await configureScheduler();
       await showDashboard();
       return;
     }
@@ -245,7 +302,7 @@ async function pollLogin(flow: any, verifier: string, existing: string | undefin
   } catch (error) { if (!controller.signal.aborted) state.error = message(error); }
   finally {
     if (loginController === controller) {
-      loginController = null; state.login = null; state.busy = null; emit();
+      loginController = null; state.login = null; state.loginBusy = false; emit();
       if (state.hasCollector && state.hasDashboard && !state.settings.paused) void runJob("sync");
     }
   }
@@ -255,29 +312,73 @@ function configureLoginItem(): void {
     app.setLoginItemSettings({ openAtLogin: state.settings.launchAtLogin, args: ["--background"] });
   }
 }
-async function configureBundledCollector(): Promise<void> {
-  if (!app.isPackaged || process.env.TOKENFLOW_DESKTOP_DATA) return;
-  const { tokenUsageDir } = await collectorConfig();
-  const bin = path.join(tokenUsageDir(), "bin"); await fs.mkdir(bin, { recursive: true });
-  const cli = path.join(runtime, "desktop-cli.mjs");
-  if (process.platform === "darwin") {
-    const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
-    const command = `TOKENFLOW_HOME=${quote(tokenUsageDir())} ELECTRON_RUN_AS_NODE=1 ${quote(process.execPath)} ${quote(cli)}`;
-    const launcher = path.join(bin, "tokenflow");
-    await atomicWrite(launcher, `#!/bin/sh\n${command} "$@"\n`); await fs.chmod(launcher, 0o755);
-    if (state.hasCollector) {
-      const { installAutoSync } = await loadCollector("scheduler") as typeof import("../../dist/scheduler.js");
-      await installAutoSync(state.settings.serverUrl, os.homedir(), {
-        env: { ...process.env, TOKENFLOW_AUTO_SYNC_COMMAND: `TOKENFLOW_HOME=${quote(tokenUsageDir())} ${quote(process.execPath)} --collector-sync` },
-      });
-    }
-  } else if (process.platform === "win32") {
-    await atomicWrite(path.join(bin, "tokenflow.cmd"), `@echo off\r\nsetlocal\r\nset ELECTRON_RUN_AS_NODE=1\r\n"${process.execPath}" "${cli}" %*\r\n`);
+async function configureScheduler(): Promise<void> {
+  if (app.isPackaged && !process.env.TOKENFLOW_DESKTOP_DATA && state.hasCollector && installation?.compatible) {
+    await cli.request("scheduler", { serverUrl: state.settings.serverUrl });
   }
+}
+async function selectCli(value: CliInstallation): Promise<void> {
+  await rememberCli(value);
+  installation = value; cli = new CliClient(value, desktopFetch);
+  state.collectorVersion = value.version;
+  state.cli = { source: value.source, version: value.version, path: value.entrypoint, compatible: value.compatible,
+    updateStatus: value.compatible ? "idle" : "required" };
+}
+async function upgradeCli(): Promise<void> {
+  if (state.cli.updateStatus === "installing" || state.loginBusy) return;
+  await stopCollection(); state.cli.updateStatus = "installing"; state.error = null; emit();
+  try {
+    const bundled = JSON.parse(await fs.readFile(path.join(runtime, "package.json"), "utf8"));
+    if (state.cli.availableVersion && state.cli.availableVersion !== bundled.version) {
+      throw new Error("A newer CLI is available on npm. Run tokenflow update, or update App to get that CLI version.");
+    }
+    // Upgrade the existing installation in place. Its terminal command and login survive.
+    const value = await installCli(runtime, standaloneNode() || installation!.node, { replace: installation?.source === "installed" ? installation : undefined, copyRuntime: app.isPackaged });
+    await selectCli(value); state.cli.updateStatus = "current";
+    await refreshCollector(); await configureScheduler(); await marker();
+    void runJob(state.hasCollector ? "sync" : "scan");
+  } catch (error) { state.cli.updateStatus = "error"; throw error; }
+}
+async function checkCliUpdate(): Promise<void> {
+  state.cli.updateStatus = "checking"; emit();
+  try {
+    const response = await desktopFetch("https://registry.npmjs.org/@renaissancemind%2Ftokenflow/latest", { signal: AbortSignal.timeout(30_000) });
+    if (!response.ok) throw new Error("Unable to check CLI updates");
+    const pkg = await response.json() as { version: string };
+    const bundled = JSON.parse(await fs.readFile(path.join(runtime, "package.json"), "utf8"));
+    const newer = (a: string, b: string) => a.split(".").reduce((r, n, i) => r || Math.sign(Number(n) - Number(b.split(".")[i] || 0)), 0) > 0;
+    state.cli.availableVersion = newer(pkg.version, bundled.version) ? pkg.version : bundled.version;
+    state.cli.updateStatus = !state.cli.compatible || newer(state.cli.availableVersion!, state.cli.version) ? "available" : "current";
+  } catch (error) { state.cli.updateStatus = "error"; throw error; }
+}
+async function configureCliDashboard(config: any): Promise<void> {
+  dashboardSession().webRequest.onBeforeSendHeaders(null);
+  dashboardBearer = config?.apiToken || config?.deviceToken || null;
+  if (!dashboardBearer || !installation?.compatible) { state.hasDashboard = false; state.account = null; useLocalData(); return; }
+  const data = await apiRequest(state.settings.serverUrl, "/api/me", undefined, dashboardBearer, AbortSignal.timeout(8_000));
+  if (!data.authenticated || !data.user?.id) throw new Error("Unable to reuse CLI sign-in");
+  state.account = { id: data.user.id, name: data.user.name || null, email: data.user.email || null };
+  dashboardAuthKind = data.user.auth_kind;
+  state.hasDashboard = true; state.dashboardSource = "cloud"; state.notice = null;
+}
+async function setApiToken(value: unknown): Promise<void> {
+  if (typeof value !== "string" || !value.trim()) throw new Error("Enter a read-write API token");
+  if (state.loginBusy || loggingOut) throw new Error("Wait for sign-in to finish");
+  changingCollector = true;
+  try {
+  await stopCollection();
+  await cli.request("api-token", { serverUrl: state.settings.serverUrl, token: value.trim(), deviceName: state.settings.deviceName });
+  await fs.rm(secretPath(), { force: true }); secret = null;
+  await dashboardSession().clearStorageData(); useLocalData();
+  await refreshCollector(); await configureCliDashboard((await readCollector()).config);
+  watchedAuthorization = JSON.stringify([state.settings.serverUrl, value.trim(), undefined]);
+  await marker(); await configureScheduler(); await showDashboard();
+  if (!state.settings.paused) void runJob("sync");
+  } finally { changingCollector = false; }
 }
 async function saveSettings(value: unknown): Promise<void> {
   if (!value || typeof value !== "object") throw new Error("Invalid settings");
-  if (state.busy || loggingOut) throw new Error("Wait for the current operation to finish");
+  if (state.busy || state.loginBusy || loggingOut) throw new Error("Wait for the current operation to finish");
   const patch = value as Partial<Settings>;
   const next: Settings = { ...state.settings };
   if (patch.serverUrl !== undefined) next.serverUrl = normalizeDesktopServer(String(patch.serverUrl));
@@ -291,89 +392,51 @@ async function saveSettings(value: unknown): Promise<void> {
   if (patch.trayMetric !== undefined) { if (!["cost", "tokens", "icon"].includes(patch.trayMetric)) throw new Error("Invalid menu bar metric"); next.trayMetric = patch.trayMetric; }
   if (patch.language !== undefined) { if (!["en", "zh"].includes(patch.language)) throw new Error("Invalid language"); next.language = patch.language; }
   if (next.serverUrl !== state.settings.serverUrl && (state.hasCollector || secret)) throw new Error("Sign out before changing the server");
-  await mutateCollector(async ({ readConfig, writeConfig }) => {
-    const config = await readConfig();
-    if (config?.deviceToken && next.deviceName !== state.settings.deviceName) {
-      const { renameDevice } = await loadCollector("api") as typeof import("../../dist/api.js");
-      await renameDevice(next.serverUrl, config.deviceToken, next.deviceName);
-    }
-    await writeConfig({ ...config, serverUrl: next.serverUrl, deviceName: next.deviceName,
-      installedAt: config?.installedAt || new Date().toISOString() });
-  });
-  await atomicWrite(settingsPath(), JSON.stringify(next, null, 2));
-  state.settings = next; state.error = null; state.notice = null;
+  await cli.request("configure", { serverUrl: next.serverUrl, deviceName: next.deviceName, paused: next.paused });
+  await atomicWrite(settingsPath(), JSON.stringify(appSettings(next), null, 2));
+  state.settings = next; await refreshCollector(); state.error = null; state.notice = null;
   configureLoginItem(); await marker(); emit();
 }
 async function logoutDesktop(): Promise<void> {
   if (loggingOut) return;
   loggingOut = true; loginController?.abort();
   try {
-    await waitForJob();
+    await stopCollection();
     const previous = secret;
     if (previous) {
       try { await apiRequest(previous.serverUrl, "/api/desktop/logout", { revoke_device: true }, previous.desktopToken); }
       catch (error) { if (!(error instanceof ApiError && error.status === 401)) state.notice = "Signed out locally. Server authorization could not be revoked while offline."; }
     }
-    await mutateCollector(async ({ readConfig, writeConfig, tokenUsageDir }) => {
-      const config = await readConfig();
-      if (config && config.serverUrl === state.settings.serverUrl) {
-        const { deviceToken, apiToken, deviceId, ...rest } = config;
-        await writeConfig(rest);
-        await fs.rm(path.join(tokenUsageDir(), "sync-state.json"), { force: true });
-      }
-    });
+    if (installation?.compatible) await cli.request("logout");
     await fs.rm(secretPath(), { force: true }); secret = null;
     await fs.rm(pendingSecretPath(), { force: true });
     await dashboardSession().clearStorageData();
-    dashboardWindow?.destroy(); dashboardWindow = null; dashboardLoaded = false;
-    state.account = null; state.hasDashboard = false; state.hasCollector = false; state.lastSyncAt = null;
-    state.error = null; await marker(); showLocal();
+    useLocalData(); dashboardSession().webRequest.onBeforeSendHeaders(null);
+    dashboardBearer = null; state.account = null; state.hasDashboard = false; state.hasCollector = false; state.lastSyncAt = null;
+    watchedAuthorization = JSON.stringify([state.settings.serverUrl, undefined, undefined]);
+    state.error = null; await marker(); await showDashboard(); void runJob("scan");
   } finally { loggingOut = false; emit(); }
 }
-async function ensureWorker(): Promise<void> {
-  if (worker) return;
-  worker = utilityProcess.fork(path.join(here, "collector-worker.js"), [], {
-    serviceName: "TokenFlow Collector", stdio: "pipe", env: { ...process.env, TOKENFLOW_COLLECTOR_PATH: runtime },
-  });
-  const proc = worker;
-  let startupError = "";
-  proc.stdout?.on("data", () => {});
-  proc.stderr?.on("data", (data) => { const line = String(data); if (!line.includes("ExperimentalWarning")) { startupError = (startupError + line).slice(-4000); process.stderr.write(line); } });
-  proc.on("exit", (code) => {
-    if (worker === proc) worker = null;
-    if (pendingJob) { pendingJob.reject(new Error(`Collector exited (${code})`)); pendingJob = null; }
-  });
-  await new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(() => { proc.kill(); reject(new Error("Collector did not start")); }, 30_000);
-    proc.on("message", (data: any) => {
-      if (data.ready) { clearTimeout(timer); resolve(); return; }
-      if (pendingJob && data.id === pendingJob.id) {
-        const job = pendingJob; pendingJob = null;
-        if (data.error) job.reject(new Error(data.error)); else job.resolve(data);
-      }
-    });
-    proc.once("exit", (code) => { clearTimeout(timer); reject(new Error(`Collector could not start (${code})${startupError ? `: ${startupError.trim()}` : ""}`)); });
-  });
+function runJob(action: "scan" | "sync"): Promise<void> {
+  if (!installation?.compatible || collectionTask || stoppingCollection || state.loginBusy || loggingOut || shuttingDown || (action === "sync" && !state.hasCollector)) return Promise.resolve();
+  collectionTask = runCollection(action).finally(() => { collectionTask = null; });
+  return collectionTask;
 }
-async function runJob(action: "scan" | "sync"): Promise<void> {
-  if (state.busy || loggingOut || shuttingDown || (action === "sync" && !state.hasCollector)) return;
-  state.busy = action; state.error = null; emit();
+async function runCollection(action: "scan" | "sync"): Promise<void> {
+  state.busy = action; state.collectionPhase = "scan"; state.collectionStartedAt = new Date().toISOString();
+  state.scanProgress = null; state.fetchProgress = null; state.error = null; emit();
   try {
-    await ensureWorker();
-    const data = await new Promise<any>((resolve, reject) => {
-      pendingJob = { id: ++workerCounter, resolve, reject }; worker!.postMessage({ id: workerCounter, action });
-    });
+    const data = await cli.request(action, {}, (phase) => {
+      state.collectionPhase = phase; emit();
+      if (phase === "pricing") void cli.request("state").then(result => { if (result.summary) { state.summary = result.summary; emit(); } }, error => { if (!stoppingCollection && !shuttingDown) { state.notice = message(error); emit(); } });
+    }, progress => { state.scanProgress = progress; emit(); });
     state.summary = data.summary as LocalSummary;
-    const config = await (await collectorConfig()).readConfig();
-    state.hasCollector = Boolean(config?.apiToken || config?.deviceToken);
-    state.lastSyncAt = config?.lastSyncAt || null;
-    state.notice = data.warning || null;
-    await marker();
-  } catch (error) { state.error = message(error); }
-  finally { state.busy = null; emit(); }
+    await refreshCollector(); state.notice = data.warning || null; await marker();
+  } catch (error) { if (!stoppingCollection) state.error = message(error); }
+  finally { state.busy = null; state.collectionPhase = null; state.collectionStartedAt = null; state.scanProgress = null; emit(); }
 }
 function checkSender(event: IpcMainInvokeEvent): void {
-  const local = event.sender === localWindow?.webContents || event.sender === popup?.webContents;
+  const local = event.sender === dashboardWindow?.webContents || event.sender === settingsView?.webContents || event.sender === popup?.webContents;
   if (!local || event.senderFrame !== event.sender.mainFrame || !sameRendererLocation(event.senderFrame.url, renderer)) throw new Error("Untrusted desktop request");
 }
 function handle(name: string, action: (...args: any[]) => unknown): void {
@@ -392,7 +455,7 @@ async function updateAction(action: unknown): Promise<void> {
   if (action !== "check") throw new Error("Invalid update action");
   if (!app.isPackaged) { state.update = { status: "current", message: "Updates are available in the installed app." }; return; }
   state.update = { status: "checking" }; emit();
-  const response = await net.fetch("https://api.github.com/repos/Renaissance-Mind/TokenFlow/releases?per_page=30", { signal: AbortSignal.timeout(30_000) });
+  const response = await desktopFetch("https://api.github.com/repos/Renaissance-Mind/TokenFlow/releases?per_page=30", { signal: AbortSignal.timeout(30_000) });
   if (!response.ok) throw new Error(`Update service returned ${response.status}`);
   const releases = await response.json() as Array<{ tag_name: string; draft: boolean; prerelease: boolean }>;
   const release = releases.find((item) => /^desktop-v\d+\.\d+\.\d+$/.test(item.tag_name) && !item.draft && !item.prerelease);
@@ -402,10 +465,11 @@ async function updateAction(action: unknown): Promise<void> {
 }
 async function shutdown(): Promise<void> {
   loginController?.abort(); timers.forEach(clearInterval);
-  await waitForJob();
-  const { tokenUsageDir } = await collectorConfig();
-  await fs.rm(path.join(tokenUsageDir(), "desktop-agent.json"), { force: true });
-  worker?.kill(); tray?.destroy();
+  configWatcher?.close();
+  await stopCollection();
+  await cli?.stop();
+  if (installation?.compatible) await cli.request("owner", { pid: null }).catch(() => {});
+  tray?.destroy();
 }
 app.on("before-quit", (event) => {
   if (shuttingDown) return;
@@ -413,21 +477,41 @@ app.on("before-quit", (event) => {
   void shutdown().then(() => app.quit()).catch((error) => { console.error(message(error)); app.exit(1); });
 });
 app.on("window-all-closed", () => {});
-app.on("activate", () => { if (ready) void (state.hasDashboard ? showDashboard() : showLocal()); });
-app.on("second-instance", () => { if (ready) void (state.hasDashboard ? showDashboard() : showLocal()); });
+app.on("activate", () => { if (ready) void showDashboard(); });
+app.on("second-instance", () => { if (ready) void showDashboard(); });
 
 async function initialize(): Promise<void> {
-  const { readConfig, tokenUsageDir } = await collectorConfig();
-  const config = await readConfig();
-  state.collectorVersion = (JSON.parse(await fs.readFile(path.join(runtime, "package.json"), "utf8")) as { version: string }).version;
+  protocol.handle("tokenflow", (request) => {
+    const url = new URL(request.url);
+    const root = path.resolve(here, "../dashboard"), file = path.resolve(root, "." + decodeURIComponent(url.pathname));
+    if (url.hostname !== "dashboard" || !file.startsWith(root + path.sep) || request.method !== "GET") return new Response("Not found", { status: 404 });
+    return net.fetch(pathToFileURL(file).href);
+  });
+  dataHome = await collectorHome();
+  await fs.mkdir(dataHome, { recursive: true });
+  installation = await findCli({ fallbackNode: standaloneNode() });
+  if (!installation) {
+    let node = standaloneNode();
+    if (!node) {
+      const found = await findCli({ env: { ...process.env, TOKENFLOW_CLI_PATH: path.resolve(here, "../../dist/cli.js") } });
+      node = found?.node || "";
+    }
+    if (!node) throw new Error("The installer did not contain its standalone Node runtime");
+    installation = await installCli(runtime, node, { copyRuntime: app.isPackaged });
+  }
+  await selectCli(installation);
+  const result = await readCollector(); let config = result.config;
+  if (!config && installation.compatible) {
+    await cli.request("configure", { serverUrl: normalizeDesktopServer(process.env.TOKENFLOW_SERVER_URL || state.settings.serverUrl), deviceName: state.settings.deviceName });
+    config = (await readCollector()).config;
+  }
   const storedSettings = await readOptional(settingsPath());
-  state.settings = { ...state.settings, serverUrl: normalizeDesktopServer(config?.serverUrl || process.env.TOKENFLOW_SERVER_URL || state.settings.serverUrl),
-    deviceName: config?.deviceName || state.settings.deviceName, ...(storedSettings ? JSON.parse(storedSettings.toString()) : {}) };
-  state.settings.serverUrl = normalizeDesktopServer(state.settings.serverUrl);
+  state.settings = { ...state.settings, ...appSettings(storedSettings ? JSON.parse(storedSettings.toString()) : {}),
+    ...sharedSettings(config, defaultSettings) };
+  if (storedSettings) await atomicWrite(settingsPath(), JSON.stringify(appSettings(state.settings), null, 2));
   state.hasCollector = Boolean(config?.apiToken || config?.deviceToken);
-  state.lastSyncAt = config?.lastSyncAt || null;
-  const cache = await readOptional(path.join(tokenUsageDir(), "desktop-summary.json"));
-  if (cache) state.summary = JSON.parse(cache.toString());
+  state.lastSyncAt = config?.lastSyncAt || null; state.summary = result.summary;
+  watchedAuthorization = JSON.stringify([config?.serverUrl, config?.apiToken, config?.deviceToken]);
   const staged = await readOptional(pendingSecretPath());
   if (staged) {
     const pending = JSON.parse(safeStorage.decryptString(staged)) as DesktopSecret;
@@ -437,7 +521,9 @@ async function initialize(): Promise<void> {
   const encrypted = await readOptional(secretPath());
   if (encrypted) {
     secret = JSON.parse(safeStorage.decryptString(encrypted)) as DesktopSecret;
-    if (secret.serverUrl !== state.settings.serverUrl) throw new Error("Stored desktop authorization belongs to another server");
+    if (secret.serverUrl !== state.settings.serverUrl || secret.deviceId !== config?.deviceId) {
+      secret = null; await fs.rm(secretPath(), { force: true });
+    }
   }
   const icon = nativeImage.createFromPath(path.join(here, "../assets", process.platform === "darwin" ? "trayTemplate.png" : "tray.png"));
   if (icon.isEmpty()) throw new Error("Tray icon is missing");
@@ -445,12 +531,12 @@ async function initialize(): Promise<void> {
   tray = new Tray(icon);
   tray.on("click", togglePopup);
   tray.on("right-click", () => tray.popUpContextMenu(Menu.buildFromTemplate([
-    { label: "Open Dashboard", click: () => void showDashboard() }, { label: "Settings", click: showLocal },
+    { label: "Open Dashboard", click: () => void showDashboard() }, { label: "Settings", click: showSettings },
     { type: "separator" }, { label: "Quit TokenFlow", click: () => app.quit() },
   ])));
   Menu.setApplicationMenu(Menu.buildFromTemplate([
-    ...(process.platform === "darwin" ? [{ label: "TokenFlow", submenu: [{ role: "about" as const }, { label: "Settings…", accelerator: "CmdOrCtrl+,", click: showLocal }, { type: "separator" as const }, { role: "hide" as const }, { role: "hideOthers" as const }, { role: "unhide" as const }, { type: "separator" as const }, { role: "quit" as const }] }] : []),
-    { label: "File", submenu: [{ label: "Dashboard", accelerator: "CmdOrCtrl+D", click: () => void showDashboard() }, { label: "Settings", click: showLocal }, { role: "close" }] },
+    ...(process.platform === "darwin" ? [{ label: "TokenFlow", submenu: [{ role: "about" as const }, { label: "Settings…", accelerator: "CmdOrCtrl+,", click: showSettings }, { type: "separator" as const }, { role: "hide" as const }, { role: "hideOthers" as const }, { role: "unhide" as const }, { type: "separator" as const }, { role: "quit" as const }] }] : []),
+    { label: "File", submenu: [{ id: "dashboard", label: "Dashboard", accelerator: "CmdOrCtrl+D", click: () => void showDashboard() }, { id: "local-settings", label: "Settings", click: showSettings }, { role: "close" }] },
     { role: "editMenu" }, { label: "View", submenu: [{ role: "reload" }, { role: "toggleDevTools" }, { type: "separator" },
       { id: "status-panel", label: "Status panel", accelerator: "CmdOrCtrl+Shift+T", click: togglePopup }, { role: "togglefullscreen" }] }, { role: "windowMenu" },
   ]));
@@ -461,7 +547,8 @@ async function initialize(): Promise<void> {
   handle("state", () => state); handle("login", startLogin);
   handle("cancel-login", () => { loginController?.abort(); });
   handle("settings", saveSettings); handle("sync", () => runJob("sync")); handle("scan", () => runJob("scan"));
-  handle("dashboard", showDashboard); handle("open-settings", showLocal); handle("logout", logoutDesktop);
+  handle("dashboard", showDashboard); handle("dashboard-request", (value, options) => trackRequest(() => dashboardRequest(value, options)));
+  handle("api-token", setApiToken); handle("cli-update", (action) => action === "check" ? checkCliUpdate() : upgradeCli()); handle("open-settings", showSettings); handle("logout", logoutDesktop);
   handle("update", async (action: unknown) => {
     try { await updateAction(action); }
     catch (error) { state.update = { status: "error", message: message(error) }; throw error; }
@@ -472,30 +559,33 @@ async function initialize(): Promise<void> {
   autoUpdater.on("download-progress", (progress) => { state.update = { ...state.update, status: "downloading", percent: progress.percent }; emit(); });
   autoUpdater.on("update-downloaded", (info) => { state.update = { status: "downloaded", version: info.version }; emit(); });
   autoUpdater.on("error", (error) => { state.update = { status: "error", message: message(error) }; emit(); });
-  configureLoginItem(); await marker(); await configureBundledCollector();
+  configureLoginItem(); await marker(); await configureScheduler();
   timers.push(setInterval(() => { void marker().catch((error) => { state.error = message(error); emit(); }); }, 30_000));
   timers.push(setInterval(() => { if (!state.settings.paused) void runJob(state.hasCollector ? "sync" : "scan"); }, 600_000));
-  timers.push(setInterval(() => { void restoreSession(); }, 24 * 60 * 60 * 1000));
   powerMonitor.on("resume", () => { if (!state.settings.paused) void runJob(state.hasCollector ? "sync" : "scan"); });
-  ready = true; emit();
   const background = process.argv.includes("--background") || (process.platform === "darwin" && app.getLoginItemSettings().wasOpenedAtLogin);
-  if (!background) showLocal();
-  void restoreSession(!background);
-  void runJob(state.hasCollector && !state.settings.paused ? "sync" : "scan");
+  try { await configureCliDashboard(config); } catch (error) { state.notice = message(error); }
+  ready = true; emit();
+  if (!background) await showDashboard();
+  if (installation.compatible) void runJob(state.hasCollector && !state.settings.paused ? "sync" : "scan");
+  configWatcher = watch(dataHome, (_event, filename) => {
+    if (filename === "config.json") void reconcileCollector().catch((error) => { state.notice = message(error); emit(); });
+  });
+  timers.push(setInterval(() => { void reconcileCollector().catch(() => {}); }, 15_000));
 }
 async function scheduledCollector(): Promise<void> {
+  // Compatibility with launchd entries from older App versions.
   if (process.platform === "darwin") app.setActivationPolicy("prohibited");
-  const { desktopAgentIsRunning } = await loadCollector("collector") as typeof import("../../dist/collector.js");
-  if (await desktopAgentIsRunning()) { app.exit(0); return; }
-  await ensureWorker();
-  await new Promise<void>((resolve, reject) => {
-    pendingJob = { id: ++workerCounter, resolve: () => resolve(), reject };
-    worker!.postMessage({ id: workerCounter, action: "sync" });
-  });
-  worker?.kill(); app.exit(0);
+  const value = await findCli({ fallbackNode: standaloneNode() });
+  if (!value?.compatible) { app.exit(0); return; }
+  const client = new CliClient(value, (input, init) => net.fetch(input as string, init));
+  const home = await collectorHome();
+  const marker = await fs.readFile(path.join(home, "desktop-agent.json"), "utf8").catch(() => null);
+  if (marker) { const owner = JSON.parse(marker); try { if (Date.now() - Date.parse(owner.updatedAt) < 120_000) { process.kill(owner.pid, 0); app.exit(0); return; } } catch {} }
+  await client.request("sync"); app.exit(0);
 }
 void app.whenReady().then(async () => {
-  setDesktopHttpClient((input, init) => net.fetch(input as string, init));
+  setDesktopHttpClient(desktopFetch);
   if (collectorOnly) await scheduledCollector(); else await initialize();
 }).catch((error) => {
   if (collectorOnly) console.error(message(error)); else dialog.showErrorBox("TokenFlow could not start", message(error));

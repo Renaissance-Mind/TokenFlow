@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 export function sameRendererLocation(value: string, renderer: string): boolean {
   const url = new URL(value);
+  if (url.protocol === "tokenflow:") return url.hostname === "dashboard" && !url.port && !url.username && !url.password && url.pathname === "/index.html";
   if (url.protocol !== "file:") return false;
   const actual = fileURLToPath(url);
   if (path.basename(actual) !== "index.html" || path.basename(path.dirname(actual)) !== "renderer") return false;

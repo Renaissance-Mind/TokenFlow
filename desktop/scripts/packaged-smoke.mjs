@@ -4,9 +4,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const desktop = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const executable = process.platform === 'win32'
+const executable = process.env.TOKENFLOW_EXECUTABLE || (process.platform === 'win32'
   ? path.join(desktop,'release','win-unpacked','TokenFlow.exe')
-  : path.join(desktop,'release',process.arch === 'arm64' ? 'mac-arm64' : 'mac','TokenFlow.app','Contents','MacOS','TokenFlow');
+  : path.join(desktop,'release',process.arch === 'arm64' ? 'mac-arm64' : 'mac','TokenFlow.app','Contents','MacOS','TokenFlow'));
 const temporary = await fs.mkdtemp(path.join(os.tmpdir(),'tokenflow-isolated-package-'));
 const source = process.platform === 'win32' ? path.dirname(executable) : path.resolve(executable,'../../..');
 const destination = path.join(temporary,process.platform === 'win32' ? 'TokenFlow' : 'TokenFlow.app');

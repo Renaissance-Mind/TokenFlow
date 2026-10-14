@@ -6,11 +6,14 @@ import sharp from 'sharp';
 const desktop = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const root = path.resolve(desktop, '..');
 const collector = path.join(desktop, 'collector');
+await fs.access(path.join(desktop, 'dashboard/index.html'));
+for (const name of ['progress.js','progress.css']) await fs.copyFile(path.join(desktop,'renderer',name),path.join(desktop,'dashboard',name));
+await fs.cp(path.join(desktop, 'node_modules/@shoelace-style/shoelace/cdn'), path.join(desktop, 'dashboard/vendor/shoelace'), { recursive: true });
 await fs.rm(collector, { recursive: true, force: true });
 await fs.mkdir(collector, { recursive: true });
-await fs.cp(path.join(root, 'dist'), collector, { recursive: true });
+await fs.cp(path.join(root, 'dist'), path.join(collector, 'dist'), { recursive: true });
 const pkg = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'));
-await fs.writeFile(path.join(collector, 'package.json'), JSON.stringify({ name: pkg.name, version: pkg.version, type: 'module' }));
+await fs.writeFile(path.join(collector, 'package.json'), JSON.stringify({ ...pkg, scripts: undefined, devDependencies: undefined }));
 const copied = new Set();
 async function copyDependency(name) {
   if (copied.has(name)) return;
@@ -22,7 +25,6 @@ async function copyDependency(name) {
 }
 for (const name of Object.keys(pkg.dependencies)) await copyDependency(name);
 await fs.cp(path.join(root, 'THIRD_PARTY_NOTICES.md'), path.join(collector, 'THIRD_PARTY_NOTICES.md'));
-await fs.cp(path.join(desktop, 'embedded-cli.mjs'), path.join(collector, 'desktop-cli.mjs'));
 const assets = path.join(desktop, 'assets');
 await fs.mkdir(assets, { recursive: true });
 const symbol = `<path d="M32 17a15 15 0 1 0 15 15" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><path d="M32 25a7 7 0 1 0 7 7" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><circle cx="47" cy="17" r="4" fill="currentColor"/>`;
