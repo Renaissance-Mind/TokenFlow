@@ -23,6 +23,7 @@
     "@types/node": "^24.19.2",
     "electron": "^44.7.0",
     "electron-builder": "^26.15.3",
+    "extract-zip": "2.0.1",
     "sharp": "^0.35.5",
     "typescript": "^5.9.3"
   },
