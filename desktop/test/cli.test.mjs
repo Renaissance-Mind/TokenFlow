@@ -25,7 +25,9 @@ test('reuses an installed CLI, preserves legacy config, and upgrades its existin
     const upgraded=await installCli(payload,process.execPath,{home:root,env:{TOKENFLOW_DESKTOP_DATA:path.join(root,'app')},replace:existing});
     assert.equal(upgraded.entrypoint,existing.entrypoint);assert.equal(upgraded.compatible,true);
     assert.equal(await fs.readFile(path.join(root,'.tokenusage','config.json'),'utf8'),original);
-    assert.equal((await fs.stat(upgraded.entrypoint)).mode & 0o111,0o111);
+    if(process.platform!=='win32') assert.equal((await fs.stat(upgraded.entrypoint)).mode & 0o111,0o111);
+    const launched=await promisify(execFile)(upgraded.node,[upgraded.entrypoint,'--version']);
+    assert.equal(launched.stdout.trim(),JSON.parse(await fs.readFile(path.join(payload,'package.json'),'utf8')).version);
   }finally{await fs.rm(root,{recursive:true,force:true});}
 });
 test('an App-installed CLI remains usable independently of App and reports local usage through real stdio',async()=>{
