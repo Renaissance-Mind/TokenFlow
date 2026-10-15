@@ -33,4 +33,7 @@ function update(state){
 $('desktopSettings').onclick=()=>window.tokenflow.openSettings();
 $('desktopRefresh').onclick=async()=>{await window.tokenflow.dashboard();await window.tokenflow.scan();await refresh();};
 $('desktopSync').onclick=async()=>{await window.tokenflow.sync();await refresh();};
+// The web sidebar and sticky filters must clear both native activity bars,
+// including when the toolbar wraps in a smaller App window.
+new ResizeObserver(([entry])=>document.documentElement.style.setProperty('--desktop-toolbar-height',entry.target.getBoundingClientRect().height+'px')).observe(document.querySelector('.desktop-toolbar'));
 window.tokenflow.onState(update);window.tokenflow.getState().then(update);

@@ -16,21 +16,47 @@ try {
   await build({entryPoints:[path.join(server,'src/html.ts')],bundle:true,platform:'node',format:'esm',outfile:module});
   const {dashboardHtml}=await import(pathToFileURL(module));
   let html=dashboardHtml();
+  // Fail loudly when the web page changes an integration point. A silent
+  // replacement would otherwise ship a page that bypasses the CLI adapter.
+  function replaceOnce(before, after) {
+    if (html.split(before).length !== 2) throw new Error(`Dashboard integration point changed: ${before}`);
+    html=html.replace(before,after);
+  }
   // All API calls go through a narrow data adapter. The page and chart code
   // remain the same when the adapter changes between local and synced data.
   html=html.replace('<head>','<head>\n<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\' \'unsafe-inline\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\' data: blob:; connect-src \'self\'; object-src \'none\'; base-uri \'none\'; form-action \'none\'">');
-  html=html.replaceAll('https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/','/vendor/shoelace/');
+  html=html.replace(/  <link rel="preconnect"[^>]+>\n/g,'');
+  replaceOnce('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap','/vendor/inter/wght.css');
+  const chartUrl=html.match(/https:\/\/cdn\.jsdelivr\.net\/npm\/echarts@([^/]+)\/dist\/echarts\.min\.js/);
+  const chartPackage=require('echarts/package.json');
+  if (!chartUrl || chartUrl[1] !== chartPackage.version) throw new Error('Install the web Dashboard\'s exact ECharts version before snapshotting.');
+  const chart=await fs.readFile(path.join(server,'node_modules/echarts/dist/echarts.min.js'));
+  const chartFile=`echarts-${createHash('sha256').update(chart).digest('hex').slice(0,12)}.js`;
+  replaceOnce(chartUrl[0],'/vendor/'+chartFile);
   html=html.replace('<body>','<body>\n<section class="operation-progress" id="operationProgress" hidden aria-live="polite"><span id="progressLabel"></span><div class="progress-track" id="progressTrack" role="progressbar" aria-valuemin="0" aria-valuemax="100"><span class="progress-fill" id="progressFill"></span></div><span id="progressPercent"></span></section>\n<header class="desktop-toolbar"><strong>Dashboard</strong><span id="desktopDataSource"></span><span id="desktopActivity" role="status"></span><button id="desktopRefresh" type="button">Refresh</button><button id="desktopSync" type="button">Sync</button><button id="desktopSettings" type="button">Settings</button></header>');
-  html=html.replace('function api(path, options = {}) {','function api(path, options = {}) {\n      if (window.tokenflow) return window.tokenflow.dashboardRequest(path, options);');
-  html=html.replace('if (!previewMode && !snapshotMode) await loadApiKeys();','if (!window.tokenflow && !previewMode && !snapshotMode) await loadApiKeys();');
-  html=html.replace('function scheduleWidgetPreviewPrefetch() {','function scheduleWidgetPreviewPrefetch() {\n      if (window.tokenflow) return;');
-  html=html.replace('const action = previewMode','const action = (previewMode || window.tokenflow)');
-  html=html.replace('    boot();','    window.tokenflowDashboard = { boot, refresh: async () => { apiReadRequests.clear(); usageHeatmapCache.clear(); hourlyCache.clear(); await boot(); }, language: applyLanguage };');
+  replaceOnce('async function api(path, options = {}) {','async function api(path, options = {}) {\n      if (window.tokenflow) return window.tokenflow.dashboardRequest(path, options);');
+  replaceOnce('if (!previewMode && !snapshotMode) await loadApiKeys();','if (!window.tokenflow && !previewMode && !snapshotMode) await loadApiKeys();');
+  replaceOnce('function scheduleWidgetPreviewPrefetch() {','function scheduleWidgetPreviewPrefetch() {\n      if (window.tokenflow) return;');
+  replaceOnce('const action = previewMode','const action = (previewMode || window.tokenflow)');
+  replaceOnce('    boot();','    window.tokenflowDashboard = { boot, refresh: async () => { usageHeatmapCache.clear(); hourlyCache.clear(); await boot(); }, language: applyLanguage };');
   html=html.replace('</head>','<link rel="stylesheet" href="/desktop.css"><link rel="stylesheet" href="/progress.css"></head>');
   html=html.replace('</body>','<script type="module" src="/desktop.js"></script></body>');
   const destination=path.join(desktop,'dashboard');await fs.mkdir(destination,{recursive:true});
   await fs.writeFile(path.join(destination,'index.html'),html);
-  for(const name of ['personas','vendor'])await fs.cp(path.join(server,'public',name),path.join(destination,name),{recursive:true});
-  await fs.writeFile(path.join(destination,'source.json'),JSON.stringify({source:'TokenFlow_Server/src/html.ts:dashboardHtml',sha256:createHash('sha256').update(dashboardHtml()).digest('hex')},null,2)+'\n');
+  for(const name of ['personas','identity-share']) {
+    await fs.rm(path.join(destination,name),{recursive:true,force:true});
+    await fs.cp(path.join(server,'public',name),path.join(destination,name),{recursive:true});
+  }
+  const vendor=path.join(destination,'vendor');
+  await fs.rm(vendor,{recursive:true,force:true});await fs.mkdir(vendor,{recursive:true});
+  await fs.writeFile(path.join(vendor,chartFile),chart);
+  for(const [source,name] of [['echarts/LICENSE','echarts-LICENSE.txt'],['echarts/NOTICE','echarts-NOTICE.txt'],['zrender/LICENSE','zrender-LICENSE.txt']])await fs.copyFile(path.join(server,'node_modules',source),path.join(vendor,name));
+  const inter=path.join(desktop,'node_modules/@fontsource-variable/inter');
+  const fonts=path.join(vendor,'inter');await fs.mkdir(path.join(fonts,'files'),{recursive:true});
+  const fontCss=(await fs.readFile(path.join(inter,'wght.css'),'utf8')).replaceAll("'Inter Variable'","'Inter'");
+  for(const [,file] of fontCss.matchAll(/url\(\.\/files\/([^)]*)\)/g))await fs.copyFile(path.join(inter,'files',file),path.join(fonts,'files',file));
+  await fs.writeFile(path.join(fonts,'wght.css'),fontCss);
+  await fs.copyFile(path.join(inter,'LICENSE'),path.join(fonts,'LICENSE.txt'));
+  await fs.writeFile(path.join(destination,'source.json'),JSON.stringify({source:'TokenFlow_Server/src/html.ts:dashboardHtml',sha256:createHash('sha256').update(dashboardHtml()).digest('hex'),echarts:chartPackage.version,inter:JSON.parse(await fs.readFile(path.join(inter,'package.json'),'utf8')).version},null,2)+'\n');
   console.log('Bundled the canonical Dashboard and its offline chart/persona assets.');
 } finally {await fs.rm(temporary,{recursive:true,force:true});}

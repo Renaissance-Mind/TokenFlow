@@ -75,7 +75,7 @@ await withDesktopTestServer(async({url,approve,request,db,userId,sessionToken})=
     assert.equal(config.deviceId,linked.device_id);assert.equal(config.deviceToken,linked.token);assert.ok(config.lastSyncAt);
     assert.equal((await db.prepare('SELECT COUNT(*) AS count FROM devices WHERE user_id=?1').bind(userId).first()).count,1);
     await assert.rejects(fs.access(path.join(env.TOKENFLOW_DESKTOP_DATA,'desktop-auth.bin')),error=>error.code==='ENOENT');
-    await expect(dashboard.locator('#totalTokensExact')).toContainText('1,100');
+    await expect(dashboard.locator('#totalTokens')).toHaveAttribute('title','1,100');
     assert.equal(await dashboard.evaluate(()=>location.href), 'tokenflow://dashboard/index.html?mode=dashboard');
     assert.equal(await dashboard.evaluate(()=>window.dashboardIdentity===document.getElementById('app')),true);
     assert.equal(await instance.evaluate(({webContents})=>webContents.getAllWebContents().some(c=>/^https?:/.test(c.getURL()))),false);
@@ -108,11 +108,11 @@ await withDesktopTestServer(async({url,approve,request,db,userId,sessionToken})=
     await instance.evaluate(async({session},{url,token})=>session.fromPartition('persist:tokenflow-dashboard').cookies.set({url,name:'tu_session',value:token,path:'/'}),{url,token:sessionToken});
     await saveCliConfig({...config,deviceToken:otherLinked.token,deviceId:otherLinked.device_id,deviceName:'Other CLI',autoSyncPaused:true});
     await expect.poll(async()=>{const s=await dashboard.evaluate(()=>window.tokenflow.getState());if(s.notice||s.error)throw new Error('CLI account adoption: '+(s.notice||s.error));return s.account?.id;},{timeout:30_000}).toBe('usr_other_cli');
-    await expect(dashboard.locator('#totalTokensExact')).toHaveText('0');
+    await expect(dashboard.locator('#totalTokens')).toHaveAttribute('title','0');
     assert.equal(await dashboard.evaluate(()=>window.dashboardIdentity===document.getElementById('app')),true);
     await saveCliConfig({...config,autoSyncPaused:true});
     await expect.poll(async()=>(await dashboard.evaluate(()=>window.tokenflow.getState())).account?.id,{timeout:30_000}).toBe(userId);
-    await expect(dashboard.locator('#totalTokensExact')).toContainText('1,100');
+    await expect(dashboard.locator('#totalTokens')).toHaveAttribute('title','1,100');
     // A failed cloud data request keeps the exact same page and chart elements.
     await dashboard.evaluate(()=>{window.dashboardIdentity=document.getElementById('app');});
     await instance.evaluate(({session},server)=>{
@@ -122,7 +122,7 @@ await withDesktopTestServer(async({url,approve,request,db,userId,sessionToken})=
     await expect.poll(async()=>(await dashboard.evaluate(()=>window.tokenflow.getState())).dashboardSource).toBe('local');
     assert.equal(await dashboard.evaluate(()=>window.dashboardIdentity===document.getElementById('app')),true);
     await expect(dashboard.locator('#app')).toBeVisible();
-    await expect(dashboard.locator('#totalTokensExact')).toContainText('0');
+    await expect(dashboard.locator('#totalTokens')).toHaveAttribute('title','0');
     await instance.evaluate(({session})=>session.fromPartition('persist:tokenflow-dashboard').webRequest.onBeforeRequest(null));
     await dashboard.evaluate(()=>window.tokenflow.dashboard());
     await expect.poll(async()=>(await dashboard.evaluate(()=>window.tokenflow.getState())).dashboardSource).toBe('cloud');
@@ -152,7 +152,7 @@ await withDesktopTestServer(async({url,approve,request,db,userId,sessionToken})=
     await expect.poll(async()=>{const s=await settings.evaluate(()=>window.tokenflow.getState());return s.account?.id==='usr_other_cli'&&!s.loginBusy&&!s.busy;},{timeout:60_000}).toBe(true);
     shared=cliConfig();assert.notEqual(shared.deviceToken,browserConfig.deviceToken);assert.notEqual(shared.deviceId,browserConfig.deviceId);assert.equal(shared.lastSyncAt,undefined);
     assert.equal((await(await request('/api/me',undefined,shared.deviceToken)).json()).user.id,'usr_other_cli');
-    await expect(dashboard.locator('#totalTokensExact')).toHaveText('0');await expect(settings.locator('#loginSection')).toBeHidden();
+    await expect(dashboard.locator('#totalTokens')).toHaveAttribute('title','0');await expect(settings.locator('#loginSection')).toBeHidden();
     assert.equal(await dashboard.evaluate(()=>window.dashboardIdentity===document.getElementById('app')),true);
     await dashboard.evaluate(()=>window.tokenflow.logout());assertCliLoggedOut();assert.equal((await request('/api/device/status',undefined,shared.deviceToken)).status,401);
     // A read-write API token authorizes the cloud view and the same collector.

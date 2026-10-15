@@ -27,6 +27,32 @@ try {
   assert.equal(state.summary.today.tokens,0); await expect(page.locator('#totalCost')).toHaveText('$0.00');
   assert.equal(await page.locator('#desktopSync').isDisabled(),true);
   await fs.access(state.cli.path); assert.ok(!state.cli.path.includes(desktop));
+  // The redesigned web layout and its fonts/charts are fully bundled. Exercise
+  // the real local CLI adapter while outgoing renderer requests are rejected.
+  const failedAssets=[];page.on('requestfailed',request=>failedAssets.push(request.url()));
+  const externalRequests=[];await page.route(/^https?:/,route=>{externalRequests.push(route.request().url());return route.abort();});
+  await page.reload();await expect(page.locator('#app')).toBeVisible();
+  await page.evaluate(()=>{window.dashboardIdentity=document.getElementById('app');});
+  assert.equal(await page.evaluate(()=>echarts.version),'6.1.0');
+  assert.equal(await page.evaluate(async()=>{await document.fonts.ready;return document.fonts.check('500 14px Inter');}),true);
+  for(const width of [1440,1000,800]) {
+    await page.setViewportSize({width,height:900});
+    await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    await expect.poll(()=>page.evaluate(()=>{
+      const sidebar=document.querySelector('.tbti-sidebar').getBoundingClientRect();
+      const toolbar=document.querySelector('.desktop-toolbar').getBoundingClientRect();
+      return {clear:sidebar.top>=toolbar.bottom-1,sidebar:sidebar.top,toolbar:toolbar.bottom,width:innerWidth};
+    }).then(value=>value.clear?true:value)).toBe(true);
+  }
+  await page.setViewportSize({width:1440,height:960});
+  await page.locator('#dashboardRange7').click();await expect(page.locator('#dashboardRange7')).toHaveAttribute('aria-pressed','true');
+  await page.locator('[data-picker="deviceFilter"] .picker-trigger').click();
+  await expect(page.locator('#deviceFilterMenu')).toBeVisible();await page.keyboard.press('Escape');
+  await page.locator('#themeToggle').click();
+  const theme=await page.locator('html').getAttribute('data-theme');assert.ok(['light','dark'].includes(theme));
+  await page.locator('#themeToggle').click();
+  assert.equal(await page.locator('.tbti-sidebar').evaluate(sidebar=>sidebar.scrollLeft),0);
+  assert.deepEqual(externalRequests,[]);assert.deepEqual(failedAssets,[]);
   await page.screenshot({path:path.join(output,'desktop-dashboard-local.png')});
   // Verify the local reading animation, with the real native state event.
   assert.equal(await page.evaluate(async()=>{

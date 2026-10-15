@@ -8,7 +8,6 @@ const root = path.resolve(desktop, '..');
 const collector = path.join(desktop, 'collector');
 await fs.access(path.join(desktop, 'dashboard/index.html'));
 for (const name of ['progress.js','progress.css']) await fs.copyFile(path.join(desktop,'renderer',name),path.join(desktop,'dashboard',name));
-await fs.cp(path.join(desktop, 'node_modules/@shoelace-style/shoelace/cdn'), path.join(desktop, 'dashboard/vendor/shoelace'), { recursive: true });
 await fs.rm(collector, { recursive: true, force: true });
 await fs.mkdir(collector, { recursive: true });
 await fs.cp(path.join(root, 'dist'), path.join(collector, 'dist'), { recursive: true });

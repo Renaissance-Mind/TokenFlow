@@ -60,7 +60,7 @@ The canonical page snapshot is refreshed explicitly from the server checkout:
 node desktop/scripts/sync-dashboard.mjs /absolute/path/TokenFlow_Server
 ```
 
-Normal builds use the checked-in snapshot and bundle Shoelace from the pinned npm dependency. The server checkout is not required to run or package App.
+The snapshot includes the web Dashboard's ECharts version, Inter fonts, animal personas, and identity poster exporter. Refreshing it checks the CLI adapter integration points and fails if the web page has changed them. Normal builds use these checked-in offline assets; the server checkout is not required to run or package App.
 
 ## Build and distribution
 
