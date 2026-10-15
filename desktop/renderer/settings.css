@@ -24,4 +24,6 @@
 .settings-page .tray-widget-options input{accent-color:var(--accent);width:16px;height:16px;margin:3px 0 0;flex:0 0 auto}
 .settings-page .tray-widget-options label>span{display:flex;flex-direction:column;gap:4px}.settings-page .tray-widget-options strong{font-size:15px;font-weight:500}.settings-page .tray-widget-options small{font-size:13px;color:var(--muted);line-height:1.4}
 .settings-page #traySavedStatus{font-size:13px;color:#587066}
+.settings-page .settings-nav{position:sticky;top:56px;height:calc(100vh - 56px);align-self:start}
 @media(max-width:760px){.settings-page .tray-widget-options{grid-template-columns:1fr}}
+@media(max-width:760px){.settings-page .settings-nav{height:auto}}
