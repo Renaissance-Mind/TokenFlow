@@ -1,6 +1,6 @@
 [![TokenFlow teaser](../assets/teaser_zh.png)](https://tokenflow.renaissancemind.ai/)
 
-[TokenFlow Desktop](../../desktop/README.md) 将看板、采集器和菜单栏／系统托盘整合为 macOS 与 Windows 应用，内置运行环境，支持通过浏览器进行 GitHub／Google 登录。安装包的构建与发布说明见桌面版文档。
+[TokenFlow Desktop](../../desktop/README.md) 提供 Dashboard、设置和菜单栏／系统托盘，与终端使用同一份 CLI。已有安装和登录会直接复用；没有 CLI 时自动安装独立 CLI。未登录也能查看本地统计，设置中支持 GitHub／Google 登录和 API token。安装包的构建与发布说明见桌面版文档。
 
 **语言:** [English](../../README.md) | 简体中文 | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Español](README.es.md) | [Türkçe](README.tr.md) | [Русский](README.ru.md)
 

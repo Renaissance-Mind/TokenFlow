@@ -1,3 +1,4 @@
+import { scanFile, discoveredFile, scannedBytes } from "../scan-progress.js";
 import path from "node:path";
 import { sqliteRows, storeFiles, tableColumns } from "./store-io.js";
 
@@ -102,32 +103,69 @@ export function mergeOpenClawStores(jsonl: UsageEvent[], database: UsageEvent[])
   return [...entries.values()];
 }
 
-export async function collectOpenClawDatabases(roots: string[]) {
-  const files = (await Promise.all(roots.map((root) => storeFiles(path.join(root, "agents"),
-    (file) => path.basename(file) === "openclaw-agent.sqlite" && path.basename(path.dirname(file)) === "agent")))).flat();
-  const events: UsageEvent[] = [];
-  for (const file of files) {
-    const columns = await tableColumns(file, "transcript_events");
-    if (!["session_id", "seq", "event_json", "created_at"].every((column) => columns.has(column))) continue;
-    const rows = await sqliteRows<{ session_id: string; event_json: string; created_at: number }>(file,
-      "SELECT session_id,event_json,created_at FROM transcript_events ORDER BY session_id,seq;");
-    let session = "";
-    let parser: JsonlUsageParser | null = null;
-    for (const row of rows) {
-      if (session !== row.session_id) {
-        if (parser) events.push(...parser.finish());
-        session = row.session_id;
-        parser = createOpenClawJsonlParser({ sourcePath: file, sessionId: session, fallbackTimestamp: timestampFromValue(row.created_at) });
+export async function planOpenClawDatabases(roots: string[]) {
+  const files = (
+    await Promise.all(
+      roots.map((root) =>
+        storeFiles(
+          path.join(root, "agents"),
+          (file) =>
+            path.basename(file) === "openclaw-agent.sqlite" &&
+            path.basename(path.dirname(file)) === "agent",
+        ),
+      ),
+    )
+  ).flat();
+  return {
+    files: files,
+    collect: async () => {
+      const events: UsageEvent[] = [];
+      for (const file of files) {
+        await scanFile(file, async () => {
+          const columns = await tableColumns(file, "transcript_events");
+          if (
+            !["session_id", "seq", "event_json", "created_at"].every((column) =>
+              columns.has(column),
+            )
+          )
+            return;
+          const rows = await sqliteRows<{
+            session_id: string;
+            event_json: string;
+            created_at: number;
+          }>(
+            file,
+            "SELECT session_id,event_json,created_at FROM transcript_events ORDER BY session_id,seq;",
+          );
+          let session = "";
+          let parser: JsonlUsageParser | null = null;
+          for (const row of rows) {
+            if (session !== row.session_id) {
+              if (parser) events.push(...parser.finish());
+              session = row.session_id;
+              parser = createOpenClawJsonlParser({
+                sourcePath: file,
+                sessionId: session,
+                fallbackTimestamp: timestampFromValue(row.created_at),
+              });
+            }
+            // SQLite transcripts may contain an interrupted or redacted JSON row.
+            let value: Record<string, unknown>;
+            try {
+              value = JSON.parse(row.event_json);
+            } catch {
+              continue;
+            }
+            if (!value.timestamp)
+              value.timestamp = timestampFromValue(row.created_at);
+            parser?.pushLine(JSON.stringify(value));
+          }
+          if (parser) events.push(...parser.finish());
+        });
       }
-      // SQLite transcripts may contain an interrupted or redacted JSON row.
-      let value: Record<string, unknown>;
-      try { value = JSON.parse(row.event_json); } catch { continue; }
-      if (!value.timestamp) value.timestamp = timestampFromValue(row.created_at);
-      parser?.pushLine(JSON.stringify(value));
-    }
-    if (parser) events.push(...parser.finish());
-  }
-  return { events, files };
+      return { events, files };
+    },
+  };
 }
 
 function isModelChange(record: Record<string, unknown>): boolean {
@@ -144,3 +182,5 @@ function openClawSessionIdFromPath(filePath: string): string | null {
   const stem = filename.slice(0, index);
   return stem || filename;
 }
+
+export async function collectOpenClawDatabases(roots: string[]) { return (await planOpenClawDatabases(roots)).collect(); }

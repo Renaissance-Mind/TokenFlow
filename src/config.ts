@@ -11,6 +11,7 @@ export interface TokenFlowConfig {
   deviceName?: string;
   installedAt?: string;
   lastSyncAt?: string;
+  autoSyncPaused?: boolean;
 }
 
 export const DEFAULT_SERVER_URL = "https://tokenflow.renaissancemind.ai";

@@ -73,10 +73,15 @@ export function aggregateEvents(events: UsageEvent[], pricingProfiles: PricingPr
       addLongContextTotals(bucket.recordedUsage, event, pricingProfiles);
       addFastTotals(bucket.recordedUsage as UsageBucket, event, pricingProfiles);
     }
+    buckets.set(key, bucket);
+  }
+
+  // Price the final totals once per bucket. Repricing on every event makes a
+  // large local history block the collector and its lock heartbeat for minutes.
+  for (const bucket of buckets.values()) {
     const pricing = calculateBucketCost(bucket, pricingProfiles);
     bucket.cost = pricing.cost;
     bucket.pricingStatus = pricing.status;
-    buckets.set(key, bucket);
   }
 
   return Array.from(buckets.values()).sort((a, b) =>

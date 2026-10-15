@@ -1,3 +1,4 @@
+import { scanFile, discoveredFile, scannedBytes } from "../scan-progress.js";
 import path from "node:path";
 import {
   makeUsageEvent,
@@ -83,7 +84,7 @@ export function createGrokParser(
   };
 }
 
-export async function collectGrok(home: string) {
+export async function planGrok(home: string) {
   const roots = sourceRoots("GROK_HOME", home, [".grok"]);
   const files = (
     await Promise.all(
@@ -95,27 +96,36 @@ export async function collectGrok(home: string) {
       ),
     )
   ).flat();
-  const events: UsageEvent[] = [];
-  const seen = new Set<string>();
-  for (const file of files) {
-    const summary = await optionalJson(
-      path.join(path.dirname(file), "summary.json"),
-    );
-    const parser = createGrokParser(
-      file,
-      stringField(summary, "current_model_id") || "unknown",
-      seen,
-    );
-    await readStoreLines(file, parser.pushLine);
-    events.push(...parser.finish());
-  }
   return {
-    events,
-    source: {
-      agent: "grok",
-      path: roots.join(","),
-      files: files.length,
-      exists: files.length > 0,
+    files: files,
+    collect: async () => {
+      const events: UsageEvent[] = [];
+      const seen = new Set<string>();
+      for (const file of files) {
+        await scanFile(file, async () => {
+          const summary = await optionalJson(
+            path.join(path.dirname(file), "summary.json"),
+          );
+          const parser = createGrokParser(
+            file,
+            stringField(summary, "current_model_id") || "unknown",
+            seen,
+          );
+          await readStoreLines(file, parser.pushLine);
+          events.push(...parser.finish());
+        });
+      }
+      return {
+        events,
+        source: {
+          agent: "grok",
+          path: roots.join(","),
+          files: files.length,
+          exists: files.length > 0,
+        },
+      };
     },
   };
 }
+
+export async function collectGrok(home: string) { return (await planGrok(home)).collect(); }

@@ -1,3 +1,4 @@
+import { scanFile, discoveredFile, scannedBytes } from "../scan-progress.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { isRecord, makeUsageEvent, recordField, stringField } from "./ccusage-common.js";
@@ -177,15 +178,63 @@ function reconcile(native: Entry[], otel: Entry[], credits: Credit[]): UsageEven
   return events.sort((a, b) => time(a) - time(b));
 }
 
-export async function collectCopilot(home: string) {
+export async function planCopilot(home: string) {
   const root = process.env.COPILOT_HOME?.trim() || path.join(home, ".copilot");
   const state = path.join(root, "session-state");
-  const nativeFiles = (await storeFiles(state, file => path.basename(file) === "events.jsonl" && path.relative(state, file).split(path.sep).length === 2));
-  const otelFiles = await storeFiles(path.join(root, "otel"), file => file.endsWith(".jsonl"));
+  const nativeFiles = await storeFiles(
+    state,
+    (file) =>
+      path.basename(file) === "events.jsonl" &&
+      path.relative(state, file).split(path.sep).length === 2,
+  );
+  const otelFiles = await storeFiles(path.join(root, "otel"), (file) =>
+    file.endsWith(".jsonl"),
+  );
   const explicit = process.env.COPILOT_OTEL_FILE_EXPORTER_PATH?.trim();
-  if (explicit && (await fs.stat(explicit).catch((error: NodeJS.ErrnoException) => { if (error.code === "ENOENT") return null; throw error; }))?.isFile()) otelFiles.push(explicit);
-  const native: Entry[] = [], otel: Entry[] = [], credits: Credit[] = [];
-  for (const file of nativeFiles) { const parsed = nativeRows(await records(file), file); native.push(...parsed.entries); credits.push(...parsed.credits); }
-  for (const file of new Set(otelFiles)) otel.push(...otelRows(await records(file), file, (await fs.stat(file)).mtime.toISOString()));
-  return { events: reconcile(native, otel, credits), source: { agent: "copilot" as const, path: root, files: nativeFiles.length + new Set(otelFiles).size, exists: nativeFiles.length + otelFiles.length > 0 } };
+  if (
+    explicit &&
+    (
+      await fs.stat(explicit).catch((error: NodeJS.ErrnoException) => {
+        if (error.code === "ENOENT") return null;
+        throw error;
+      })
+    )?.isFile()
+  )
+    otelFiles.push(explicit);
+  return {
+    files: [...nativeFiles, ...new Set(otelFiles)],
+    collect: async () => {
+      const native: Entry[] = [],
+        otel: Entry[] = [],
+        credits: Credit[] = [];
+      for (const file of nativeFiles) {
+        await scanFile(file, async () => {
+          const parsed = nativeRows(await records(file), file);
+          native.push(...parsed.entries);
+          credits.push(...parsed.credits);
+        });
+      }
+      for (const file of new Set(otelFiles))
+        await scanFile(file, async () => {
+          otel.push(
+            ...otelRows(
+              await records(file),
+              file,
+              (await fs.stat(file)).mtime.toISOString(),
+            ),
+          );
+        });
+      return {
+        events: reconcile(native, otel, credits),
+        source: {
+          agent: "copilot" as const,
+          path: root,
+          files: nativeFiles.length + new Set(otelFiles).size,
+          exists: nativeFiles.length + otelFiles.length > 0,
+        },
+      };
+    },
+  };
 }
+
+export async function collectCopilot(home: string) { return (await planCopilot(home)).collect(); }
