@@ -50,6 +50,16 @@ const jsonl = (...rows: object[]) =>
   rows.map((row) => JSON.stringify(row)).join("\n");
 
 describe("local harness compatibility", () => {
+  it("ignores fresh Antigravity summary databases without a conversations directory", async () => {
+    const home = await root();
+    const dir = path.join(home, ".gemini/antigravity-cli");
+    await fs.mkdir(dir, { recursive: true });
+    sqlite(path.join(dir, "conversation_summaries.db"), "CREATE TABLE summaries(id INTEGER PRIMARY KEY);");
+    delete process.env.ANTIGRAVITY_DATA_DIR;
+    const result = await collectAntigravity(home);
+    expect(result.events).toEqual([]);
+    expect(result.source.files).toBe(0);
+  });
   it("deduplicates a Pi fork against its parent's active branch while retaining spent sibling requests", async () => {
     const home = await root(); const dir = path.join(home, "sessions");
     const header = { type: "session", id: "parent", timestamp: "2026-01-01T00:00:00Z" };

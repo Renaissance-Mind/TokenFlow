@@ -9,7 +9,8 @@ import { parseAmpThread } from "./sources/amp.js";
 import { createClaudeJsonlParser } from "./sources/claude.js";
 import { createCodexJsonlParser } from "./sources/codex.js";
 import { dedupeCodexSessions, type CodexSession } from "./sources/codex-replay.js";
-import { initialSessionRecord, sqliteRows, tableColumns } from "./sources/store-io.js";
+import { sqliteRows, tableColumns } from "./sources/store-io.js";
+import { codexRolloutLines, initialCodexSessionRecord, isCodexRollout, plainRolloutPath } from "./sources/codex-reader.js";
 import { parseCodebuffChatMessages } from "./sources/codebuff.js";
 import { extractDroidModelFromLine, parseDroidSettings } from "./sources/droid.js";
 import { planDshUsage, resolveDshSessionDirs } from "./sources/dsh.js";
@@ -100,18 +101,16 @@ async function collectUsage(
     planAntigravity(home),
     planCopilot(home),
   ]);
-  const codexFiles = [
-    ...(await listFiles(
-      path.join(codexHome, "sessions"),
-      (file) =>
-        path.basename(file).startsWith("rollout-") && file.endsWith(".jsonl"),
-    )),
-    ...(await listFiles(
-      path.join(codexHome, "archived_sessions"),
-      (file) => file.endsWith(".jsonl"),
-      1,
-    )),
-  ];
+  const codexFiles: string[] = [];
+  const seenRollouts = new Set<string>();
+  for (const name of ["sessions", "archived_sessions"]) {
+    const root = path.join(codexHome, name);
+    for (const file of (await listFiles(root, isCodexRollout)).sort()) {
+      const key = plainRolloutPath(path.relative(root, file));
+      if (seenRollouts.has(key)) continue;
+      seenRollouts.add(key); codexFiles.push(file);
+    }
+  }
   const claudeFiles = await listFiles(
     path.join(claudeHome, "projects"),
     (file) => file.endsWith(".jsonl"),
@@ -180,7 +179,7 @@ async function collectUsage(
   const codexSessions: CodexSession[] = [];
   for (const file of codexFiles) {
     await scanFile(file, async () => {
-      const row = await initialSessionRecord(file);
+      const row = await initialCodexSessionRecord(file);
       const metadata =
         row?.payload && typeof row.payload === "object"
           ? (row.payload as Record<string, unknown>)
@@ -198,14 +197,14 @@ async function collectUsage(
         | undefined;
       const compactions = new Map<string, string>();
       codexSessions.push({
-        id: String(metadata?.id || file),
+        id: String(metadata?.id || plainRolloutPath(file)),
         parent:
           typeof metadata?.forked_from_id === "string"
             ? metadata.forked_from_id
             : source?.subagent?.thread_spawn?.parent_thread_id,
         forkTime,
         compactions,
-        events: await readJsonlEvents(file, (options) =>
+        events: await readCodexEvents(file, (options) =>
           createCodexJsonlParser({
             ...options,
             serviceTier: codexServiceTier,
@@ -470,6 +469,12 @@ async function readJsonlEvents(
 ): Promise<UsageEvent[]> {
   const parser = createParser({ sourcePath: filePath });
   await streamJsonlLines(filePath, (line) => parser.pushLine(line));
+  return parser.finish();
+}
+
+async function readCodexEvents(file: string, createParser: (options: { sourcePath: string }) => JsonlUsageParser): Promise<UsageEvent[]> {
+  const parser = createParser({ sourcePath: plainRolloutPath(file) });
+  for await (const line of codexRolloutLines(file, bytes => scannedBytes(file, bytes))) parser.pushLine(line);
   return parser.finish();
 }
 

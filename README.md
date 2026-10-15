@@ -58,7 +58,7 @@ Home: /Users/alice/.tokenflow
 
 | Source | Local data read | Notes |
 | --- | --- | --- |
-| Codex | `~/.codex/sessions/**/rollout-*.jsonl` and archived session JSONL | Parses rollout token events, preserves Standard/Fast/Flex tiers, counts unreported compactions, and excludes inherited fork history. The selected TOML profile supplies a fallback tier for unclassified records. |
+| Codex | `~/.codex/sessions/**/*.jsonl`, `.jsonl.zst`, and nested `archived_sessions` | Streams plain and Zstandard rollouts, prefers active/plain copies during migration, and preserves fork/replay and compaction accounting. Recorded Standard/Fast/Flex tiers take precedence over the selected TOML profile fallback. |
 | Claude Code | `~/.claude/projects/**/*.jsonl` | Parses project JSONL usage data. |
 | Gemini CLI | `~/.gemini/tmp/**/*.{json,jsonl}` | Reads per-request usage, JSONL settlement records and stats; preserves legacy cumulative session parsing. |
 | OpenCode | `~/.local/share/opencode/opencode*.db` and legacy message JSON | Reads legacy and v2 message tables, excludes copied fork rows, and uses uncovered session counters as fallback. Requires `sqlite3`. |

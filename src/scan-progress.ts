@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import fs from "node:fs/promises";
+import { codexRolloutStat, isCodexRollout } from "./sources/codex-reader.js";
 
 export interface ScanProgress {
   stage: "discovery" | "reading" | "processing";
@@ -40,7 +41,10 @@ export class ScanTracker {
   async begin(files: string[]): Promise<void> {
     for (const file of new Set(files)) {
       this.discovered.add(file);
-      const stat = await fs.stat(file);
+      const stat = await fs.stat(file).catch(error => {
+        if (error.code === "ENOENT" && isCodexRollout(file)) return codexRolloutStat(file);
+        throw error;
+      });
       this.files.set(file, { size: stat.size, bytes: 0, complete: false });
     }
     this.stage = "reading";

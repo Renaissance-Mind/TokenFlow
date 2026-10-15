@@ -40,7 +40,7 @@ runtime libraries are identified separately below.
 - Project: https://github.com/101arrowz/fzstd
 - Copyright: Copyright (c) 2020 Arjun Barrett
 - License: MIT
-- Used for: streaming decompression of local dsh Zstandard session logs on Node.js 20+.
+- Used for: streaming decompression of local Codex and dsh Zstandard session logs on Node.js 20+.
 
 ## smol-toml (runtime dependency)
 

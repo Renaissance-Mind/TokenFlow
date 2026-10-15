@@ -1,0 +1,5 @@
+{"timestamp":"2026-10-14T00:00:01Z","type":"event_msg","payload":{"type":"token_count","info":{"model":"gpt-5","last_token_usage":{"input_tokens":100,"output_tokens":20,"total_tokens":120}}}}
+{"timestamp":"2026-10-14T00:00:02Z","type":"token_usage_record","payload":{"response_id":"compaction-1","usage":{"input_tokens":500,"output_tokens":20}}}
+{"type":"compacted","payload":{"compaction_response_id":"compaction-1"}}
+{"timestamp":"2026-10-14T00:00:02Z","type":"token_usage_record","payload":{"response_id":"compaction-1","usage":{"input_tokens":500,"output_tokens":20}}}
+{"type":"compacted","payload":{"compaction_response_id":"compaction-1"}}
