@@ -33,13 +33,13 @@ try {
   const chart=await fs.readFile(path.join(server,'node_modules/echarts/dist/echarts.min.js'));
   const chartFile=`echarts-${createHash('sha256').update(chart).digest('hex').slice(0,12)}.js`;
   replaceOnce(chartUrl[0],'/vendor/'+chartFile);
-  html=html.replace('<body>','<body>\n<section class="operation-progress" id="operationProgress" hidden aria-live="polite"><span id="progressLabel"></span><div class="progress-track" id="progressTrack" role="progressbar" aria-valuemin="0" aria-valuemax="100"><span class="progress-fill" id="progressFill"></span></div><span id="progressPercent"></span></section>\n<header class="desktop-toolbar"><strong>Dashboard</strong><span id="desktopDataSource"></span><span id="desktopActivity" role="status"></span><button id="desktopRefresh" type="button">Refresh</button><button id="desktopSync" type="button">Sync</button><button id="desktopSettings" type="button">Settings</button></header>');
+  replaceOnce('<body>','<body>\n'+await fs.readFile(path.join(desktop,'dashboard/toolbar.html'),'utf8'));
   replaceOnce('async function api(path, options = {}) {','async function api(path, options = {}) {\n      if (window.tokenflow) return window.tokenflow.dashboardRequest(path, options);');
   replaceOnce('if (!previewMode && !snapshotMode) await loadApiKeys();','if (!window.tokenflow && !previewMode && !snapshotMode) await loadApiKeys();');
   replaceOnce('function scheduleWidgetPreviewPrefetch() {','function scheduleWidgetPreviewPrefetch() {\n      if (window.tokenflow) return;');
   replaceOnce('const action = previewMode','const action = (previewMode || window.tokenflow)');
   replaceOnce('    boot();','    window.tokenflowDashboard = { boot, refresh: async () => { usageHeatmapCache.clear(); hourlyCache.clear(); await boot(); }, language: applyLanguage };');
-  html=html.replace('</head>','<link rel="stylesheet" href="/desktop.css"><link rel="stylesheet" href="/progress.css"></head>');
+  html=html.replace('</head>','<link rel="stylesheet" href="/desktop.css"><link rel="stylesheet" href="/progress.css"><link rel="stylesheet" href="/window-chrome.css"></head>');
   html=html.replace('</body>','<script type="module" src="/desktop.js"></script></body>');
   const destination=path.join(desktop,'dashboard');await fs.mkdir(destination,{recursive:true});
   await fs.writeFile(path.join(destination,'index.html'),html);

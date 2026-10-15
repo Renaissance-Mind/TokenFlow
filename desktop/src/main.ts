@@ -56,7 +56,7 @@ const defaultSettings: Settings = {
   paused: false, trayMetric: "cost", language: app.getLocale().startsWith("zh") ? "zh" : "en",
 };
 const state: DesktopState = {
-  version: app.getVersion(), collectorVersion: "", cli: { source: "managed", version: "", path: "", compatible: true, updateStatus: "idle" }, dashboardSource: "local", settings: { ...defaultSettings },
+  version: app.getVersion(), windowChrome: { platform: process.platform, fullScreen: false }, collectorVersion: "", cli: { source: "managed", version: "", path: "", compatible: true, updateStatus: "idle" }, dashboardSource: "local", settings: { ...defaultSettings },
   account: null, hasCollector: false, hasDashboard: false, busy: null, lastSyncAt: null,
   summary: null, login: null, loginBusy: false, collectionPhase: null, collectionStartedAt: null,
   error: null, notice: null, pendingRequests: 0, scanProgress: null, fetchProgress: null, requestProgress: { completed: 0, total: 0 }, settingsOpen: false, update: { status: "idle" },
@@ -148,8 +148,12 @@ async function openDashboard(): Promise<void> {
   popup?.hide();
   if (!dashboardWindow || dashboardWindow.isDestroyed()) {
     dashboardWindow = new BrowserWindow({ width: 1440, height: 960, minWidth: 800, minHeight: 640,
-      title: "TokenFlow Dashboard", backgroundColor: "#ffffff", show: false, autoHideMenuBar: true, webPreferences: localPreferences() });
+      title: "TokenFlow Dashboard", titleBarStyle: "hidden",
+      ...(process.platform === "darwin" ? { trafficLightPosition: { x: 18, y: 21 } } : { titleBarOverlay: { height: 56, color: "#00000000", symbolColor: "#808080" } }),
+      backgroundColor: "#ffffff", show: false, autoHideMenuBar: true, webPreferences: localPreferences() });
     protectLocalContents(dashboardWindow.webContents);
+    dashboardWindow.on("enter-full-screen", () => { state.windowChrome.fullScreen = true; emit(); });
+    dashboardWindow.on("leave-full-screen", () => { state.windowChrome.fullScreen = false; emit(); });
     dashboardWindow.on("close", (event) => { if (!shuttingDown) { event.preventDefault(); dashboardWindow!.hide(); } });
     dashboardWindow.on("closed", () => { settingsView?.webContents.close(); settingsView = null; dashboardWindow = null; });
     await dashboardWindow.loadURL("tokenflow://dashboard/index.html?mode=dashboard");

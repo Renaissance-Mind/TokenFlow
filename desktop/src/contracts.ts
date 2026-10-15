@@ -17,6 +17,7 @@ export interface LocalSummary {
   sources: Array<{ agent: string; exists: boolean; files: number; path: string }>;
 }
 export interface DesktopState {
+  windowChrome: { platform: string; fullScreen: boolean };
   cli: { source: "installed" | "managed"; version: string; path: string; compatible: boolean; updateStatus: string; availableVersion?: string };
   dashboardSource: "local" | "cloud";
   version: string;

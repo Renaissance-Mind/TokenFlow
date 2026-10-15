@@ -1,14 +1,16 @@
 // Data changes redraw the existing Dashboard; authentication never navigates it.
 import {renderProgress} from './progress.js';
+import {renderWindowChrome} from './window-chrome.js';
 let latest, started=false, revision='', refreshing=false, pending=false;
 const $=id=>document.getElementById(id);
 const words={en:{local:'This device’s data',cloud:'Synced data',scan:'Reading usage…',pricing:'Fetching pricing…',upload:'Syncing…',refresh:'Refresh',sync:'Sync',settings:'Settings'},zh:{local:'本机数据',cloud:'同步数据',scan:'正在读取用量…',pricing:'正在获取价格…',upload:'正在同步…',refresh:'刷新',sync:'同步',settings:'设置'}};
 function activity(){
   if(!latest)return;
-  renderProgress(latest);
+  renderWindowChrome(latest);renderProgress(latest);
   const t=words[latest.settings.language]||words.en;
   $('desktopDataSource').textContent=t[latest.dashboardSource];
-  $('desktopActivity').textContent=latest.busy?(t[latest.collectionPhase||'scan']||t.scan):latest.notice||latest.error||'';
+  $('desktopActivity').textContent=latest.notice||latest.error||'';
+  $('desktopActivity').hidden=!$('operationProgress').hidden||!$('desktopActivity').textContent;
   document.querySelector('.desktop-toolbar').classList.toggle('is-reading',!!latest.busy);
   for(const [id,key] of [['desktopRefresh','refresh'],['desktopSync','sync'],['desktopSettings','settings']])$(id).textContent=t[key];
   $('desktopRefresh').disabled=!!latest.busy||!latest.cli.compatible;
@@ -33,7 +35,6 @@ function update(state){
 $('desktopSettings').onclick=()=>window.tokenflow.openSettings();
 $('desktopRefresh').onclick=async()=>{await window.tokenflow.dashboard();await window.tokenflow.scan();await refresh();};
 $('desktopSync').onclick=async()=>{await window.tokenflow.sync();await refresh();};
-// The web sidebar and sticky filters must clear both native activity bars,
-// including when the toolbar wraps in a smaller App window.
+// Keep the web sidebar and filters aligned to the single native toolbar.
 new ResizeObserver(([entry])=>document.documentElement.style.setProperty('--desktop-toolbar-height',entry.target.getBoundingClientRect().height+'px')).observe(document.querySelector('.desktop-toolbar'));
 window.tokenflow.onState(update);window.tokenflow.getState().then(update);

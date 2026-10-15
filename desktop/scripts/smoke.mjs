@@ -22,6 +22,14 @@ try {
   await expect(page.locator('#preferences')).toBeHidden(); await expect(page.locator('#loginSection')).toBeHidden();
   await expect.poll(async()=>{const s=await page.evaluate(()=>window.tokenflow.getState()); if(s.error)throw new Error(s.error); return !!s.summary&&!s.busy;},{timeout:60_000}).toBe(true);
   let state=await page.evaluate(()=>window.tokenflow.getState());
+  if(process.platform==='darwin') {
+    const frame=await instance.evaluate(({BrowserWindow})=>{
+      const win=BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=dashboard'));
+      return {bounds:win.getBounds(),content:win.getContentBounds(),buttons:win.getWindowButtonPosition()};
+    });
+    assert.equal(frame.bounds.height,frame.content.height);
+    assert.deepEqual(frame.buttons,{x:18,y:21});
+  }
   await page.evaluate(()=>{window.dashboardIdentity=document.getElementById('app');});
   assert.equal(state.cli.source,'managed'); assert.equal(state.cli.compatible,true); assert.equal(state.hasCollector,false);
   assert.equal(state.summary.today.tokens,0); await expect(page.locator('#totalCost')).toHaveText('$0.00');
@@ -43,6 +51,18 @@ try {
       const toolbar=document.querySelector('.desktop-toolbar').getBoundingClientRect();
       return {clear:sidebar.top>=toolbar.bottom-1,sidebar:sidebar.top,toolbar:toolbar.bottom,width:innerWidth};
     }).then(value=>value.clear?true:value)).toBe(true);
+    // Real CLI scan events exercise the compact progress at every window size.
+    const layout=await page.evaluate(async()=>{
+      const header=document.querySelector('.desktop-toolbar');
+      const before=header.getBoundingClientRect().height;const samples=[];
+      const off=window.tokenflow.onState(state=>{if(state.busy){
+        const bar=document.getElementById('operationProgress').getBoundingClientRect(),track=document.getElementById('progressTrack').getBoundingClientRect(),toolbar=header.getBoundingClientRect();
+        samples.push({height:toolbar.height,sameRow:bar.top>=toolbar.top&&bar.bottom<=toolbar.bottom,track:track.width,buttons:Array.from(document.querySelectorAll('.desktop-actions button')).every(button=>{const r=button.getBoundingClientRect();return r.top>=toolbar.top&&r.bottom<=toolbar.bottom&&r.right<=innerWidth;}),label:document.getElementById('progressLabel').textContent});
+      }});
+      await window.tokenflow.scan();off();return {before,after:header.getBoundingClientRect().height,samples};
+    });
+    assert.equal(layout.before,56);assert.equal(layout.after,56);assert.ok(layout.samples.length);
+    for(const sample of layout.samples){assert.equal(sample.height,56);assert.equal(sample.sameRow,true);assert.ok(sample.track<=76);assert.equal(sample.buttons,true);assert.match(sample.label,/files/);}
   }
   await page.setViewportSize({width:1440,height:960});
   await page.locator('#dashboardRange7').click();await expect(page.locator('#dashboardRange7')).toHaveAttribute('aria-pressed','true');
@@ -52,6 +72,14 @@ try {
   const theme=await page.locator('html').getAttribute('data-theme');assert.ok(['light','dark'].includes(theme));
   await page.locator('#themeToggle').click();
   assert.equal(await page.locator('.tbti-sidebar').evaluate(sidebar=>sidebar.scrollLeft),0);
+  if(process.platform==='darwin'&&process.env.TOKENFLOW_WINDOW_CHROME_TEST==='1') {
+    await instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=dashboard')).setFullScreen(true));
+    await expect(page.locator('html')).toHaveAttribute('data-full-screen','true');
+    assert.equal(await page.locator('.desktop-toolbar').evaluate(el=>getComputedStyle(el).paddingLeft),'24px');
+    await instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=dashboard')).setFullScreen(false));
+    await expect(page.locator('html')).toHaveAttribute('data-full-screen','false');
+    assert.equal(await page.locator('.desktop-toolbar').evaluate(el=>getComputedStyle(el).paddingLeft),'104px');
+  }
   assert.deepEqual(externalRequests,[]);assert.deepEqual(failedAssets,[]);
   await page.screenshot({path:path.join(output,'desktop-dashboard-local.png')});
   // Verify the local reading animation, with the real native state event.
@@ -76,6 +104,8 @@ try {
   const settings=instance.windows().find(w=>w.url().includes('mode=settings')); await settings.waitForLoadState('domcontentloaded');
   assert.deepEqual(await instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().filter(w=>!w.webContents.getURL().includes('mode=tray')).map(w=>({id:w.id,bounds:w.getBounds()}))),nativeBefore);
   assert.equal(await settings.evaluate(()=>getComputedStyle(document.body).colorScheme),'light');
+  assert.equal(await settings.locator('header').evaluate(el=>el.getBoundingClientRect().height),56);
+  assert.equal(await settings.locator('#operationProgress').evaluate(el=>el.closest('header')!==null),true);
   settings.on('pageerror',e=>errors.push(e.message));
   await expect(settings.locator('.overview')).toBeHidden(); await expect(settings.locator('#preferences')).toBeVisible();
   await expect(settings.locator('#loginSection')).toBeVisible(); await expect(settings.locator('#apiToken')).toBeVisible();

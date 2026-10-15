@@ -1,6 +1,6 @@
 {
   "name": "tokenflow-desktop",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "private": true,
   "description": "TokenFlow dashboard and bundled local usage collector",
   "author": "RenaissanceMind",

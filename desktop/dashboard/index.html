@@ -1062,10 +1062,17 @@
       .tbti-card-tilt { transition: none; }
     }
   </style>
-<link rel="stylesheet" href="/desktop.css"><link rel="stylesheet" href="/progress.css"></head>
+<link rel="stylesheet" href="/desktop.css"><link rel="stylesheet" href="/progress.css"><link rel="stylesheet" href="/window-chrome.css"></head>
 <body>
-<section class="operation-progress" id="operationProgress" hidden aria-live="polite"><span id="progressLabel"></span><div class="progress-track" id="progressTrack" role="progressbar" aria-valuemin="0" aria-valuemax="100"><span class="progress-fill" id="progressFill"></span></div><span id="progressPercent"></span></section>
-<header class="desktop-toolbar"><strong>Dashboard</strong><span id="desktopDataSource"></span><span id="desktopActivity" role="status"></span><button id="desktopRefresh" type="button">Refresh</button><button id="desktopSync" type="button">Sync</button><button id="desktopSettings" type="button">Settings</button></header>
+<header class="desktop-toolbar window-toolbar">
+  <div class="desktop-heading"><strong>Dashboard</strong><span id="desktopDataSource"></span></div>
+  <div class="desktop-status">
+    <span id="desktopActivity" role="status" hidden></span>
+    <section class="operation-progress compact-progress" id="operationProgress" hidden aria-live="polite"><span id="progressLabel"></span><div class="progress-track" id="progressTrack" role="progressbar" aria-valuemin="0" aria-valuemax="100"><span class="progress-fill" id="progressFill"></span></div><span id="progressPercent"></span></section>
+  </div>
+  <nav class="desktop-actions" aria-label="Dashboard actions"><button id="desktopRefresh" type="button">Refresh</button><button id="desktopSync" type="button">Sync</button><button id="desktopSettings" type="button">Settings</button></nav>
+</header>
+
   <main>
     <div id="previewNotice" class="notice info hidden"></div>
     <div id="login" class="panel hidden">
