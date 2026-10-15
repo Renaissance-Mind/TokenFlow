@@ -144,7 +144,7 @@ try {
   await panel.locator('#miniSettings').click();
   await expect(settings.locator('[data-section="traySection"]')).toHaveAttribute('aria-current','page');
   // Invalid all-hidden input must not erase the last usable popup layout.
-  for(const input of await settings.locator('[name="trayWidgets"]:checked').all())await input.uncheck();
+  for(const name of ['overview','trend','models','activity'])await settings.locator('[name="trayWidgets"][value="'+name+'"]').uncheck();
   await settings.locator('#saveTray').click();await expect(settings.locator('#traySavedStatus')).toHaveText('请至少选择一个 Dashboard 模块。');
   assert.deepEqual((await settings.evaluate(()=>window.tokenflow.getState())).settings.trayWidgets,['overview','activity']);
   await settings.screenshot({path:path.join(output,'desktop-settings.png'),fullPage:true});
