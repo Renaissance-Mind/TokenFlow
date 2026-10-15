@@ -1,4 +1,5 @@
 import type { Settings } from "./contracts.js";
+import { trayWidgetIds } from "./contracts.js";
 import { normalizeDesktopServer } from "./auth.js";
 
 // Connection settings belong to CLI config.json. Only App presentation and
@@ -11,7 +12,7 @@ export function appSettings(settings: Partial<Settings>): Partial<Settings> {
   if (settings.trayRange && [1, 7, 30].includes(settings.trayRange)) result.trayRange = settings.trayRange;
   if (settings.trayTheme && ["system", "light", "dark"].includes(settings.trayTheme)) result.trayTheme = settings.trayTheme;
   if (Array.isArray(settings.trayWidgets)) {
-    const widgets = [...new Set(settings.trayWidgets)].filter(item => ["overview", "trend", "models", "activity"].includes(item));
+    const widgets = [...new Set(settings.trayWidgets)].filter(item => trayWidgetIds.includes(item));
     if (widgets.length) result.trayWidgets = widgets;
   }
   return result;

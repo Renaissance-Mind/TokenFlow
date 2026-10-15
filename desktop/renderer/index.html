@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
-<title>TokenFlow Settings</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="progress.css"><link rel="stylesheet" href="settings.css"><link rel="stylesheet" href="window-chrome.css"></head>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; frame-src tokenflow:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>TokenFlow Settings</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="progress.css"><link rel="stylesheet" href="settings.css"><link rel="stylesheet" href="window-chrome.css"><link rel="stylesheet" href="widget-editor.css"></head>
 <body><main>
 <section class="operation-progress" id="operationProgress" hidden aria-live="polite"><span id="progressLabel"></span><div class="progress-track" id="progressTrack" role="progressbar" aria-valuemin="0" aria-valuemax="100"><span class="progress-fill" id="progressFill"></span></div><span id="progressPercent"></span></section>
 <header><div class="brand"><span>TokenFlow</span></div><nav class="breadcrumbs settings-only" aria-label="Navigation"><button id="breadcrumbDashboard" data-text="dashboardTitle">Dashboard</button><span aria-hidden="true">/</span><span data-text="settings">Settings</span></nav><div class="header-actions"><span id="account" class="tray-only"></span><button id="settingsShortcut" class="tray-only" data-text="settings">Settings</button><button id="dashboardShortcut" class="settings-only" data-text="backDashboard">Back to Dashboard</button></div></header>
@@ -43,21 +43,30 @@
     <div class="save-row"><span id="savedStatus" role="status"></span><button type="submit" id="save" data-text="save">Save preferences</button></div>
   </div></form>
 </section>
-<section class="settings-only tray-preferences" id="traySection" aria-labelledby="trayTitle">
-  <div class="section-label"><h2 id="trayTitle" data-text="popupTitle">Menu bar popup</h2></div>
-  <p class="muted" data-text="popupDescription">Choose the Dashboard sections shown when you click the menu bar icon.</p>
-  <form id="trayPreferences">
-    <div class="setting-grid">
-      <label><span data-text="popupRange">Default time range</span><select id="trayRange"><option value="1" data-text="todayShort">Today</option><option value="7" data-text="popup7">Last 7 days</option><option value="30" data-text="popup30">Last 30 days</option></select></label>
-      <label><span data-text="popupTheme">Appearance</span><select id="trayTheme"><option value="system" data-text="popupSystem">Follow system</option><option value="light" data-text="popupLight">Light</option><option value="dark" data-text="popupDark">Dark</option></select></label>
+<section class="settings-only tray-preferences" id="traySection" aria-labelledby="widgetEditorTitle">
+  <form id="trayPreferences" class="widget-editor">
+    <div class="widget-editor-toolbar">
+      <div class="widget-editor-intro"><h2 id="widgetEditorTitle">Edit popup</h2><p id="widgetEditorSubtitle">Drag widgets into a layout that works for you.</p></div>
+      <div class="widget-editor-actions">
+        <select id="trayRange"><option value="1" data-text="todayShort">Today</option><option value="7" data-text="popup7">Last 7 days</option><option value="30" data-text="popup30">Last 30 days</option></select>
+        <select id="trayTheme"><option value="system" data-text="popupSystem">Follow system</option><option value="light" data-text="popupLight">Light</option><option value="dark" data-text="popupDark">Dark</option></select>
+        <button id="addWidget" type="button" class="editor-outline-button" aria-controls="widgetLibrary" aria-expanded="true"><img src="icons/plus.svg" alt=""><span id="addWidgetText">Add widgets</span></button>
+        <button id="saveTray" type="submit" class="editor-primary-button">Done</button>
+      </div>
     </div>
-    <fieldset class="tray-widget-options"><legend data-text="popupSections">Dashboard sections</legend>
-      <label><input type="checkbox" name="trayWidgets" value="overview"><span><strong data-text="popupOverview">Usage overview</strong><small data-text="popupOverviewHint">Tokens, cost, and mini trends</small></span></label>
-      <label><input type="checkbox" name="trayWidgets" value="trend"><span><strong data-text="popupTrend">Daily trend</strong><small data-text="popupTrendHint">The same usage chart as Dashboard</small></span></label>
-      <label><input type="checkbox" name="trayWidgets" value="models"><span><strong data-text="popupModels">Model distribution</strong><small data-text="popupModelsHint">See your largest cost drivers</small></span></label>
-      <label><input type="checkbox" name="trayWidgets" value="activity"><span><strong data-text="popupActivity">Token activity</strong><small data-text="popupActivityHint">Your activity across the year</small></span></label>
-    </fieldset>
-    <div class="save-row"><span id="traySavedStatus" role="status"></span><button type="submit" id="saveTray" data-text="savePopup">Save popup</button></div>
+    <div class="widget-workspace library-open" id="widgetWorkspace">
+      <div class="widget-canvas" id="widgetCanvas">
+        <div id="widgetPreviewLoading" class="widget-preview-loading" role="status"><p id="widgetPreviewLoadingText">Loading popup preview…</p><button id="retryWidgetPreview" type="button">Retry</button></div>
+        <iframe id="widgetPreview" title="Popup preview" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer"></iframe>
+        <p id="widgetCount" class="widget-count"></p>
+      </div>
+      <aside class="widget-library" id="widgetLibrary" aria-labelledby="widgetLibraryTitle">
+        <div class="widget-library-heading"><div><h3 id="widgetLibraryTitle">Widgets</h3><p id="widgetLibraryHint">Click to add, or drag into the preview</p></div><button id="closeWidgetLibrary" type="button" class="editor-icon-button" aria-label="Close widget library"><img src="icons/x.svg" alt=""></button></div>
+        <label class="widget-search"><img src="icons/search.svg" alt=""><input id="widgetSearch" type="search" placeholder="Search widgets…" autocomplete="off"></label>
+        <div class="widget-catalog" id="widgetCatalog"></div><p id="widgetNoResults" hidden></p>
+      </aside>
+    </div>
+    <div class="widget-editor-footer"><span id="traySavedStatus" role="status" aria-live="polite"></span><button id="resetWidgets" type="button"><img src="icons/rotate-ccw.svg" alt=""><span id="resetWidgetsText">Restore defaults</span></button></div>
   </form>
 </section>
 <section class="settings-only cli-settings" id="cliSection" aria-labelledby="cliTitle"><div class="section-label"><h2 id="cliTitle" data-text="cliUpdates">CLI & updates</h2></div>
@@ -65,4 +74,4 @@
   <div class="update-row app-update-row"><div class="update-details"><div class="version-line"><span data-text="appTitle">TokenFlow App</span><span id="version"></span></div><span id="updateStatus" role="status"></span></div><div class="cli-actions"><button id="update" data-text="update">Check App updates</button><button id="downloadUpdate" hidden data-text="download">Download update</button><button id="installUpdate" hidden data-text="install">Install and restart</button></div></div>
 </section>
 <footer class="tray-only"><span id="scanned"></span><span class="full-only" data-text="metadata">Only usage counts are uploaded.</span><button id="trayDashboard" data-text="dashboard">Dashboard</button></footer>
-</div></div></main><script type="module" src="app.js"></script></body></html>
+</div></div></main><script src="vendor/echarts.js"></script><script type="module" src="app.js"></script></body></html>

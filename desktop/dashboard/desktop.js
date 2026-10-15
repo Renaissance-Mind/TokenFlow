@@ -2,6 +2,7 @@
 import {renderProgress} from './progress.js';
 import {renderWindowChrome} from './window-chrome.js';
 if (new URLSearchParams(location.search).get('mode') === 'tray') {
+  if (new URLSearchParams(location.search).get('editor') === '1') await import('./editor-preview.js');
   await import('./tray.js');
 } else {
 let latest, started=false, revision='', refreshing=false, pending=false;

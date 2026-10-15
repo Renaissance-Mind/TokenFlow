@@ -295,25 +295,99 @@ try {
   await settings.reload();await expect(settings.locator('#language')).toHaveValue('zh');
   await expect(settings.locator('#connectTitle')).toHaveText('账号与同步');
   const collectorConfigBefore=await fs.readFile(path.join(env.TOKENFLOW_HOME,'config.json'),'utf8');
-  await settings.locator('#trayRange').selectOption('30');await settings.locator('#trayTheme').selectOption('light');
-  for(const widget of ['trend','models'])await settings.locator('[name="trayWidgets"][value="'+widget+'"]').uncheck();
-  await settings.locator('[name="trayWidgets"][value="activity"]').check();
+  await settings.locator('[data-section="traySection"]').click();
+  await expect(settings.locator('body')).toHaveClass(/editing-tray/);
+  const preview=settings.frameLocator('#widgetPreview');
+  const editorErrors=[];settings.on('pageerror',error=>editorErrors.push(error.message));
+  await expect(preview.locator('body')).toHaveAttribute('data-editor-ready','true',{timeout:30_000});
+  await expect(preview.locator('body')).toHaveAttribute('data-mini-loaded','true',{timeout:30_000});
+  const previewOrder=()=>preview.locator('#miniWidgets>[data-mini-widget]').evaluateAll(nodes=>nodes.map(node=>node.dataset.miniWidget));
+  assert.deepEqual(await previewOrder(),['overview','trend','models']);
+  // Add every new canonical widget, persist it, and verify the real popup.
+  await settings.locator('#addWidget').click();
+  if(!await settings.locator('#widgetLibrary').isVisible())await settings.locator('#addWidget').click();
+  for(const name of ['activity','composition','devices','cache','output'])await settings.locator('[data-widget="'+name+'"] .widget-add').click();
+  await expect.poll(previewOrder).toEqual(['overview','trend','models','activity','composition','devices','cache','output']);
+  assert.deepEqual((await settings.evaluate(()=>window.tokenflow.getState())).settings.trayWidgets,['overview','trend','models']);
+  await settings.locator('#saveTray').click();
+  await expect(settings.locator('#traySavedStatus')).toHaveText('小窗设置已保存。');
+  await expect.poll(()=>panel.locator('#miniWidgets>[data-mini-widget]').evaluateAll(nodes=>nodes.map(node=>node.dataset.miniWidget))).toEqual(['overview','trend','models','activity','composition','devices','cache','output']);
+  await expect(panel.locator('#outputTokens')).toHaveText('0');await expect(panel.locator('#cacheHitRate')).toHaveText('0.00%');
+  // Rebuild a short layout with an actual library-to-frame drag, then reorder
+  // from the frame's handle. Coordinates are based on rendered DOM bounds.
+  await settings.locator('#resetWidgets').click();
+  for(const name of ['trend','models'])await settings.locator('[data-remove-widget="'+name+'"]').click();
+  await expect.poll(previewOrder).toEqual(['overview']);
+  await expect(settings.locator('[data-remove-widget="overview"]')).toBeDisabled();
+  await settings.locator('#widgetSearch').fill('活跃');
+  await expect(settings.locator('.widget-library-card:visible')).toHaveCount(1);
+  async function dragBetween(source,target,offsetY=0){
+    await target.scrollIntoViewIfNeeded();await source.scrollIntoViewIfNeeded();const start=await source.boundingBox();
+    const end=await target.boundingBox();assert.ok(start&&end);
+    await settings.mouse.move(start.x+start.width/2,start.y+start.height/2);await settings.mouse.down();
+    await settings.mouse.move(start.x+start.width/2+8,start.y+start.height/2+8,{steps:5});
+    await settings.mouse.move(end.x+end.width/2,end.y+Math.max(3,offsetY),{steps:25});await settings.mouse.move(end.x+end.width/2+1,end.y+Math.max(3,offsetY)+1);await settings.mouse.up();
+  }
+  await dragBetween(settings.locator('[data-widget="activity"]'),settings.locator('#widgetCount'),3);
+  await expect.poll(previewOrder).toEqual(['overview','activity']);
+  await settings.locator('#widgetSearch').fill('');
+  await dragBetween(settings.locator('[data-drag-widget="activity"]'),preview.locator('[data-mini-widget="overview"]'),5);
+  await expect.poll(previewOrder).toEqual(['activity','overview']);
+  // Keyboard reordering is an equivalent path, including boundary protection.
+  await settings.locator('[data-drag-widget="activity"]').press('ArrowDown',{timeout:15000});
+  await expect.poll(previewOrder).toEqual(['overview','activity']);
+  await settings.locator('[data-drag-widget="activity"]').press('ArrowUp',{timeout:15000});
+  await expect.poll(previewOrder).toEqual(['activity','overview']);
+  await settings.evaluate(()=>window.tokenflow.saveSettings({language:'en'}));
+  await expect(settings.locator('#widgetEditorTitle')).toHaveText('Edit popup');await expect(preview.locator('html')).toHaveAttribute('lang','en');
+  assert.deepEqual(await previewOrder(),['activity','overview']);
+  await settings.evaluate(()=>window.tokenflow.saveSettings({language:'zh'}));await expect(settings.locator('#widgetEditorTitle')).toHaveText('编辑小窗');
+  await settings.locator('#trayRange').selectOption('30');await settings.locator('#trayTheme').selectOption('dark');
+  await expect(preview.locator('html')).toHaveAttribute('data-theme','dark');
+  await settings.locator('#trayTheme').selectOption('light');
+  // The editor shell stays light and fits smaller windows with a closable drawer.
+  await settings.locator('#closeWidgetLibrary').click();
+  for(const width of [1440,1000,800]){
+    await settings.setViewportSize({width,height:960});
+    assert.equal(await settings.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+    await expect(settings.locator('#saveTray')).toBeInViewport();await expect(settings.locator('#addWidget')).toBeInViewport();
+  }
+  await settings.setViewportSize({width:1440,height:960});await settings.locator('#addWidget').click();
   await settings.locator('#saveTray').click();await expect(settings.locator('#traySavedStatus')).toHaveText('小窗设置已保存。');
   assert.equal(await fs.readFile(path.join(env.TOKENFLOW_HOME,'config.json'),'utf8'),collectorConfigBefore);
   const stored=JSON.parse(await fs.readFile(path.join(env.TOKENFLOW_DESKTOP_DATA,'settings.json'),'utf8'));
-  assert.equal(stored.trayRange,30);assert.equal(stored.trayTheme,'light');assert.deepEqual(stored.trayWidgets,['overview','activity']);
-  await expect(panel.locator('[data-mini-widget="trend"]')).toBeHidden();await expect(panel.locator('[data-mini-widget="activity"]')).toBeVisible();
-  await expect(panel.locator('[data-mini-range="30"]')).toHaveAttribute('aria-pressed','true');
-  await expect(panel.locator('html')).toHaveAttribute('data-theme','light');
+  assert.equal(stored.trayRange,30);assert.equal(stored.trayTheme,'light');assert.deepEqual(stored.trayWidgets,['activity','overview']);
+  await expect.poll(()=>panel.locator('#miniWidgets>[data-mini-widget]').evaluateAll(nodes=>nodes.map(node=>node.dataset.miniWidget))).toEqual(['activity','overview']);
+  await expect(panel.locator('[data-mini-range="30"]')).toHaveAttribute('aria-pressed','true');await expect(panel.locator('html')).toHaveAttribute('data-theme','light');
   await instance.evaluate(({Menu})=>Menu.getApplicationMenu().getMenuItemById('status-panel').click());
   await panel.screenshot({path:path.join(output,'desktop-tray-customized.png')});
-  await panel.locator('#miniSettings').click();
-  await expect(settings.locator('[data-section="traySection"]')).toHaveAttribute('aria-current','page');
-  await expect(settings.locator('[data-section="traySection"]')).toBeInViewport();
-  // Invalid all-hidden input must not erase the last usable popup layout.
-  for(const name of ['overview','trend','models','activity'])await settings.locator('[name="trayWidgets"][value="'+name+'"]').uncheck();
-  await settings.locator('#saveTray').click();await expect(settings.locator('#traySavedStatus')).toHaveText('请至少选择一个 Dashboard 模块。');
-  assert.deepEqual((await settings.evaluate(()=>window.tokenflow.getState())).settings.trayWidgets,['overview','activity']);
+  await panel.locator('#miniSettings').click();await expect(settings.locator('[data-section="traySection"]')).toHaveAttribute('aria-current','page');
+  await settings.reload();await settings.locator('[data-section="traySection"]').click();
+  await expect.poll(previewOrder).toEqual(['activity','overview']);
+  await expect(preview.locator('body')).toHaveAttribute('data-mini-loaded','true',{timeout:30_000});
+  await settings.locator('#resetWidgets').click();await settings.locator('#trayRange').selectOption('7');
+  await expect(preview.locator('[data-mini-range="7"]')).toHaveAttribute('aria-pressed','true');
+  await expect(preview.locator('body')).toHaveAttribute('data-mini-loaded','true',{timeout:30_000});
+  await expect(preview.locator('#dailyTrend canvas')).toBeVisible();
+  assert.equal(await preview.locator('body').evaluate(()=>typeof window.tokenflow.setApiToken),'undefined');
+  await settings.screenshot({path:path.join(output,'desktop-widget-editor.png')});
+  const lift=await settings.locator('[data-drag-widget="models"]').boundingBox();
+  const destination=await preview.locator('[data-mini-widget="trend"]').boundingBox();
+  await settings.mouse.move(lift.x+lift.width/2,lift.y+lift.height/2);await settings.mouse.down();
+  await settings.mouse.move(destination.x+destination.width/2,destination.y+5,{steps:20});
+  await expect(settings.locator('#widgetDropMarker')).toBeVisible();
+  await settings.screenshot({path:path.join(output,'desktop-widget-editor-drag.png')});
+  await settings.keyboard.press('Escape');await settings.mouse.up();
+  assert.deepEqual(await previewOrder(),['overview','trend','models']);
+
+  for(const width of [1000,800]){
+    await settings.setViewportSize({width,height:960});await expect(settings.locator('#saveTray')).toBeInViewport();
+    await settings.screenshot({path:path.join(output,'desktop-widget-editor-'+width+'.png')});
+  }
+  await settings.setViewportSize({width:1440,height:960});
+
+  assert.deepEqual(editorErrors,[]);
+  await settings.locator('[data-section="preferencesSection"]').click();
   await settings.screenshot({path:path.join(output,'desktop-settings.png'),fullPage:true});
   if(process.env.TOKENFLOW_SYSTEM_TEST==='1') {
     await settings.evaluate(()=>window.tokenflow.saveSettings({launchAtLogin:true}));
@@ -328,7 +402,7 @@ try {
   try{await settings.evaluate(()=>window.tokenflow.checkUpdate());}catch(error){if(!executablePath)throw error;assert.equal((await settings.evaluate(()=>window.tokenflow.getState())).update.status,'error');}
   await expect.poll(async()=>(await page.evaluate(()=>window.tokenflow.getState())).pendingRequests,{timeout:30_000}).toBe(0);
   assert.deepEqual(errors,[]);
-  console.log('Desktop smoke passed: standalone CLI installation, canonical Dashboard with local data, Settings with token/login, tray, shared configuration, localization, and window close.');
+  console.log('Desktop smoke passed: standalone CLI installation, canonical Dashboard with local data, Settings with token/login, tray, shared configuration, localization, visual widget add/remove/drag/keyboard order/save/reload, and window close.');
 } finally {
   if(process.env.TOKENFLOW_SYSTEM_TEST==='1')await instance.evaluate(({app})=>app.setLoginItemSettings({openAtLogin:false,args:['--background']})).catch(()=>{});
   await instance.close(); await fs.rm(temp,{recursive:true,force:true});

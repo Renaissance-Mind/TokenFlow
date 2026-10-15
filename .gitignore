@@ -19,3 +19,8 @@ desktop/assets/*.ico
 
 desktop/node-*/
 desktop/dashboard/vendor/shoelace/
+
+# Copied from the bundled Dashboard by prepare-resources.mjs.
+desktop/renderer/vendor/
+# Keep native captures of personal settings local.
+desktop/design/**/current-*.png

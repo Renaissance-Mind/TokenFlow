@@ -5,7 +5,7 @@ import {operationProgress} from './progress.js';
 document.body.classList.add('mini-dashboard');
 const $=id=>document.getElementById(id);
 const main=document.querySelector('main');
-const widgets={overview:document.querySelector('.summary-board'),trend:$('dailyTrend').closest('.panel'),models:$('modelShare').closest('.panel'),activity:$('usageHeatmap').closest('.panel')};
+const widgets={overview:document.querySelector('.summary-board'),trend:$('dailyTrend').closest('.panel'),models:$('modelShare').closest('.panel'),activity:$('usageHeatmap').closest('.panel'),composition:$('tokenMix').closest('.panel'),devices:$('deviceShare').closest('.panel'),cache:$('cacheHitRate').closest('.metric'),output:$('outputTokens').closest('.metric')};
 const archive=document.createElement('div');archive.hidden=true;archive.inert=true;archive.id='miniArchive';
 while(main.firstChild)archive.append(main.firstChild);
 main.append(archive);
@@ -66,7 +66,14 @@ async function refresh(){
 function update(state){
   latest=state;const t=words[state.settings.language]||words.en;
   window.tokenflowMini={range:state.settings.trayRange,widgets:state.settings.trayWidgets,needsHeatmap:state.settings.trayWidgets.some(name=>name!=='models')};
-  for(const [name,node] of Object.entries(widgets))node.hidden=!state.settings.trayWidgets.includes(name);
+  for(const [name,node] of Object.entries(widgets)){
+    node.hidden=!state.settings.trayWidgets.includes(name);
+    if(node.hidden)archive.append(node);
+  }
+  // App preferences define both visibility and order, including layouts saved
+  // by the visual editor. Move the canonical nodes rather than cloning charts.
+  const order=Array.from(content.children,node=>node.dataset.miniWidget);
+  if(JSON.stringify(order)!==JSON.stringify(state.settings.trayWidgets))for(const name of state.settings.trayWidgets)if(widgets[name])content.append(widgets[name]);
   $('miniSource').textContent=t[state.dashboardSource];
   document.querySelector('[data-mini-range="1"]').textContent=t.today;
   document.querySelector('[data-mini-range="7"]').textContent=t.week;

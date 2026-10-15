@@ -1,4 +1,6 @@
 import type { FetchProgress } from "./network-progress.js";
+export const trayWidgetIds = ["overview", "trend", "models", "activity", "composition", "devices", "cache", "output"] as const;
+export type TrayWidget = typeof trayWidgetIds[number];
 export interface ScanProgress { stage: "discovery" | "reading" | "processing"; discoveredFiles: number; processedFiles: number; totalFiles: number | null; readBytes: number; percent: number }
 export interface Settings {
   serverUrl: string;
@@ -8,7 +10,7 @@ export interface Settings {
   trayMetric: "cost" | "tokens" | "icon";
   trayRange: 1 | 7 | 30;
   trayTheme: "system" | "light" | "dark";
-  trayWidgets: Array<"overview" | "trend" | "models" | "activity">;
+  trayWidgets: TrayWidget[];
   language: "en" | "zh";
 }
 export interface DayUsage { date: string; tokens: number; costUsd: number; unpricedTokens: number }

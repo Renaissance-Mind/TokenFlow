@@ -12,3 +12,7 @@ test('popup preferences preserve a usable, independent layout',()=>{
   source.trayWidgets.push('overview');assert.deepEqual(saved.trayWidgets,['models','activity']);
   assert.deepEqual(appSettings({trayRange:90,trayTheme:'invalid',trayWidgets:[]}),{});
 });
+
+test('widget migration keeps the visual order and all catalog widgets',()=>{
+  assert.deepEqual(appSettings({trayWidgets:['output','composition','devices','cache','activity','models','trend','overview','output','unknown']}),{trayWidgets:['output','composition','devices','cache','activity','models','trend','overview']});
+});

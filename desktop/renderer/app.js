@@ -1,3 +1,4 @@
+import {createWidgetEditor} from './widget-editor.js';
 import {renderProgress} from './progress.js';
 import {renderWindowChrome} from './window-chrome.js';
 const $ = (id) => document.getElementById(id);
@@ -17,7 +18,8 @@ Object.assign(texts.en,{popupTitle:'Menu bar popup',popupDescription:'Choose the
 Object.assign(texts.zh,{popupTitle:'菜单栏小窗',popupDescription:'点击菜单栏图标时，展示你选择的 Dashboard 模块。',popupRange:'默认时间范围',popup7:'最近 7 天',popup30:'最近 30 天',popupTheme:'外观',popupSystem:'跟随系统',popupLight:'浅色',popupDark:'深色',popupSections:'显示模块',popupOverview:'用量总览',popupOverviewHint:'Token、费用与迷你走势',popupTrend:'每日趋势',popupTrendHint:'与 Dashboard 相同的用量曲线',popupModels:'模型分布',popupModelsHint:'查看主要模型的费用占比',popupActivity:'Token 活跃度',popupActivityHint:'查看一整年的使用节奏',savePopup:'保存小窗设置',popupSaved:'小窗设置已保存。',popupRequired:'请至少选择一个 Dashboard 模块。'});
 Object.assign(texts.en,{languageSaved:'Language updated.',languageSavedDraft:'Language updated. Save your other changes separately.'});
 Object.assign(texts.zh,{languageSaved:'语言已更新。',languageSavedDraft:'语言已更新，其他修改需点击保存。'});
-let current, dirty = false, trayDirty=false, switchingAccount = false, languageSaving=false;
+let current, dirty = false, switchingAccount = false, languageSaving=false;
+const trayEditor=createWidgetEditor();
 const number = (n) => Number(n || 0).toLocaleString();
 const time = (value) => value ? new Date(value).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '—';
 const localDate = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
@@ -86,11 +88,7 @@ function render(state) {
     for (const key of ['launchAtLogin','paused']) $(key).checked = state.settings[key];
   }
   if(!languageSaving)$('language').value=state.settings.language;
-  if(!trayDirty){
-    $('trayRange').value=String(state.settings.trayRange);$('trayTheme').value=state.settings.trayTheme;
-    document.querySelectorAll('[name="trayWidgets"]').forEach(input=>{input.checked=state.settings.trayWidgets.includes(input.value);});
-  }
-  $('saveTray').disabled=false;
+  trayEditor.update(state);
   $('serverUrl').disabled = state.hasCollector || state.hasDashboard || !!state.busy || state.loginBusy;
   $('cliSource').textContent = t[state.cli.source]; $('cliPath').textContent = state.cli.path.replace(/^(\/Users\/[^/]+|\/home\/[^/]+)\//,'~/'); $('cliPath').title = state.cli.path;
   const updating = ['checking','installing'].includes(state.cli.updateStatus);
@@ -140,12 +138,6 @@ if (!window.tokenflow) {
       dirty = false; render(await window.tokenflow.getState()); $('savedStatus').textContent = texts[current.settings.language].saved;
     });
   });
-  $('trayPreferences').addEventListener('input',()=>{trayDirty=true;$('traySavedStatus').textContent='';});
-  $('trayPreferences').addEventListener('submit',event=>{
-    event.preventDefault();const widgets=Array.from(document.querySelectorAll('[name="trayWidgets"]:checked'),input=>input.value);
-    if(!widgets.length){$('traySavedStatus').textContent=texts[current.settings.language].popupRequired;return;}
-    run(async()=>{await window.tokenflow.saveSettings({trayRange:Number($('trayRange').value),trayTheme:$('trayTheme').value,trayWidgets:widgets});trayDirty=false;render(await window.tokenflow.getState());$('traySavedStatus').textContent=texts[current.settings.language].popupSaved;});
-  });
   $('tokenForm').addEventListener('submit', (event) => {
     event.preventDefault(); run(async () => { await window.tokenflow.setApiToken($('apiToken').value); $('apiToken').value = ''; switchingAccount = false; render(await window.tokenflow.getState()); });
   });
@@ -156,7 +148,7 @@ if (!window.tokenflow) {
   $('sync').onclick = () => run(() => window.tokenflow.sync());
   const dashboard = () => run(() => window.tokenflow.dashboard());
   $('breadcrumbDashboard').onclick = dashboard;
-  const selectSection=section=>{const button=document.querySelector('[data-section="'+section+'"]');if(!button)return;document.getElementById(section).scrollIntoView({behavior:'smooth',block:'start'});document.querySelectorAll('[data-section]').forEach(item=>{item.classList.toggle('active',item===button);if(item===button)item.setAttribute('aria-current','page');else item.removeAttribute('aria-current');});};
+  const selectSection=section=>{const button=document.querySelector('[data-section="'+section+'"]');if(!button)return;trayEditor.setActive(section==='traySection');document.getElementById(section).scrollIntoView({behavior:'smooth',block:'start'});document.querySelectorAll('[data-section]').forEach(item=>{item.classList.toggle('active',item===button);if(item===button)item.setAttribute('aria-current','page');else item.removeAttribute('aria-current');});};
   document.querySelectorAll('[data-section]').forEach(button=>button.onclick=()=>selectSection(button.dataset.section));
   window.tokenflow.onSettingsSection(selectSection);
   $('dashboardShortcut').onclick = dashboard; $('trayDashboard').onclick = dashboard;

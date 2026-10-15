@@ -10,6 +10,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
 import { ApiError, apiRequest, checkedLoginUrl, createPkce, normalizeDesktopServer, setDesktopHttpClient } from "./auth.js";
 import type { DesktopSecret, DesktopState, LocalSummary, Settings } from "./contracts.js";
+import { trayWidgetIds } from "./contracts.js";
 import { sameRendererLocation } from "./ipc-origin.js";
 import { CliClient } from "./cli-client.js";
 import { collectorHome, findCli, installCli, rememberCli, type CliInstallation } from "./cli-installation.js";
@@ -424,7 +425,7 @@ async function saveSettings(value: unknown): Promise<void> {
   if (patch.trayRange !== undefined) { if (![1, 7, 30].includes(patch.trayRange)) throw new Error("Invalid popup range"); next.trayRange = patch.trayRange; }
   if (patch.trayTheme !== undefined) { if (!["system", "light", "dark"].includes(patch.trayTheme)) throw new Error("Invalid popup theme"); next.trayTheme = patch.trayTheme; }
   if (patch.trayWidgets !== undefined) {
-    if (!Array.isArray(patch.trayWidgets) || !patch.trayWidgets.length || patch.trayWidgets.some(item => !["overview", "trend", "models", "activity"].includes(item))) throw new Error("Choose at least one popup section");
+    if (!Array.isArray(patch.trayWidgets) || !patch.trayWidgets.length || patch.trayWidgets.some(item => !trayWidgetIds.includes(item))) throw new Error("Choose at least one popup section");
     next.trayWidgets = [...new Set(patch.trayWidgets)];
   }
   if (patch.language !== undefined) { if (!["en", "zh"].includes(patch.language)) throw new Error("Invalid language"); next.language = patch.language; }
