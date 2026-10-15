@@ -255,4 +255,4 @@ Issues y pull requests son bienvenidos. Incluye un test enfocado para cambios en
 
 ## Licencia
 
-Este repositorio no incluye actualmente un archivo de licencia.
+Este proyecto se distribuye bajo la [licencia Apache 2.0](../../LICENSE). Los avisos de licencias de terceros se conservan en [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md).

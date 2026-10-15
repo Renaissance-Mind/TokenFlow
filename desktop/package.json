@@ -4,7 +4,7 @@
   "private": true,
   "description": "TokenFlow dashboard and bundled local usage collector",
   "author": "RenaissanceMind",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "main": "app/main.js",
   "scripts": {

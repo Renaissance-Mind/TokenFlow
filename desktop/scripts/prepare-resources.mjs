@@ -30,6 +30,8 @@ async function copyDependency(name) {
 }
 for (const name of Object.keys(pkg.dependencies)) await copyDependency(name);
 await fs.cp(path.join(root, 'THIRD_PARTY_NOTICES.md'), path.join(collector, 'THIRD_PARTY_NOTICES.md'));
+await fs.copyFile(path.join(root, 'LICENSE'), path.join(collector, 'LICENSE'));
+await fs.copyFile(path.join(root, 'LICENSE'), path.join(desktop, 'LICENSE'));
 const assets = path.join(desktop, 'assets');
 await fs.mkdir(assets, { recursive: true });
 const symbol = `<path d="M32 17a15 15 0 1 0 15 15" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><path d="M32 25a7 7 0 1 0 7 7" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><circle cx="47" cy="17" r="4" fill="currentColor"/>`;

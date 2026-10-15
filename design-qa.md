@@ -63,3 +63,5 @@ The merge retains the validated App 0.1.15 desktop implementation and incorporat
 Merge validation passed: root typecheck, all 182 CLI tests, the desktop build bundling CLI 0.2.77, all 18 desktop tests, and native Electron smoke with full-screen/Spaces, two-display placement, localization, and visual widget editing. The global-install fixture now creates a version newer than the bundled CLI dynamically; its previous hard-coded 0.2.76 was older than 0.2.77 and caused an expected managed-CLI selection.
 
 The desktop CI workflow now also runs on `main`. This merge does not publish a new release or change the installed App/CLI; installed-app and package evidence above belongs to the original App 0.1.15 validation.
+
+The subsequent upstream Apache-2.0 license commit was also merged. Both package manifests retain Apache-2.0; npm's dry-run package includes `LICENSE`, and the App archive plus standalone collector include byte-identical copies of the upstream license. The signed macOS package passed isolated native smoke again after this packaging change.

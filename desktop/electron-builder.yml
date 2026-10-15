@@ -9,6 +9,7 @@ files:
   - dashboard/**
   - assets/**
   - package.json
+  - LICENSE
 extraResources:
   - from: node-${arch}
     to: node-${arch}

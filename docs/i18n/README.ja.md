@@ -255,4 +255,4 @@ Issue と pull request を歓迎します。parser、pricing、scheduler、comma
 
 ## ライセンス
 
-このリポジトリには現在 license ファイルが含まれていません。
+このプロジェクトは [Apache License 2.0](../../LICENSE) の下で公開されています。第三者のライセンス表記は [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md) に記載されています。

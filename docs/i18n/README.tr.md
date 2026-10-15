@@ -255,4 +255,4 @@ Issue ve pull request'ler memnuniyetle karşılanır. Parser, pricing, scheduler
 
 ## Lisans
 
-Bu repository şu anda bir license file içermiyor.
+Bu proje [Apache License 2.0](../../LICENSE) kapsamında dağıtılır. Üçüncü taraf lisans bildirimleri [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md) dosyasında korunur.
