@@ -242,6 +242,44 @@ try {
   await expect(settings.locator('.overview')).toBeHidden(); await expect(settings.locator('#preferences')).toBeVisible();
   await expect(settings.locator('#loginSection')).toBeVisible(); await expect(settings.locator('#apiToken')).toBeVisible();
   await expect(settings.locator('#cliPath')).toHaveText(state.cli.path);
+  // A language selection saves immediately, even while Save preferences is
+  // disabled by a real scan, without submitting unrelated draft fields.
+  const languageConfigBefore=await fs.readFile(path.join(env.TOKENFLOW_HOME,'config.json'),'utf8');
+  const originalDevice=(await settings.evaluate(()=>window.tokenflow.getState())).settings.deviceName;
+  await settings.locator('#deviceName').fill('Unsaved device name');
+  assert.equal(await settings.evaluate(async()=>{
+    let changed=false,saveDisabled=false;
+    const off=window.tokenflow.onState(state=>{if(state.busy&&!changed){
+      changed=true;saveDisabled=document.getElementById('save').disabled;
+      const select=document.getElementById('language');select.value='zh';select.dispatchEvent(new Event('change',{bubbles:true}));
+    }});
+    await window.tokenflow.scan();off();return changed&&saveDisabled;
+  }),true);
+  await expect(settings.locator('#connectTitle')).toHaveText('账号与同步');
+  await expect(settings.locator('#language')).toHaveValue('zh');
+  await expect(settings.locator('#savedStatus')).toHaveText('语言已更新，其他修改需点击保存。');
+  await expect(settings.locator('#deviceName')).toHaveValue('Unsaved device name');
+  assert.equal((await settings.evaluate(()=>window.tokenflow.getState())).settings.deviceName,originalDevice);
+  await expect(page.locator('html')).toHaveAttribute('lang','zh-CN');
+  await expect(page.locator('[data-i18n="heading.dailyTrend"]')).toHaveText('每日趋势');
+  await expect(panel.locator('html')).toHaveAttribute('lang','zh-CN');
+  await expect(panel.locator('#miniSource')).toHaveText('本机数据');
+  await expect(panel.locator('[data-mini-range="7"]')).toHaveText('7天');
+  await expect(panel.locator('.mini-model-limit')).toHaveText('前4个模型');
+  assert.equal(JSON.parse(await fs.readFile(path.join(env.TOKENFLOW_DESKTOP_DATA,'settings.json'),'utf8')).language,'zh');
+  assert.equal(await fs.readFile(path.join(env.TOKENFLOW_HOME,'config.json'),'utf8'),languageConfigBefore);
+  // The web Dashboard picker also changes the one App preference instead of
+  // leaving a separate localStorage language behind.
+  await settings.locator('#dashboardShortcut').click();
+  await page.locator('#languageToggle').click();
+  assert.equal(await page.locator('[data-language-option]').count(),2);
+  await page.locator('[data-language-option="en"]').click();
+  await expect(page.locator('html')).toHaveAttribute('lang','en');
+  await expect(settings.locator('#language')).toHaveValue('en');
+  await expect(panel.locator('#miniSource')).toHaveText('This device');
+  assert.equal(JSON.parse(await fs.readFile(path.join(env.TOKENFLOW_DESKTOP_DATA,'settings.json'),'utf8')).language,'en');
+  await page.locator('#desktopSettings').click();
+  await expect(settings.locator('#deviceName')).toHaveValue('Unsaved device name');
   await settings.locator('#preferences').evaluate(form=>{
     form.querySelector('#deviceName').value='Desktop acceptance';
     form.querySelector('#language').value='zh';
@@ -253,6 +291,8 @@ try {
   await expect(settings.locator('#savedStatus')).toHaveText('设置已保存。');
   await expect(page.locator('.desktop-toolbar strong')).toHaveText('Dashboard');
   assert.equal(await page.locator('#localDashboard,#cloudDashboard').count(),0);
+  await expect(settings.locator('#connectTitle')).toHaveText('账号与同步');
+  await settings.reload();await expect(settings.locator('#language')).toHaveValue('zh');
   await expect(settings.locator('#connectTitle')).toHaveText('账号与同步');
   const collectorConfigBefore=await fs.readFile(path.join(env.TOKENFLOW_HOME,'config.json'),'utf8');
   await settings.locator('#trayRange').selectOption('30');await settings.locator('#trayTheme').selectOption('light');

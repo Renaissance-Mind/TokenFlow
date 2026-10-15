@@ -38,6 +38,18 @@ function update(state){
 $('desktopSettings').onclick=()=>window.tokenflow.openSettings();
 $('desktopRefresh').onclick=async()=>{await window.tokenflow.dashboard();await window.tokenflow.scan();await refresh();};
 $('desktopSync').onclick=async()=>{await window.tokenflow.sync();await refresh();};
+// The embedded web picker must use the same saved language as Settings/tray.
+// Only offer languages supported by the surrounding App interface.
+for(const option of document.querySelectorAll('[data-language-option]')){
+  const language=option.dataset.languageOption;
+  if(!words[language]){option.remove();continue;}
+  option.onclick=async()=>{
+    try{
+      await window.tokenflow.saveSettings({language});
+      $('languageMenuPanel').hidden=true;$('languageToggle').setAttribute('aria-expanded','false');$('languageToggle').focus();
+    }catch(error){$('desktopActivity').textContent=error.message;$('desktopActivity').hidden=false;}
+  };
+}
 // Keep the web sidebar and filters aligned to the single native toolbar.
 new ResizeObserver(([entry])=>document.documentElement.style.setProperty('--desktop-toolbar-height',entry.target.getBoundingClientRect().height+'px')).observe(document.querySelector('.desktop-toolbar'));
 window.tokenflow.onState(update);window.tokenflow.getState().then(update);

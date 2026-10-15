@@ -25,7 +25,7 @@ document.querySelector('.desktop-toolbar').outerHTML=`<header class="mini-header
 </header>`;
 let latest,revision='',running=false,pending=false,started=false,lastHeight=0,lastError='';
 const media=matchMedia('(prefers-color-scheme: dark)');
-const words={en:{local:'This device',cloud:'Synced data',today:'Today',settings:'Customize popup',refresh:'Refresh',open:'Open Dashboard',loading:'Loading Dashboard…'},zh:{local:'本机数据',cloud:'同步数据',today:'今日',settings:'设置小窗',refresh:'刷新',open:'打开 Dashboard',loading:'正在读取 Dashboard…'}};
+const words={en:{local:'This device',cloud:'Synced data',today:'Today',week:'7D',month:'30D',models:'Top 4',actions:'Dashboard actions',range:'Time range',settings:'Customize popup',refresh:'Refresh',open:'Open Dashboard',loading:'Loading Dashboard…'},zh:{local:'本机数据',cloud:'同步数据',today:'今日',week:'7天',month:'30天',models:'前4个模型',actions:'Dashboard 操作',range:'时间范围',settings:'设置小窗',refresh:'刷新',open:'打开 Dashboard',loading:'正在读取 Dashboard…'}};
 function resize(){
   const height=Math.ceil(document.querySelector('.mini-header').getBoundingClientRect().height+main.getBoundingClientRect().height);
   if(Math.abs(height-lastHeight)>1){lastHeight=height;void window.tokenflow.resizeTray(height);}
@@ -69,6 +69,11 @@ function update(state){
   for(const [name,node] of Object.entries(widgets))node.hidden=!state.settings.trayWidgets.includes(name);
   $('miniSource').textContent=t[state.dashboardSource];
   document.querySelector('[data-mini-range="1"]').textContent=t.today;
+  document.querySelector('[data-mini-range="7"]').textContent=t.week;
+  document.querySelector('[data-mini-range="30"]').textContent=t.month;
+  document.querySelector('.mini-actions').setAttribute('aria-label',t.actions);
+  document.querySelector('.mini-ranges').setAttribute('aria-label',t.range);
+  modelLimit.textContent=t.models;
   for(const button of document.querySelectorAll('[data-mini-range]'))button.setAttribute('aria-pressed',String(Number(button.dataset.miniRange)===state.settings.trayRange));
   actions();
   const key=JSON.stringify([state.dashboardSource,state.summary?.scannedAt,state.settings.serverUrl,state.account?.id,state.lastSyncAt,state.settings.trayRange,state.settings.trayWidgets,state.settings.language]);

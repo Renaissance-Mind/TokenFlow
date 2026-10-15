@@ -15,7 +15,9 @@ const texts = {
 };
 Object.assign(texts.en,{popupTitle:'Menu bar popup',popupDescription:'Choose the Dashboard sections shown when you click the menu bar icon.',popupRange:'Default time range',popup7:'Last 7 days',popup30:'Last 30 days',popupTheme:'Appearance',popupSystem:'Follow system',popupLight:'Light',popupDark:'Dark',popupSections:'Dashboard sections',popupOverview:'Usage overview',popupOverviewHint:'Tokens, cost, and mini trends',popupTrend:'Daily trend',popupTrendHint:'The same usage chart as Dashboard',popupModels:'Model distribution',popupModelsHint:'See your largest cost drivers',popupActivity:'Token activity',popupActivityHint:'Your activity across the year',savePopup:'Save popup',popupSaved:'Popup saved.',popupRequired:'Choose at least one Dashboard section.'});
 Object.assign(texts.zh,{popupTitle:'菜单栏小窗',popupDescription:'点击菜单栏图标时，展示你选择的 Dashboard 模块。',popupRange:'默认时间范围',popup7:'最近 7 天',popup30:'最近 30 天',popupTheme:'外观',popupSystem:'跟随系统',popupLight:'浅色',popupDark:'深色',popupSections:'显示模块',popupOverview:'用量总览',popupOverviewHint:'Token、费用与迷你走势',popupTrend:'每日趋势',popupTrendHint:'与 Dashboard 相同的用量曲线',popupModels:'模型分布',popupModelsHint:'查看主要模型的费用占比',popupActivity:'Token 活跃度',popupActivityHint:'查看一整年的使用节奏',savePopup:'保存小窗设置',popupSaved:'小窗设置已保存。',popupRequired:'请至少选择一个 Dashboard 模块。'});
-let current, dirty = false, trayDirty=false, switchingAccount = false;
+Object.assign(texts.en,{languageSaved:'Language updated.',languageSavedDraft:'Language updated. Save your other changes separately.'});
+Object.assign(texts.zh,{languageSaved:'语言已更新。',languageSavedDraft:'语言已更新，其他修改需点击保存。'});
+let current, dirty = false, trayDirty=false, switchingAccount = false, languageSaving=false;
 const number = (n) => Number(n || 0).toLocaleString();
 const time = (value) => value ? new Date(value).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '—';
 const localDate = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
@@ -80,9 +82,10 @@ function render(state) {
   $('saveToken').disabled = state.loginBusy || !state.cli.compatible;
   $('logout').disabled = state.loginBusy;
   if (!dirty) {
-    for (const key of ['deviceName','serverUrl','trayMetric','language']) $(key).value = state.settings[key];
+    for (const key of ['deviceName','serverUrl','trayMetric']) $(key).value = state.settings[key];
     for (const key of ['launchAtLogin','paused']) $(key).checked = state.settings[key];
   }
+  if(!languageSaving)$('language').value=state.settings.language;
   if(!trayDirty){
     $('trayRange').value=String(state.settings.trayRange);$('trayTheme').value=state.settings.trayTheme;
     document.querySelectorAll('[name="trayWidgets"]').forEach(input=>{input.checked=state.settings.trayWidgets.includes(input.value);});
@@ -118,7 +121,19 @@ if (!window.tokenflow) {
 } else {
   window.tokenflow.onState(render);
   run(async () => render(await window.tokenflow.getState()));
-  $('preferences').addEventListener('input', () => { dirty = true; $('savedStatus').textContent=''; });
+  $('preferences').addEventListener('input', event => { if(event.target.id!=='language'){dirty = true; $('savedStatus').textContent='';} });
+  $('language').addEventListener('change',()=>run(async()=>{
+    const language=$('language').value;
+    languageSaving=true;$('language').disabled=true;
+    try {
+      await window.tokenflow.saveSettings({language});
+      render(await window.tokenflow.getState());
+      $('savedStatus').textContent=texts[current.settings.language][dirty?'languageSavedDraft':'languageSaved'];
+    } finally {
+      languageSaving=false;$('language').disabled=false;
+      $('language').value=current.settings.language;
+    }
+  }));
   $('preferences').addEventListener('submit', (event) => {
     event.preventDefault(); run(async () => {
       await window.tokenflow.saveSettings({deviceName:$('deviceName').value,serverUrl:$('serverUrl').value,trayMetric:$('trayMetric').value,language:$('language').value,launchAtLogin:$('launchAtLogin').checked,paused:$('paused').checked});
