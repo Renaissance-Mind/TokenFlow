@@ -257,4 +257,4 @@ node dist/cli.js status
 
 ## 许可证
 
-当前仓库尚未包含 license 文件。
+本项目采用 [Apache License 2.0](../../LICENSE)。第三方许可声明保留在 [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md) 中。

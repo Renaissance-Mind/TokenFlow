@@ -3,6 +3,7 @@ name = "tokenflow-desktop"
 version = "0.2.0"
 description = "TokenFlow dashboard and local collector"
 authors = ["RenaissanceMind"]
+license = "Apache-2.0"
 edition = "2021"
 rust-version = "1.85"
 

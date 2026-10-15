@@ -255,4 +255,4 @@ Issue와 pull request를 환영합니다. parser, pricing, scheduler, command �
 
 ## 라이선스
 
-현재 이 repository에는 license file이 포함되어 있지 않습니다.
+이 프로젝트는 [Apache License 2.0](../../LICENSE)에 따라 배포됩니다. 제3자 라이선스 고지는 [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md)에 유지됩니다.

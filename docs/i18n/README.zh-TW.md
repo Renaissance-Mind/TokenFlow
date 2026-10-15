@@ -255,4 +255,4 @@ node dist/cli.js status
 
 ## 授權
 
-目前倉庫尚未包含 license 檔案。
+本專案採用 [Apache License 2.0](../../LICENSE)。第三方授權聲明保留於 [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md)。

@@ -301,7 +301,7 @@ Issues and pull requests are welcome. Please include a focused test for parser, 
 
 ## License
 
-No license file is currently included in this repository.
+Licensed under the [Apache License 2.0](LICENSE). Third-party license notices are retained in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Acknowledgements
 
