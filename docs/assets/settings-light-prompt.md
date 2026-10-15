@@ -1,0 +1,15 @@
+# TokenFlow light Settings reference
+
+Generated with the built-in imagegen tool. Reference: settings-light-reference.png.
+
+```text
+Use case: ui-mockup.
+Create a single polished high fidelity desktop UI design reference for the existing TokenFlow usage tracking App's SETTINGS page. Flat front-on app content screenshot, 1440x960 landscape, no monitor, no browser address bar, no macOS chrome. This will be implemented as a real settings page inside the existing Dashboard window.
+Style: clean LIGHT theme only, white and barely warm pale-gray background, charcoal text, muted gray secondary text, restrained slate-blue accent, fine horizontal rules, generous breathing room. Native Apple SF Pro / system typography. Refined practical desktop utility, no decorative illustrations, no hero, no cards, no gradients, no heavy shadows.
+At very top show a thin slate-blue horizontal activity progress bar at roughly 48% and small status text 'Fetching pricing…' above/along it. Below is a compact top bar with small existing TokenFlow wordmark at left, breadcrumb 'Dashboard / Settings', and a simple 'Back to Dashboard' text action at right.
+Layout: narrow left text-only section navigation at x80 with 'Settings', then 'Account', 'Preferences', 'CLI & updates'; wide main content from x340 to x1330. Main title 'Settings' and subtitle 'Your App and CLI, connected.' The title is 32px, rows use readable 14px, section headings 18px.
+Account section: 'Account & sync' heading, small connected green status dot and 'Connected to CLI' inline. 'Your account' and 'alex@example.test' in a clear identity row; text actions 'Switch account' and 'Sign out App & CLI' at right. Below secondary sentence 'Account and sync settings are shared with the terminal.'
+Preferences section separated by a fine horizontal line. Two-column form with unobtrusive underlined inputs: 'Device name' value 'My MacBook'; 'Server' value 'https://tokenflow.renaissancemind.ai'. Another two-column row with 'Menu bar display' value 'Today’s cost' and 'Language' value 'English'. Two full-width preference rows: 'Start at login', subtext 'Open TokenFlow when you sign in to your computer', switch ON at far right; 'Pause automatic sync', subtext 'Manual sync is always available', switch OFF at far right. A modest blue text action 'Save preferences' at bottom right.
+CLI & updates section below a thin line: left title 'CLI', version 'v0.2.74'; muted path '~/.tokenusage/cli/0.2.74/dist/cli.js'; text 'App and terminal use the same installation.' Right aligned action 'Check CLI updates'. Final slim row 'TokenFlow App' with 'v0.1.6' and right text action 'Check App updates'. The whole composition fits within 960px height, with aligned columns and comfortable open layout.
+Constraints: no fabricated sidebar pages beyond these in-page sections, no dashboard charts, no portraits, no extra asset images or invented logos, no dark sections, no new floating settings window. Render exact editable UI text cleanly. All content should look implementable, visually balanced and restrained.
+```

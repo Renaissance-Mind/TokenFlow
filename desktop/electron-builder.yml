@@ -1,0 +1,58 @@
+appId: ai.renaissancemind.tokenflow
+productName: TokenFlow
+artifactName: TokenFlow-${version}-${os}-${arch}.${ext}
+directories:
+  output: release
+files:
+  - app/**
+  - renderer/**
+  - dashboard/**
+  - assets/**
+  - package.json
+extraResources:
+  - from: node-${arch}
+    to: node-${arch}
+    filter:
+      - '**/*'
+  - from: collector
+    to: collector
+    filter:
+      - '**/*'
+      - '!node_modules/**'
+  - from: collector/node_modules
+    to: collector/node_modules
+    filter:
+      - '**/*'
+asar: true
+beforePack: scripts/prepare-node.cjs
+npmRebuild: false
+mac:
+  category: public.app-category.developer-tools
+  icon: assets/icon.png
+  hardenedRuntime: true
+  entitlements: assets/entitlements.mac.plist
+  entitlementsInherit: assets/entitlements.mac.plist
+  target:
+    - dmg
+    - zip
+  notarize: false
+  signIgnore:
+    - '\.pak$'
+    - '\.bin$'
+    - '\.dat$'
+dmg:
+  sign: false
+win:
+  icon: assets/icon.png
+  target: nsis
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  runAfterFinish: true
+  deleteAppDataOnUninstall: false
+publish:
+  provider: generic
+  url: https://github.com/Renaissance-Mind/TokenFlow/releases/download/desktop-latest/

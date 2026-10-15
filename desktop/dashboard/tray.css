@@ -1,0 +1,24 @@
+.mini-dashboard{min-width:0;margin:0;background:var(--bg);color:var(--text);font:12px var(--font);overflow-x:hidden}
+.mini-dashboard main{width:100%;padding:0 22px 6px;margin:0;min-height:0}
+.mini-dashboard #miniArchive,.mini-dashboard [data-mini-widget][hidden]{display:none!important}
+.mini-header{position:sticky;top:0;z-index:10;padding:14px 22px 12px;background:var(--bg)}
+.mini-title{display:flex;align-items:center;gap:9px}.mini-title strong{font-size:16px;font-weight:650;letter-spacing:-.025em}.mini-mark{color:var(--accent);width:22px;height:22px}
+.mini-actions{margin-left:auto;display:flex;align-items:center;gap:5px}
+.mini-icon{position:relative;display:grid;place-items:center;width:28px;height:28px;padding:4px;border:0;border-radius:6px;background:none;color:var(--muted);cursor:pointer}.mini-icon>svg{width:18px;height:18px}.mini-icon:hover{background:var(--surface);color:var(--text)}.mini-icon:disabled{opacity:.4;cursor:default}.mini-icon[aria-busy="true"]{color:var(--accent);opacity:1}.mini-icon.has-error{color:#b45309}
+.mini-icon-progress{position:absolute;inset:-2px;pointer-events:none}.mini-icon-progress[hidden]{display:none}.mini-icon-progress svg{width:32px;height:32px;transform:rotate(-90deg)}.mini-icon-progress circle{fill:none;stroke-width:1.5}.mini-progress-track{stroke:var(--line)}.mini-progress-fill{stroke:currentColor;stroke-linecap:round;stroke-dasharray:88;stroke-dashoffset:88;transition:stroke-dashoffset .15s}
+.mini-context{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px}.mini-context>span{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}.mini-context>span:before{content:'';width:5px;height:5px;background:var(--accent);border-radius:50%}
+.mini-ranges{display:flex;align-items:center;gap:13px}.mini-ranges button{padding:3px 0;border:0;background:none;color:var(--muted);font:11px var(--font);cursor:pointer}.mini-ranges button[aria-pressed="true"]{color:var(--accent);font-weight:650;text-decoration:underline;text-underline-offset:6px}
+.mini-dashboard #miniWidgets{display:flex;flex-direction:column;min-width:0}
+.mini-dashboard [data-mini-widget]{margin:0;padding:14px 0;border:0;border-top:1px solid var(--line);background:none;min-width:0}
+.mini-dashboard .section-head{margin:0 0 10px;gap:8px;align-items:center}.mini-dashboard .section-head h2{font-size:12px;font-weight:600;letter-spacing:0}.mini-dashboard .section-head h2:before{display:none}
+.mini-model-limit{margin-left:auto;font-size:10px;color:var(--muted)}
+.mini-dashboard .section-actions,.mini-dashboard .module-share-trigger,.mini-dashboard .summary-board>.mini-grid,.mini-dashboard .summary-board>.stat-strip,.mini-dashboard .summary-board>.section-head,.mini-dashboard .overview-hero~*,.mini-dashboard #trendStats,.mini-dashboard .chart-footnote,.mini-dashboard .activity-legend,.mini-dashboard .activity-tabs,.mini-dashboard .activity-stats{display:none!important}
+.mini-dashboard .overview-hero{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:0;margin:0}.mini-dashboard .metric{padding:0;border:0;min-width:0}.mini-dashboard .metric .label{font-size:11px;margin:0 0 7px}.mini-dashboard .metric .value{font-size:30px;font-weight:650;letter-spacing:-.045em;line-height:1.1}.mini-dashboard .metric .value .unit{font-size:17px;margin-left:2px}.mini-dashboard .metric .exact{font-size:10px;margin-top:5px;line-height:1.45}.mini-dashboard .metric .spark{height:22px;margin-top:8px}
+.mini-dashboard .trend-chart{height:112px;min-height:0}.mini-dashboard .chart-block{height:144px;min-height:0}.mini-dashboard .activity-chart{min-height:0;margin:0;padding:0}.mini-dashboard .activity-grid{gap:2px}.mini-dashboard .activity-cell{border-radius:2px}.mini-dashboard .activity-months{font-size:9px}
+.mini-dashboard .empty-state{padding:22px 0;color:var(--muted);font-size:11px;min-height:70px;display:grid;place-items:center}
+.mini-dashboard .legal-footer{display:none!important}
+.mini-dashboard [data-mini-widget="cache"],.mini-dashboard [data-mini-widget="output"]{display:block;min-height:110px}
+.mini-dashboard [data-mini-widget="cache"] .value,.mini-dashboard [data-mini-widget="output"] .value{font-size:30px;letter-spacing:-.04em;font-weight:650}
+.mini-dashboard [data-mini-widget="cache"] .label,.mini-dashboard [data-mini-widget="output"] .label{font-size:12px;margin:0 0 10px}
+.mini-dashboard [data-mini-widget="cache"] .exact,.mini-dashboard [data-mini-widget="output"] .exact{font-size:10px;margin-top:8px}
+.mini-dashboard [data-mini-widget="cache"] .ring{width:32px;height:32px}

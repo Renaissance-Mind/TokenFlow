@@ -1,0 +1,6 @@
+{
+  "source": "TokenFlow_Server/src/html.ts:dashboardHtml",
+  "sha256": "a57bc51a53ce37b186a521de851d4aa8726c115893f73ebcaa2982bba9519a3c",
+  "echarts": "6.1.0",
+  "inter": "5.3.0"
+}

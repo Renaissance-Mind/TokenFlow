@@ -1,28 +1,33 @@
 {
   "name": "tokenflow-desktop",
-  "version": "0.2.0",
+  "version": "0.1.15",
   "private": true,
   "description": "TokenFlow dashboard and bundled local usage collector",
   "author": "RenaissanceMind",
   "license": "MIT",
   "type": "module",
+  "main": "app/main.js",
   "scripts": {
-    "build": "node scripts/build.mjs",
+    "build": "npm --prefix .. run build && tsc -p tsconfig.json && node scripts/prepare-resources.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "start": "tauri dev",
+    "start": "npm run build && electron .",
     "test": "node --test test/*.test.mjs",
     "smoke": "node scripts/smoke.mjs",
-    "pack": "tauri build --no-bundle",
-    "dist:mac": "tauri build --bundles app,dmg",
-    "dist:win": "tauri build --bundles nsis"
+    "pack": "npm run build && electron-builder --dir",
+    "dist:mac": "npm run build && electron-builder --mac dmg zip --arm64 --x64",
+    "dist:win": "npm run build && electron-builder --win nsis --x64"
   },
   "devDependencies": {
-    "@tauri-apps/api": "^2.12.3",
-    "@tauri-apps/cli": "^2.12.2",
+    "@fontsource-variable/inter": "5.3.0",
+    "@playwright/test": "^1.58.2",
     "@types/node": "^24.19.2",
-    "esbuild": "^0.28.2",
-    "postject": "^1.0.0-alpha.6",
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3",
+    "extract-zip": "2.0.1",
     "sharp": "^0.35.5",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
   }
 }

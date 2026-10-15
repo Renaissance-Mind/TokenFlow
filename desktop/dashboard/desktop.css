@@ -1,0 +1,17 @@
+:root{--desktop-toolbar-height:56px}
+body{--desktop-top:var(--desktop-toolbar-height)}
+.desktop-toolbar{color:var(--text);font:13px var(--font)}
+.desktop-heading{display:flex;align-items:center;gap:16px;flex:0 0 auto;min-width:0}
+.desktop-toolbar strong{font-weight:600;white-space:nowrap}
+.desktop-toolbar #desktopDataSource{font-size:12px;color:var(--muted);white-space:nowrap}
+.desktop-status{display:flex;align-items:center;justify-content:flex-end;gap:16px;flex:1 1 0;min-width:0}
+.desktop-toolbar #desktopActivity{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:12px;-webkit-app-region:no-drag}
+.desktop-actions{display:flex;align-items:center;gap:20px;flex:0 0 auto}
+.desktop-toolbar button{border:0;background:none;color:var(--text);cursor:pointer;font:inherit;padding:6px 0;white-space:nowrap}
+.desktop-toolbar button:disabled{opacity:.4;cursor:default}
+.tbti-sidebar{top:var(--desktop-top);height:calc(100vh - var(--desktop-top));overflow:clip}
+.filters{top:var(--desktop-top)}
+.session-only,.module-share-trigger,[onclick="logout()"],.legal-footer{display:none!important}
+@media(max-width:1100px){.has-operation-progress #desktopDataSource{display:none}.desktop-actions{gap:16px}.desktop-heading{gap:12px}}
+@media(max-width:960px){.tbti-sidebar{top:auto;height:auto}.filters{top:auto}}
+@media(max-width:850px){.desktop-actions{gap:12px}}

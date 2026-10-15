@@ -5,9 +5,10 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { pathToFileURL } from 'node:url';
-import { readEmbeddedSqlite } from '../app/sqlite.js';
+import { initializeSqliteReader, sqliteRows as readEmbeddedSqlite } from '../../dist/sources/store-io.js';
 
 test('bundled SQLite reads live WAL databases and immutable archives without external sqlite3', async () => {
+  await initializeSqliteReader();
   const dir = await fs.mkdtemp(path.join(os.tmpdir(),'tokenflow-sqlite-test-'));
   const file = path.join(dir,'store.db');
   const writer = new DatabaseSync(file);

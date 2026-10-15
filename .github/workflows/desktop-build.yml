@@ -1,11 +1,14 @@
 name: Build TokenFlow Desktop
+
 on:
   workflow_dispatch:
   push:
-    branches: [caopu/tokenflow-tauri]
-    paths: [desktop/**, src/**, package.json, package-lock.json, .github/workflows/desktop-build.yml]
+    branches: [main, caopu/tokenflow-desktop]
+    paths: [desktop/**, src/**, package.json, package-lock.json, vitest.config.ts, .github/workflows/desktop-build.yml]
+
 permissions:
   contents: read
+
 jobs:
   desktop:
     strategy:
@@ -14,47 +17,57 @@ jobs:
         include:
           - os: macos-latest
             platform: mac
+            arch: arm64
             artifact: mac-arm64
           - os: macos-15-intel
             platform: mac
+            arch: x64
             artifact: mac-x64
           - os: windows-latest
             platform: win
-            artifact: win
+            arch: x64
+            artifact: win-x64
     runs-on: ${{ matrix.os }}
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 26
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: desktop/src-tauri
-      - run: npm ci --ignore-scripts
-      - run: npm ci --prefix desktop --ignore-scripts
-      - run: npm run typecheck
-      - run: npm test
+          node-version: 24
+      - name: Install collector dependencies
+        run: npm ci --ignore-scripts
+      - name: Install desktop dependencies
+        run: npm ci --prefix desktop --ignore-scripts
+      - name: Install Electron runtime
+        run: node desktop/node_modules/electron/install.js
+      - name: Check collector types
+        run: npm run typecheck
+      - name: Test collector on macOS
         if: matrix.platform == 'mac'
-      - name: Build Tauri installer
-        run: npm run dist:${{ matrix.platform }} --prefix desktop -- --config '{"bundle":{"createUpdaterArtifacts":false}}'
-      - run: npm run typecheck --prefix desktop
-      - run: npm test --prefix desktop
-      - name: Test native WebView and collector
+        run: npm test
+      - name: Build desktop
+        run: npm run build --prefix desktop
+      - name: Test authorization validation and embedded SQLite
+        run: npm test --prefix desktop
+      - name: Test native desktop process
         run: npm run smoke --prefix desktop
-      - name: Test macOS app outside checkout
-        if: matrix.platform == 'mac'
+      - name: Build installation packages
+        working-directory: desktop
+        run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never
+      - name: Test packaged desktop process
         run: node desktop/scripts/packaged-smoke.mjs
-      - name: Install and test Windows EXE
+      - name: Install and test the Windows EXE
         if: matrix.platform == 'win'
         run: node desktop/scripts/installer-smoke.mjs
       - uses: actions/upload-artifact@v4
         with:
-          name: tokenflow-tauri-${{ matrix.artifact }}
+          name: tokenflow-desktop-${{ matrix.artifact }}
           path: |
-            desktop/src-tauri/target/release/bundle/dmg/*.dmg
-            desktop/src-tauri/target/release/bundle/nsis/*.exe
-            desktop/src-tauri/target/release/bundle/macos/*.tar.gz*
-            desktop/src-tauri/target/release/bundle/nsis/*.sig
+            desktop/release/*.dmg
+            desktop/release/*.exe
+            desktop/release/*.zip
+            desktop/release/*.yml
+            desktop/release/*.blockmap
           if-no-files-found: error
           retention-days: 14

@@ -8,11 +8,6 @@ desktop/app/
 desktop/collector/
 desktop/release/
 desktop/test-results/
-desktop/build/
-desktop/src-tauri/target/
-desktop/src-tauri/binaries/
-desktop/src-tauri/icons/
-desktop/renderer/bridge.js
 desktop/assets/*.png
 desktop/assets/*.icns
 desktop/assets/*.ico
@@ -22,4 +17,18 @@ desktop/assets/*.ico
 !/docs/i18n/
 !/docs/assets/
 
+desktop/node-*/
+desktop/dashboard/vendor/shoelace/
+
+# Copied from the bundled Dashboard by prepare-resources.mjs.
+desktop/renderer/vendor/
+# Keep native captures of personal settings local.
+desktop/design/**/current-*.png
+
+# Keep build caches from the retained Tauri branch local.
+desktop/build/
+desktop/src-tauri/target/
+desktop/src-tauri/binaries/
+desktop/src-tauri/icons/
+desktop/renderer/bridge.js
 desktop/src-tauri/gen/

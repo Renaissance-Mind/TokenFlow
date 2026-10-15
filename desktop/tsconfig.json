@@ -1,22 +1,8 @@
 {
   "compilerOptions": {
-    "target": "ES2023",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "strict": true,
-    "skipLibCheck": true,
-    "outDir": "app",
-    "types": [
-      "node"
-    ],
-    "esModuleInterop": true
+    "target": "ES2023", "module": "NodeNext", "moduleResolution": "NodeNext",
+    "strict": true, "skipLibCheck": true, "outDir": "app", "rootDir": "src",
+    "types": ["node"], "esModuleInterop": true
   },
-  "include": [
-    "src/service.ts",
-    "src/bridge.ts",
-    "src/auth.ts",
-    "src/summary.ts",
-    "src/sqlite.ts",
-    "src/contracts.ts"
-  ]
+  "include": ["src/**/*.ts", "src/**/*.cts"]
 }

@@ -1,58 +1,85 @@
 # TokenFlow Desktop
 
-TokenFlow Desktop uses Tauri 2 and the system WebView to combine the dashboard, a bundled usage collector, and the macOS menu bar or Windows tray. Users do not need Node.js, npm, or SQLite. Windows installers install WebView2 if it is missing; that step needs an internet connection.
+TokenFlow Desktop is a Dashboard, Settings page, and menu bar/system tray popup backed by the same CLI used in the terminal.
 
-Install the DMG on macOS 13.5 or newer or run the EXE on Windows. On first launch, choose a device name and sign in with GitHub or Google in your default browser. Approve the connection to authorize the dashboard and this computer’s collector. Existing `~/.tokenflow/config.json` and legacy `~/.tokenusage/config.json` are reused. An existing device can be linked to its dashboard account without creating another device.
+## Installation and shared CLI
 
-The macOS menu bar shows today’s estimated cost, tokens, or only the icon. Windows shows the same information in the tray tooltip and popup. The popup and local window include seven days of usage, source availability, sync status, and errors. Local statistics remain available offline. The full dashboard shows all connected devices through the cloud service.
+Install the macOS DMG or the Windows EXE. On startup, App finds an existing TokenFlow CLI and reuses its configuration and login. CLI versions with desktop protocol 2 are supported (starting with 0.2.73). An older installation, including the legacy `tokenusage` package, is shown in Settings with an upgrade action. Upgrading keeps its terminal entrypoint and existing configuration.
 
-Automatic sync runs every ten minutes while the app is running. Closing a window keeps the app in the tray. Preferences control startup and pausing automatic sync; manual sync remains available while paused. On macOS, the app installs a bundled CLI launcher under the collector’s `bin` directory and updates its launchd sync task. Scheduled sync uses native networking and yields while the app owns collection. On Windows, collection runs in the resident app and stops when the app quits. Authorization, sync, and pricing requests use the system proxy configuration.
+If no CLI is installed, App installs and configures a standalone CLI under the collector's data directory. Release installers include a checksummed official Node.js runtime, SQLite, and the CLI's dependencies; users do not need Node.js or npm. The terminal launchers use the active CLI recorded in `cli-installation.json`. A compatible global CLI installed later can become the active installation without leaving App on another collector.
 
-Dashboard authorization is stored in macOS Keychain or Windows Credential Manager. A recovery journal covers interrupted sign-ins. The collector’s device token stays in its private config for CLI compatibility. Signing out revokes desktop authorization and disconnects the current collector while retaining historical usage. Only usage counts are uploaded; prompts, responses, session IDs, and source paths stay local.
+The macOS installer adds `~/.local/bin` to the user's shell login profile. Windows installs launchers under the user's Local AppData directory and adds them to the user's PATH. Open a new terminal to use `tokenflow` or the compatibility command `tokenusage`. Removing or quitting App retains the standalone CLI and its data.
 
-The JavaScript parsers run in a standalone Node executable alongside the Rust shell. This preserves the collector’s supported sources and embedded SQLite. It contributes most of the remaining application size; Tauri does not require a bundled browser engine.
+Existing `~/.tokenflow/config.json` and legacy `~/.tokenusage/config.json` are reused. App uses CLI processes over private stdio for local reading, sync, token validation, and configuration changes. It does not run a separate collector or require a local HTTP port. Sync and credential changes share the CLI's lock. Browser sign-in reuses an existing device, and account changes clear the upload ledger so the new account receives a full snapshot.
 
-## Development
+## Dashboard, Settings, and tray
 
-Install a current Rust toolchain, platform build prerequisites, and Node.js 24 or newer. The builder downloads checksum-verified official Node 26.5 binaries for the standalone collector. The standalone npm CLI still supports Node.js 20 or newer.
+App always opens the canonical web Dashboard, bundled with its chart, UI, and persona assets for offline use. The same layout, charts, date ranges, and device/agent/model filters work before and after sign-in. Without account authorization, the data adapter reads this device's CLI usage cache; after sign-in, it reads synced account data. Reading local records shows a loading animation, and the cache is published before network pricing and uploads finish.
+
+Account, token, server, device name, and automatic-sync preferences are read from and written to the active CLI configuration. App sign-in, sign-out, and account switching immediately apply to terminal commands; CLI changes update Settings while App is open. Switch account opens the existing browser/token controls and retains the current login until the replacement is approved. Language, popup layout/range/appearance, menu bar display, and App startup preferences are stored separately in App settings.
+
+Settings opens inside the existing main window as a light page; returning to Dashboard retains its DOM, filters, charts, and window bounds. The section navigation stays in the same window; Menu bar popup opens its visual editor. Dashboard and Settings share one 56px draggable toolbar with native window controls and compact progress. Progress appears in that row without moving page content; smaller windows prioritize counts and actions, and macOS full screen releases the traffic-light safe area. Local reading reports discovered and processed file counts and measured percentage, with byte details on hover. HTTP fetching reports completed/total requests, with received bytes in its full accessible label and tooltip; a trustworthy Content-Length gives byte-based percentage, otherwise percentage follows completed requests. Downloads use the updater's actual percentage. Authorization and CLI installation keep an activity indicator while their total work is unknown. The tray retains its separate progress display.
+
+Settings contains browser sign-in with GitHub or Google, a read-write API token field, server and device settings, language, startup, automatic sync, and App/CLI update controls. An existing CLI device login or API token automatically opens the synced account Dashboard. App validates and reuses the same credential, including after a CLI login/account change or App restart; no second browser authorization is required. Active device credentials can read their owning account's usage, but account and administrator mutations still require the existing session authorization. Tokens are never sent to the local renderer. Desktop browser credentials use the OS credential store; collector credentials retain CLI-compatible private file storage.
+
+There is one Dashboard with no local/cloud page or selector. Signing in, signing out, and network recovery switch its data adapter without navigation or replacing the page. Only bundled scripts run in the sandboxed renderer. A narrow native API broker handles credentials and returns usage data; remote HTML is never loaded. If the server is unavailable, the same Dashboard uses this device's data. Login, tokens, and update controls live in Settings.
+
+The tray popup is a miniature Dashboard using the canonical overview, trend, model-share, activity, token-mix, device-share, cache-hit, and output modules and API adapter. It follows App's existing CLI authorization: signed-out usage is local, signed-in usage is synced. Settings → Menu bar popup opens a light visual editor: the real popup appears in the center, with a searchable widget library on the right. Click to add or drag widgets into the preview, drag handles to reorder, use arrow keys on a focused handle, or remove widgets. A blue insertion line marks the drop position; at least one widget remains. Today/7D/30D and system/light/dark update the preview, and Done saves the ordered layout for the actual popup. Restore defaults resets the draft layout. Editing does not change CLI configuration, and drafts survive language changes and collection progress. The preview frame has no Electron preload: its parent brokers only read-only usage requests, while editing controls remain in Settings. Feather icons are bundled under their MIT license.
+
+The popup gear opens this editor in the existing Settings window. Layout height follows the selected modules, scrolls when needed, and stays inside the clicked display. Refresh, Open Dashboard, and Settings remain icons in its header. Presentation preferences can be changed during collection without changing CLI connection settings.
+
+Closing a window keeps App resident in the tray. Quit stops the App, while macOS launchd continues invoking the standalone CLI every ten minutes. The same scheduled task is used by CLI and App installations. App owns collection while running, so scheduled CLI sync yields. Pausing is stored in shared CLI configuration and also applies after App quits; manual sync remains available. Windows automatic collection runs while App is resident.
+
+CLI requests use App's Chromium networking while App is running, including its system proxy configuration. Collection is cancellable when signing in, disconnecting, or quitting, and has a five-minute limit. Only aggregated usage metadata is uploaded; prompts, responses, session IDs, and source paths remain local.
+
+The current desktop entrypoint is the App validated on `caopu/tokenflow-desktop` (0.1.15), backed by the shared CLI. The earlier Tauri migration remains available on `caopu/tokenflow-tauri` and in Git history; it is not the default desktop runtime on `main`.
+
+## Development and verification
+
+Use Node.js 24 or newer for App development. The standalone CLI continues to support Node.js 20 or newer, using external sqlite3 on versions without built-in SQLite.
 
 ```sh
 npm ci
 npm ci --prefix desktop
+node desktop/node_modules/electron/install.js
 npm start --prefix desktop
 ```
+
+Some npm configurations skip installation scripts. The explicit Electron step downloads its runtime in that case. Development uses an installed system Node runtime; packaged apps install their independent bundled runtime.
 
 ```sh
 npm test
 npm run typecheck
-npm run pack --prefix desktop
-npm run typecheck --prefix desktop
+npm run build --prefix desktop
 npm test --prefix desktop
 npm run smoke --prefix desktop
-```
-
-The smoke test opens a real native WebView with isolated source and data directories. It checks the bundled collector, local summary, preferences, language, tray popup, and window residency. SQLite tests read actual WAL databases and immutable archives. Packaged checks copy the macOS app outside the repository. Windows checks install the actual NSIS EXE, verify its sidecar, test startup registration, and uninstall afterwards.
-
-Desktop authorization acceptance uses the real Worker/D1 service with an isolated signed-in test account. External GitHub or Google identity verification requires a real browser sign-in and is not simulated.
-
-```sh
 TOKENFLOW_AUTH_TEST_SERVER=/absolute/path/TokenFlow_Server/scripts/desktop-test-server.mjs node desktop/scripts/auth-smoke.mjs
 ```
 
-## Distribution
+The checks exercise real CLI processes, shared configuration, legacy upgrades, cancellation and lock release, SQLite/WAL reads, the same Dashboard across authorization and local/cloud data changes, Settings, loading animation, tray residency, and a real Worker/D1 authorization backend. Provider identity is an isolated signed-in fixture; external GitHub/Google verification requires real browser sign-in.
+
+`TOKENFLOW_CLI_PATH` selects an explicit `dist/cli.js`. `TOKENFLOW_NODE_PATH` selects a system runtime for development. `TOKENFLOW_HOME`, `TOKENFLOW_DESKTOP_DATA`, and `TOKENFLOW_SCAN_HOME` isolate acceptance tests; an isolated App data directory disables system scheduler/PATH changes and automatic attachment to global CLIs. `TOKENFLOW_EXECUTABLE` selects a packaged App for smoke tests.
+
+The canonical page snapshot is refreshed explicitly from the server checkout:
 
 ```sh
-npm run dist:mac --prefix desktop
-npm run dist:win --prefix desktop
+node desktop/scripts/sync-dashboard.mjs /absolute/path/TokenFlow_Server
+```
+
+The snapshot includes the web Dashboard's ECharts version, Inter fonts, animal personas, and identity poster exporter. Refreshing it checks the CLI adapter integration points and fails if the web page has changed them. Normal builds use these checked-in offline assets; the server checkout is not required to run or package App.
+
+## Build and distribution
+
+```sh
+npm run dist:mac --prefix desktop -- --publish never
+npm run dist:win --prefix desktop -- --publish never
 node desktop/scripts/packaged-smoke.mjs
 ```
 
-Outputs are under `desktop/src-tauri/target/release/bundle`. macOS builds the host architecture by default. To build Intel on Apple Silicon, install the Rust `x86_64-apple-darwin` target, set `TOKENFLOW_TARGET=x86_64-apple-darwin`, and pass `--target x86_64-apple-darwin` to the build. This cross build executes the Intel Node runtime and requires Rosetta on Apple Silicon. Windows uses an x64 NSIS installer. CI builds and checks both platforms on native runners; its installers are unsigned and omit updater artifacts.
+Builds download the official Node 24 runtime for each target architecture and verify its SHA-256 digest before packaging. macOS produces Apple Silicon and Intel DMGs and ZIPs. Windows produces an x64 NSIS installer. Packaged checks copy App outside the repository and verify it can install and use its standalone CLI without development dependencies. Windows installer checks must run on Windows.
 
-Set `APPLE_SIGNING_IDENTITY` to a full Developer ID Application identity for macOS signing. Public distribution also needs notarization with the distributor’s Apple credentials. Windows signing uses Tauri’s Windows signing configuration and the distributor’s certificate.
+Set `CSC_NAME` or electron-builder certificate variables for signing. Public Mac distribution also needs notarization configured with the distributor's Apple credentials. CI builds remain unsigned unless signing is configured.
 
-Updates use GitHub releases tagged `desktop-vX.Y.Z`, containing a Tauri `latest.json` manifest and signed updater artifacts. The public verification key is committed; keep its private key outside the repository. Set `TAURI_SIGNING_PRIVATE_KEY` to that key’s path and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` for release builds. Upload the generated macOS `.app.tar.gz` and Windows installer with their `.sig` files; include their URLs and signatures in the manifest. Preferences offer check, download, and install actions. Local builds do not publish updates. Builds without the release key can pass `--config '{"bundle":{"createUpdaterArtifacts":false}}'`.
+App updates use GitHub releases tagged `desktop-vX.Y.Z`, separately from npm CLI releases. Upload installers, update YAML files, and blockmaps to that release. CLI upgrades in Settings install the version shipped with App; if npm has a newer version, update via `tokenflow update` or install a newer App. Local builds do not publish anything.
 
-The hosted server needs migration `0009_desktop_auth.sql` and its desktop authorization endpoints. Existing OAuth client settings and callback URLs continue to apply.
-
-`TOKENFLOW_DESKTOP_DATA`, `TOKENFLOW_HOME`, and `TOKENFLOW_SCAN_HOME` isolate native acceptance tests. Isolated data disables startup and scheduler changes unless `TOKENFLOW_SYSTEM_TEST=1`. `TOKENFLOW_EXECUTABLE` selects a packaged executable. Test commands are enabled only when `TOKENFLOW_ACCEPTANCE_REPORT` is explicitly set and accept requests only from local windows.
+CLI sign-in reuse requires the server Dashboard read endpoints to accept active device credentials. This permission update requires no database migration. The server migration `0009_desktop_auth.sql` and desktop authorization endpoints must be deployed for browser sign-in. API-token data access uses existing account usage APIs and does not load the server `/dashboard` page. Deploy migrations before the Worker. Existing OAuth settings and callback URLs still apply.
