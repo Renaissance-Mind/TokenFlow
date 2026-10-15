@@ -92,6 +92,13 @@ try {
     await window.tokenflow.scan();off();return sawLoading&&sidebarClear;
   }),true);
   await expect.poll(async()=>!(await page.evaluate(()=>window.tokenflow.getState())).busy).toBe(true);
+  if(process.platform==='darwin'&&process.env.TOKENFLOW_WINDOW_CHROME_TEST==='1') {
+    // First creation while the main window is already full-screen must still
+    // produce a small auxiliary panel rather than another full-screen window.
+    await instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=dashboard')).setFullScreen(true));
+    await expect(page.locator('html')).toHaveAttribute('data-full-screen','true');
+  }
+  const dockBeforePopup=process.platform==='darwin' ? await instance.evaluate(({app})=>app.dock.isVisible()) : null;
   await instance.evaluate(({Menu})=>Menu.getApplicationMenu().getMenuItemById('status-panel').click());
   await expect.poll(()=>instance.windows().some(w=>w.url().includes('mode=tray'))).toBe(true);
   const panel=instance.windows().find(w=>w.url().includes('mode=tray')); await panel.waitForLoadState('domcontentloaded');
@@ -103,6 +110,67 @@ try {
   for(const name of ['overview','trend','models'])await expect(panel.locator('[data-mini-widget="'+name+'"]')).toBeVisible();
   await expect(panel.locator('[data-mini-widget="activity"]')).toBeHidden();
   assert.equal(await panel.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  if(process.platform==='darwin') {
+    const nativePanel=await instance.evaluate(({BrowserWindow,app})=>{
+      const win=BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=tray'));
+      return {allSpaces:win.isVisibleOnAllWorkspaces(),dock:app.dock.isVisible(),fullscreen:win.isFullScreen(),fullscreenable:win.isFullScreenable(),bounds:win.getBounds()};
+    });
+    assert.equal(nativePanel.allSpaces,true);assert.equal(nativePanel.dock,dockBeforePopup);
+    assert.equal(nativePanel.fullscreen,false);assert.equal(nativePanel.fullscreenable,false);
+    assert.equal(nativePanel.bounds.width,420);assert.ok(nativePanel.bounds.height<=760);
+    if(process.env.TOKENFLOW_WINDOW_CHROME_TEST==='1') {
+      console.log('Tray first-open in full-screen passed:',nativePanel.bounds);
+      await instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=dashboard')).setFullScreen(false));
+      await expect(page.locator('html')).toHaveAttribute('data-full-screen','false');
+      if(!await instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=tray')).isVisible())) {
+        await instance.evaluate(({Menu})=>Menu.getApplicationMenu().getMenuItemById('status-panel').click());
+      }
+    }
+    // A panel activation must not resurrect a hidden Dashboard on another Space.
+    assert.deepEqual(await instance.evaluate(({BrowserWindow,app})=>{
+      const main=BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=dashboard'));
+      const popup=BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=tray'));
+      main.hide();app.emit('activate',{},true);
+      return {mainVisible:main.isVisible(),popupVisible:popup.isVisible()};
+    }),{mainVisible:false,popupVisible:true});
+    if(process.env.TOKENFLOW_WINDOW_CHROME_TEST==='1') {
+      await instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=tray')).webContents.sendInputEvent({type:'keyDown',keyCode:'Escape'}));
+      await expect.poll(()=>instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=tray')).isVisible())).toBe(false);
+      // Use a separate native full-screen window so the Dashboard stays on its
+      // original desktop, just as when another application owns the full-screen Space.
+      await instance.evaluate(async({BrowserWindow,app})=>{
+        const fixture=new BrowserWindow({width:900,height:700,title:'TokenFlow full-screen compatibility test',backgroundColor:'#163b4b'});
+        await fixture.loadURL('data:text/html,<body style="background:%23163b4b;color:white;font:36px system-ui;padding:60px">Full-screen compatibility test</body>');
+        await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('Fixture did not enter full-screen')),15_000);fixture.once('enter-full-screen',()=>{clearTimeout(timeout);resolve();});fixture.setFullScreen(true);});
+        globalThis.traySpaceTest={fixtureId:fixture.id,activations:0,dashboardFocus:0};
+        app.on('activate',()=>globalThis.traySpaceTest.activations++);
+        BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=dashboard')).on('focus',()=>globalThis.traySpaceTest.dashboardFocus++);
+      });
+      for(let attempt=0;attempt<2;attempt++) {
+        await instance.evaluate(({Menu})=>Menu.getApplicationMenu().getMenuItemById('status-panel').click());
+        await expect.poll(()=>instance.evaluate(({BrowserWindow})=>{
+          const proof=globalThis.traySpaceTest;
+          const fixture=BrowserWindow.fromId(proof.fixtureId);
+          const popup=BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=tray'));
+          const main=BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=dashboard'));
+          return {fullscreen:fixture.isFullScreen(),mainVisible:main.isVisible(),popupVisible:popup.isVisible(),popupFocused:popup.isFocused(),activations:proof.activations,dashboardFocus:proof.dashboardFocus};
+        })).toEqual({fullscreen:true,mainVisible:false,popupVisible:true,popupFocused:true,activations:0,dashboardFocus:0});
+        await panel.locator('[data-mini-range="30"]').click();
+        await expect(panel.locator('[data-mini-range="30"]')).toHaveAttribute('aria-pressed','true');
+        await instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=tray')).webContents.sendInputEvent({type:'keyDown',keyCode:'Escape'}));
+        await expect.poll(()=>instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=tray')).isVisible())).toBe(false);
+      }
+      await instance.evaluate(async({BrowserWindow})=>{
+        const fixture=BrowserWindow.fromId(globalThis.traySpaceTest.fixtureId);
+        await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('Fixture did not leave full-screen')),15_000);fixture.once('leave-full-screen',()=>{clearTimeout(timeout);resolve();});fixture.setFullScreen(false);});fixture.destroy();
+      });
+      await page.evaluate(()=>window.tokenflow.saveSettings({trayRange:7}));
+      console.log('Native tray Spaces regression passed: separate full-screen window retained, no App activation or Dashboard focus, interactive popup, Escape close, repeat open, Dock retained.');
+    }
+    await page.evaluate(()=>window.tokenflow.dashboard());
+    await instance.evaluate(({Menu})=>Menu.getApplicationMenu().getMenuItemById('status-panel').click());
+    await expect.poll(()=>instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=tray')).isVisible())).toBe(true);
+  }
   await panel.screenshot({path:path.join(output,'desktop-tray.png')});
   const nativeBefore=await instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().filter(w=>!w.webContents.getURL().includes('mode=tray')).map(w=>({id:w.id,bounds:w.getBounds()})));
   await panel.evaluate(()=>window.tokenflow.openSettings());

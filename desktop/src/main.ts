@@ -1,6 +1,6 @@
 import { NetworkProgress } from "./network-progress.js";
 import { app, BrowserWindow, WebContentsView, Menu, Tray, nativeImage, ipcMain, shell, screen, session, safeStorage, powerMonitor, dialog, net, protocol } from "electron";
-import type { IpcMainInvokeEvent, WebContents } from "electron";
+import type { IpcMainInvokeEvent, Point, Rectangle, WebContents } from "electron";
 import updater from "electron-updater";
 import fs from "node:fs/promises";
 import { realpathSync, watch, type FSWatcher } from "node:fs";
@@ -14,6 +14,7 @@ import { sameRendererLocation } from "./ipc-origin.js";
 import { CliClient } from "./cli-client.js";
 import { collectorHome, findCli, installCli, rememberCli, type CliInstallation } from "./cli-installation.js";
 import { appSettings, sharedSettings } from "./settings.js";
+import { trayAnchor, trayPopupBounds } from "./tray-placement.js";
 
 const { autoUpdater } = updater;
 const here = path.join(realpathSync.native(app.getAppPath()), "app");
@@ -28,6 +29,9 @@ let settingsView: WebContentsView | null = null;
 let dashboardWindow: BrowserWindow | null = null;
 let openingDashboard: Promise<void> | null = null;
 let popup: BrowserWindow | null = null;
+let openingPopup = false;
+let popupAnchor: { bounds: Rectangle; displayId: number } | null = null;
+let popupHeight = 640;
 let tray: Tray;
 let cli: CliClient;
 let installation: CliInstallation | null = null;
@@ -124,34 +128,43 @@ function useLocalData(): void {
   state.dashboardSource = "local"; emit();
 }
 function positionPopup(): void {
-  if (!popup || popup.isDestroyed()) return;
-  const bounds = tray.getBounds();
-  const area = screen.getDisplayMatching(bounds).workArea;
-  const size = popup.getBounds();
-  const below = bounds.y < area.y + area.height / 2;
-  popup.setPosition(Math.round(Math.min(Math.max(bounds.x + bounds.width / 2 - size.width / 2, area.x), area.x + area.width - size.width)),
-    Math.round(below ? Math.max(area.y, bounds.y + bounds.height + 6) : Math.min(area.y + area.height - size.height, bounds.y - size.height - 6)));
+  if (!popup || popup.isDestroyed() || !popupAnchor) return;
+  const display = screen.getAllDisplays().find(item => item.id === popupAnchor!.displayId) || screen.getDisplayMatching(popupAnchor.bounds);
+  const bounds = trayPopupBounds(popupAnchor.bounds, display.workArea, popupHeight);
+  const current = popup.getBounds();
+  if (Object.keys(bounds).some(key => bounds[key as keyof Rectangle] !== current[key as keyof Rectangle])) popup.setBounds(bounds);
 }
 function resizePopup(value: unknown): void {
   if (!popup || popup.isDestroyed() || typeof value !== "number" || !Number.isFinite(value)) return;
-  const area = screen.getDisplayMatching(tray.getBounds()).workArea;
-  const height = Math.round(Math.max(260, Math.min(value, area.height - 18, 760)));
-  const width = Math.min(420, area.width);
-  if (popup.getBounds().height !== height || popup.getBounds().width !== width) popup.setSize(width, height);
+  popupHeight = value;
   positionPopup();
 }
-async function togglePopup(): Promise<void> {
+async function togglePopup(bounds = tray.getBounds(), click?: Point): Promise<void> {
+  if (openingPopup) return;
   if (popup?.isVisible()) { popup.hide(); return; }
-  if (!popup || popup.isDestroyed()) {
-    popup = new BrowserWindow({ width: 420, height: 640, frame: false, resizable: false, show: false,
-      skipTaskbar: true, alwaysOnTop: true, backgroundColor: "#f7f7f4", webPreferences: localPreferences() });
-    protectLocalContents(popup.webContents);
-    popup.on("blur", () => popup?.hide());
-    await popup.loadURL("tokenflow://dashboard/index.html?mode=tray");
-  }
-  positionPopup();
-  popup.show(); popup.focus(); emit();
-  if (!state.busy && (!state.summary || Date.now() - Date.parse(state.summary.scannedAt) > 60_000)) void runJob("scan");
+  if (!click && (!bounds.width || !bounds.height)) click = screen.getCursorScreenPoint();
+  const display = click ? screen.getDisplayNearestPoint(click) : screen.getDisplayMatching(bounds);
+  popupAnchor = { bounds: trayAnchor(bounds, click, display.bounds), displayId: display.id };
+  openingPopup = true;
+  try {
+    if (!popup || popup.isDestroyed()) {
+      popup = new BrowserWindow({ width: 420, height: 640, frame: false, resizable: false, fullscreenable: false, maximizable: false, minimizable: false, show: false,
+        // Electron's macOS panel is nonactivating and joins full-screen Spaces.
+        // Unlike a normal window, showing it does not activate the main Dashboard.
+        ...(process.platform === "darwin" ? { type: "panel" } : {}),
+        skipTaskbar: true, alwaysOnTop: true, backgroundColor: "#f7f7f4", webPreferences: localPreferences() });
+      protectLocalContents(popup.webContents);
+      popup.on("blur", () => popup?.hide());
+      popup.webContents.on("before-input-event", (event, input) => {
+        if (input.key === "Escape" && input.type === "keyDown") { event.preventDefault(); popup?.hide(); }
+      });
+      await popup.loadURL("tokenflow://dashboard/index.html?mode=tray");
+    }
+    positionPopup();
+    // A native panel receives keyboard focus without activating the application.
+    popup.show(); emit();
+    if (!state.busy && (!state.summary || Date.now() - Date.parse(state.summary.scannedAt) > 60_000)) void runJob("scan");
+  } finally { openingPopup = false; }
 }
 function showDashboard(): Promise<void> {
   if (!openingDashboard) openingDashboard = openDashboard().finally(() => { openingDashboard = null; });
@@ -501,7 +514,7 @@ app.on("before-quit", (event) => {
   void shutdown().then(() => app.quit()).catch((error) => { console.error(message(error)); app.exit(1); });
 });
 app.on("window-all-closed", () => {});
-app.on("activate", () => { if (ready) void showDashboard(); });
+app.on("activate", () => { if (ready && !openingPopup && !popup?.isVisible()) void showDashboard(); });
 app.on("second-instance", () => { if (ready) void showDashboard(); });
 
 async function initialize(): Promise<void> {
@@ -553,7 +566,7 @@ async function initialize(): Promise<void> {
   if (icon.isEmpty()) throw new Error("Tray icon is missing");
   if (process.platform === "darwin") icon.setTemplateImage(true);
   tray = new Tray(icon);
-  tray.on("click", togglePopup);
+  tray.on("click", (_event, bounds, position) => { void togglePopup(bounds, position); });
   tray.on("right-click", () => tray.popUpContextMenu(Menu.buildFromTemplate([
     { label: "Open Dashboard", click: () => void showDashboard() }, { label: "Settings", click: showSettings },
     { type: "separator" }, { label: "Quit TokenFlow", click: () => app.quit() },
@@ -562,7 +575,7 @@ async function initialize(): Promise<void> {
     ...(process.platform === "darwin" ? [{ label: "TokenFlow", submenu: [{ role: "about" as const }, { label: "Settings…", accelerator: "CmdOrCtrl+,", click: showSettings }, { type: "separator" as const }, { role: "hide" as const }, { role: "hideOthers" as const }, { role: "unhide" as const }, { type: "separator" as const }, { role: "quit" as const }] }] : []),
     { label: "File", submenu: [{ id: "dashboard", label: "Dashboard", accelerator: "CmdOrCtrl+D", click: () => void showDashboard() }, { id: "local-settings", label: "Settings", click: showSettings }, { role: "close" }] },
     { role: "editMenu" }, { label: "View", submenu: [{ role: "reload" }, { role: "toggleDevTools" }, { type: "separator" },
-      { id: "status-panel", label: "Status panel", accelerator: "CmdOrCtrl+Shift+T", click: togglePopup }, { role: "togglefullscreen" }] }, { role: "windowMenu" },
+      { id: "status-panel", label: "Status panel", accelerator: "CmdOrCtrl+Shift+T", click: () => void togglePopup() }, { role: "togglefullscreen" }] }, { role: "windowMenu" },
   ]));
   dashboardSession().setPermissionRequestHandler((_contents, permission, callback) => callback(permission === "clipboard-sanitized-write"));
   dashboardSession().webRequest.onCompleted({ urls: ["*://*/api/auth/logout"] }, (details) => {
