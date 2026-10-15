@@ -1,9 +1,11 @@
 .mini-dashboard{min-width:0;margin:0;background:var(--bg);color:var(--text);font:12px var(--font);overflow-x:hidden}
-.mini-dashboard main{width:100%;padding:0 22px;margin:0;min-height:0}
+.mini-dashboard main{width:100%;padding:0 22px 6px;margin:0;min-height:0}
 .mini-dashboard #miniArchive,.mini-dashboard [data-mini-widget][hidden]{display:none!important}
-.mini-header{padding:14px 22px 12px;background:var(--bg)}
+.mini-header{position:sticky;top:0;z-index:10;padding:14px 22px 12px;background:var(--bg)}
 .mini-title{display:flex;align-items:center;gap:9px}.mini-title strong{font-size:16px;font-weight:650;letter-spacing:-.025em}.mini-mark{color:var(--accent);width:22px;height:22px}
-.mini-settings{margin-left:auto;display:grid;place-items:center;width:28px;height:28px;padding:4px;border:0;background:none;color:var(--muted);cursor:pointer}.mini-settings svg{width:19px;height:19px}
+.mini-actions{margin-left:auto;display:flex;align-items:center;gap:5px}
+.mini-icon{position:relative;display:grid;place-items:center;width:28px;height:28px;padding:4px;border:0;border-radius:6px;background:none;color:var(--muted);cursor:pointer}.mini-icon>svg{width:18px;height:18px}.mini-icon:hover{background:var(--surface);color:var(--text)}.mini-icon:disabled{opacity:.4;cursor:default}.mini-icon[aria-busy="true"]{color:var(--accent);opacity:1}.mini-icon.has-error{color:#b45309}
+.mini-icon-progress{position:absolute;inset:-2px;pointer-events:none}.mini-icon-progress[hidden]{display:none}.mini-icon-progress svg{width:32px;height:32px;transform:rotate(-90deg)}.mini-icon-progress circle{fill:none;stroke-width:1.5}.mini-progress-track{stroke:var(--line)}.mini-progress-fill{stroke:currentColor;stroke-linecap:round;stroke-dasharray:88;stroke-dashoffset:88;transition:stroke-dashoffset .15s}
 .mini-context{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px}.mini-context>span{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}.mini-context>span:before{content:'';width:5px;height:5px;background:var(--accent);border-radius:50%}
 .mini-ranges{display:flex;align-items:center;gap:13px}.mini-ranges button{padding:3px 0;border:0;background:none;color:var(--muted);font:11px var(--font);cursor:pointer}.mini-ranges button[aria-pressed="true"]{color:var(--accent);font-weight:650;text-decoration:underline;text-underline-offset:6px}
 .mini-dashboard #miniWidgets{display:flex;flex-direction:column;min-width:0}
@@ -14,9 +16,4 @@
 .mini-dashboard .overview-hero{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:0;margin:0}.mini-dashboard .metric{padding:0;border:0;min-width:0}.mini-dashboard .metric .label{font-size:11px;margin:0 0 7px}.mini-dashboard .metric .value{font-size:30px;font-weight:650;letter-spacing:-.045em;line-height:1.1}.mini-dashboard .metric .value .unit{font-size:17px;margin-left:2px}.mini-dashboard .metric .exact{font-size:10px;margin-top:5px;line-height:1.45}.mini-dashboard .metric .spark{height:22px;margin-top:8px}
 .mini-dashboard .trend-chart{height:112px;min-height:0}.mini-dashboard .chart-block{height:144px;min-height:0}.mini-dashboard .activity-chart{min-height:0;margin:0;padding:0}.mini-dashboard .activity-grid{gap:2px}.mini-dashboard .activity-cell{border-radius:2px}.mini-dashboard .activity-months{font-size:9px}
 .mini-dashboard .empty-state{padding:22px 0;color:var(--muted);font-size:11px;min-height:70px;display:grid;place-items:center}
-.mini-footer{position:sticky;bottom:0;margin:0;padding:11px 22px 17px;border-top:1px solid var(--line);background:var(--bg);z-index:10}
-.mini-status{height:19px;display:flex;align-items:center;margin-bottom:9px;min-width:0}.mini-status>span{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mini-dashboard .operation-progress.compact-progress{position:static;display:grid;grid-template-columns:minmax(0,1fr) 55px 29px;gap:8px;align-items:center;height:auto;width:100%;padding:0;border:0;background:none;font:10px var(--font);color:var(--muted)}
-.mini-dashboard .operation-progress[hidden]{display:none}.mini-dashboard .operation-progress>span:first-child{min-width:0;max-width:none}.mini-dashboard .operation-progress .progress-track{height:3px;min-width:0}.mini-dashboard .operation-progress #progressPercent{font-size:10px;min-width:0;color:var(--text)}
-.mini-actions{display:flex;align-items:center;gap:18px}.mini-actions button{border:0;background:none;color:var(--muted);font:11px var(--font);padding:3px 0;cursor:pointer}.mini-actions #trayDashboard{margin-left:auto;color:var(--accent);font-weight:550}.mini-actions button:disabled{opacity:.4;cursor:default}
 .mini-dashboard .legal-footer{display:none!important}

@@ -113,6 +113,25 @@ try {
   await expect(panel.locator('body')).toHaveAttribute('data-mini-loaded','true');
   await expect(panel.locator('#totalCost')).toHaveText('$0.00');
   await expect(panel.locator('#miniArchive')).toBeHidden();await expect(panel.locator('#trayDashboard')).toBeVisible();
+  assert.equal(await panel.locator('.mini-footer,#miniNotice,#miniSync,#operationProgress').count(),0);
+  assert.deepEqual(await panel.locator('.mini-header .mini-actions button').evaluateAll(buttons=>buttons.map(button=>({id:button.id,text:button.textContent.trim(),icon:!!button.querySelector('svg')}))),[
+    {id:'miniRefresh',text:'',icon:true},{id:'trayDashboard',text:'',icon:true},{id:'miniSettings',text:'',icon:true},
+  ]);
+  await expect(panel.locator('#trayDashboard')).toHaveAccessibleName('Open Dashboard');
+  await expect(panel.locator('#miniRefresh')).toBeEnabled();
+  await panel.evaluate(()=>{
+    window.trayRefreshSamples=[];
+    window.tokenflow.onState(state=>{if(state.busy){
+      const button=document.getElementById('miniRefresh'),progress=document.getElementById('miniRefreshProgress');
+      window.trayRefreshSamples.push({busy:button.getAttribute('aria-busy'),disabled:button.disabled,progress:!progress.hidden,percent:progress.getAttribute('aria-valuenow'),title:button.title,inHeader:!!button.closest('.mini-header')});
+    }});
+  });
+  await panel.locator('#miniRefresh').click();
+  await expect.poll(()=>panel.evaluate(()=>window.trayRefreshSamples.length)).toBeGreaterThan(0);
+  await expect(panel.locator('#miniRefresh')).toBeEnabled();
+  const refreshSamples=await panel.evaluate(()=>window.trayRefreshSamples);
+  for(const sample of refreshSamples){assert.equal(sample.busy,'true');assert.equal(sample.disabled,true);assert.equal(sample.progress,true);assert.equal(sample.inHeader,true);assert.ok(Number(sample.percent)>=0&&Number(sample.percent)<=100);assert.match(sample.title,/files/);}
+  await expect(panel.locator('#miniRefreshProgress')).toBeHidden();
   await expect(panel.locator('#miniSource')).toHaveText('This device');
   for(const name of ['overview','trend','models'])await expect(panel.locator('[data-mini-widget="'+name+'"]')).toBeVisible();
   await expect(panel.locator('[data-mini-widget="activity"]')).toBeHidden();
