@@ -15,6 +15,27 @@ async function events(home: string) { return (await collectLocalUsage(home)).eve
 
 // Wire fields and accounting expectations follow ccusage 4d900db compression_tests.rs.
 describe("Codex compressed rollouts", () => {
+  it("collects a complete history larger than the JavaScript argument limit", async () => {
+    const r = await home();
+    const count = 600_000;
+    const lines = [
+      JSON.stringify({ type: "session_meta", payload: { id: "large-history" } }),
+      JSON.stringify({ type: "turn_context", payload: { model: "gpt-5" } }),
+    ];
+    for (let i = 1; i <= count; i++) {
+      lines.push(JSON.stringify({
+        timestamp: new Date(Date.UTC(2026, 0, 1) + i * 1000).toISOString(),
+        type: "event_msg",
+        payload: { type: "token_count", info: { total_token_usage: {
+          input_tokens: i, cached_input_tokens: 0, output_tokens: 0, total_tokens: i,
+        } } },
+      }));
+    }
+    await put(r, "sessions/rollout-large.jsonl", lines.join("\n"));
+    const collected = await events(r);
+    expect(collected).toHaveLength(count);
+    expect(collected.reduce((sum, event) => sum + event.totalTokens, 0)).toBe(count);
+  }, 20_000);
   it("keeps fork replay and remote compaction accounting when every log is compressed", async () => {
     const r = await home();
     for (const name of ["parent", "child"]) await put(r, `sessions/${name}.jsonl.zst`, await fs.readFile(fixture(`${name}.jsonl.zst`)));

@@ -1,3 +1,4 @@
+import { appendItems } from "../arrays.js";
 import { scanFile, discoveredFile, scannedBytes } from "../scan-progress.js";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -217,7 +218,7 @@ export function mergeAntigravityUsage(rows: IdentifiedUsage[]): UsageEvent[] {
       }
       if (target.event.model === "gemini-internal-model")
         target.event.model = duplicate.event.model;
-      target.identities.push(...duplicate.identities);
+      appendItems(target.identities, duplicate.identities);
     }
     for (const i of matches.slice(1)) slots[i] = null;
     target.event.totalTokens =

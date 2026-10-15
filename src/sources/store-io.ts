@@ -1,3 +1,4 @@
+import { appendItems } from "../arrays.js";
 import { discoveredFile, scannedBytes } from "../scan-progress.js";
 import { execFile } from "node:child_process";
 import { createReadStream } from "node:fs";
@@ -59,7 +60,7 @@ export async function storeFiles(
   const files: string[] = [];
   for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
     const file = path.join(root, entry.name);
-    if (entry.isDirectory()) files.push(...(await storeFiles(file, accept)));
+    if (entry.isDirectory()) appendItems(files, await storeFiles(file, accept));
     else if (entry.isFile() && accept(file)) { files.push(file); discoveredFile(file); }
   }
   return files;

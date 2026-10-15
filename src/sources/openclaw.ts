@@ -1,3 +1,4 @@
+import { appendItems } from "../arrays.js";
 import { scanFile, discoveredFile, scannedBytes } from "../scan-progress.js";
 import path from "node:path";
 import { sqliteRows, storeFiles, tableColumns } from "./store-io.js";
@@ -141,7 +142,7 @@ export async function planOpenClawDatabases(roots: string[]) {
           let parser: JsonlUsageParser | null = null;
           for (const row of rows) {
             if (session !== row.session_id) {
-              if (parser) events.push(...parser.finish());
+              if (parser) appendItems(events, parser.finish());
               session = row.session_id;
               parser = createOpenClawJsonlParser({
                 sourcePath: file,
@@ -160,7 +161,7 @@ export async function planOpenClawDatabases(roots: string[]) {
               value.timestamp = timestampFromValue(row.created_at);
             parser?.pushLine(JSON.stringify(value));
           }
-          if (parser) events.push(...parser.finish());
+          if (parser) appendItems(events, parser.finish());
         });
       }
       return { events, files };

@@ -1,3 +1,4 @@
+import { appendItems } from "../arrays.js";
 import { scanFile, discoveredFile, scannedBytes } from "../scan-progress.js";
 import path from "node:path";
 import {
@@ -112,7 +113,7 @@ export async function planGrok(home: string) {
             seen,
           );
           await readStoreLines(file, parser.pushLine);
-          events.push(...parser.finish());
+          appendItems(events, parser.finish());
         });
       }
       return {

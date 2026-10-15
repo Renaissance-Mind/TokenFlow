@@ -1,3 +1,4 @@
+import { appendItems } from "../arrays.js";
 import { scanFile, discoveredFile, scannedBytes } from "../scan-progress.js";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -149,7 +150,7 @@ function reconcile(native: Entry[], otel: Entry[], credits: Credit[]): UsageEven
       if ((!replace || index < start) && e.totalTokens > 0) events.push(e);
     });
   }
-  events.push(...retained.filter(call => time(call.event) > (after.get(pair(call.event)) ?? -Infinity)).map(call => call.event));
+  appendItems(events, retained.filter(call => time(call.event) > (after.get(pair(call.event)) ?? -Infinity)).map(call => call.event));
   const sessions = new Map<string, Credit[]>();
   for (const snapshot of unique(credits)) { const group = sessions.get(snapshot.session) || []; group.push(snapshot); sessions.set(snapshot.session, group); }
   for (const [session, group] of sessions) {
@@ -210,19 +211,17 @@ export async function planCopilot(home: string) {
       for (const file of nativeFiles) {
         await scanFile(file, async () => {
           const parsed = nativeRows(await records(file), file);
-          native.push(...parsed.entries);
-          credits.push(...parsed.credits);
+          appendItems(native, parsed.entries);
+          appendItems(credits, parsed.credits);
         });
       }
       for (const file of new Set(otelFiles))
         await scanFile(file, async () => {
-          otel.push(
-            ...otelRows(
-              await records(file),
-              file,
-              (await fs.stat(file)).mtime.toISOString(),
-            ),
-          );
+          appendItems(otel, otelRows(
+            await records(file),
+            file,
+            (await fs.stat(file)).mtime.toISOString(),
+          ));
         });
       return {
         events: reconcile(native, otel, credits),

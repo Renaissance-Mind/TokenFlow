@@ -1,3 +1,4 @@
+import { appendItems } from "./arrays.js";
 import { ScanTracker, withScanTracker, scanFile, discoveredFile, scannedBytes, type ScanProgress } from "./scan-progress.js";
 import { createReadStream } from "node:fs";
 import fs from "node:fs/promises";
@@ -174,8 +175,8 @@ async function collectUsage(
     additionalPlans.map((plan) => plan.collect()),
   );
   const events: UsageEvent[] = [];
-  events.push(...dsh.events);
-  for (const source of additional) events.push(...source.events);
+  appendItems(events, dsh.events);
+  for (const source of additional) appendItems(events, source.events);
   const codexSessions: CodexSession[] = [];
   for (const file of codexFiles) {
     await scanFile(file, async () => {
@@ -215,61 +216,56 @@ async function collectUsage(
       });
     });
   }
-  events.push(...dedupeCodexSessions(codexSessions));
+  appendItems(events, dedupeCodexSessions(codexSessions));
   for (const file of claudeFiles) {
     await scanFile(file, async () => {
-      events.push(...(await readJsonlEvents(file, createClaudeJsonlParser)));
+      appendItems(events, await readJsonlEvents(file, createClaudeJsonlParser));
     });
   }
   for (const file of geminiFiles) {
     await scanFile(file, async () => {
       const fallbackTimestamp =
         (await fileModifiedTimestamp(file)) || undefined;
-      if (file.endsWith(".jsonl"))
-        events.push(
-          ...(await readJsonlEvents(file, (options) =>
-            createGeminiJsonlParser({ ...options, fallbackTimestamp }),
-          )),
-        );
-      else
-        events.push(
-          ...parseGeminiSession(await readUsageText(file), {
-            sourcePath: file,
-            fallbackTimestamp,
-          }),
-        );
+      if (file.endsWith(".jsonl")) {
+        appendItems(events, await readJsonlEvents(file, (options) =>
+          createGeminiJsonlParser({ ...options, fallbackTimestamp }),
+        ));
+      } else {
+        appendItems(events, parseGeminiSession(await readUsageText(file), {
+          sourcePath: file,
+          fallbackTimestamp,
+        }));
+      }
     });
   }
   for (const file of kimiFiles) {
     await scanFile(file, async () => {
       const model = await readKimiModelForWireFile(file);
       const fallbackTimestamp = await fileModifiedTimestamp(file);
-      events.push(
-        ...(await readJsonlEvents(file, (options) =>
-          createKimiWireJsonlParser({
-            ...options,
-            model,
-            fallbackTimestamp: fallbackTimestamp || undefined,
-          }),
-        )),
-      );
+      appendItems(events, await readJsonlEvents(file, (options) =>
+        createKimiWireJsonlParser({
+          ...options,
+          model,
+          fallbackTimestamp: fallbackTimestamp || undefined,
+        }),
+      ));
     });
   }
   for (const file of qwenFiles) {
     await scanFile(file, async () => {
-      events.push(...(await readJsonlEvents(file, createQwenChatJsonlParser)));
+      appendItems(events, await readJsonlEvents(file, createQwenChatJsonlParser));
     });
   }
   for (const file of ampFiles) {
     await scanFile(file, async () => {
       const raw = await readUsageText(file);
-      events.push(...parseAmpThread(raw, { sourcePath: file }));
+      appendItems(events, parseAmpThread(raw, { sourcePath: file }));
     });
   }
   for (const file of codebuffFiles) {
     await scanFile(file, async () => {
       const raw = await readUsageText(file);
-      events.push(...parseCodebuffChatMessages(raw, { sourcePath: file }));
+      appendItems(events, parseCodebuffChatMessages(raw, { sourcePath: file }));
     });
   }
   const droidEvents: UsageEvent[] = [];
@@ -284,42 +280,40 @@ async function collectUsage(
       if (event) droidEvents.push(event);
     });
   }
-  events.push(...latestEventsBySession(droidEvents));
+  appendItems(events, latestEventsBySession(droidEvents));
   for (const dbPath of gooseDbPaths) {
     await scanFile(dbPath, async () => {
-      events.push(...(await readGooseEvents(dbPath)));
+      appendItems(events, await readGooseEvents(dbPath));
     });
   }
   for (const dbPath of hermesDbPaths) {
     await scanFile(dbPath, async () => {
-      events.push(...(await readHermesEvents(dbPath)));
+      appendItems(events, await readHermesEvents(dbPath));
     });
   }
   for (const dbPath of kiloDbPaths) {
     await scanFile(dbPath, async () => {
-      events.push(...(await readKiloEvents(dbPath)));
+      appendItems(events, await readKiloEvents(dbPath));
     });
   }
   const openclawEvents: UsageEvent[] = [];
   for (const file of openclawFiles) {
     await scanFile(file, async () => {
       const fallbackTimestamp = await fileModifiedTimestamp(file);
-      openclawEvents.push(
-        ...(await readJsonlEvents(file, (options) =>
-          createOpenClawJsonlParser({ ...options, fallbackTimestamp }),
-        )),
-      );
+      appendItems(openclawEvents, await readJsonlEvents(file, (options) =>
+        createOpenClawJsonlParser({ ...options, fallbackTimestamp }),
+      ));
     });
   }
   const openclawDatabase = await openclawPlan.collect();
-  events.push(...mergeOpenClawStores(openclawEvents, openclawDatabase.events));
+  appendItems(events, mergeOpenClawStores(openclawEvents, openclawDatabase.events));
   const piStores = await piPlan.collect();
-  events.push(...piStores.events);
+  appendItems(events, piStores.events);
   const opencodeEvents = await readOpenCodeEvents(
     opencodeDbPaths,
     opencodeMessageFiles,
   );
-  events.push(...opencodeEvents.events);
+  appendItems(events, opencodeEvents.events);
   tracker?.processing();
   return {
     events: dedupeTranscriptEvents(events),
@@ -677,7 +671,7 @@ async function readOpenCodeEvents(
 async function readOpenCodeDbRows(dbPath: string): Promise<OpenCodeMessageRow[]> {
   const rows: OpenCodeMessageRow[] = [];
   if ((await tableColumns(dbPath, "message")).has("data")) {
-    rows.push(...await readSqliteJsonRows<OpenCodeMessageRow>(dbPath, openCodeMessageQuery()));
+    appendItems(rows, await readSqliteJsonRows<OpenCodeMessageRow>(dbPath, openCodeMessageQuery()));
   }
   const v2 = await tableColumns(dbPath, "session_message");
   const sessions = await tableColumns(dbPath, "session_v2");
@@ -700,7 +694,7 @@ async function readOpenCodeDbRows(dbPath: string): Promise<OpenCodeMessageRow[]>
         }
       }
     }
-    rows.push(...messages.filter((row) => row.type === "assistant" && !(row.seq !== undefined && row.seq !== null && cutoffs.has(row.session_id) && row.seq <= cutoffs.get(row.session_id)!)));
+    appendItems(rows, messages.filter((row) => row.type === "assistant" && !(row.seq !== undefined && row.seq !== null && cutoffs.has(row.session_id) && row.seq <= cutoffs.get(row.session_id)!)));
   }
   for (const table of ["session_v2", "session"]) {
     const columns = await tableColumns(dbPath, table);
