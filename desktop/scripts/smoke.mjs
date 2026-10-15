@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { trayAnchor, trayPopupBounds } from '../app/tray-placement.js';
 const desktop = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'tokenflow-desktop-smoke-'));
 const output = path.join(desktop, 'test-results'); await fs.mkdir(output, { recursive: true });
@@ -13,7 +14,13 @@ delete env.ELECTRON_RUN_AS_NODE;
 for (const key of Object.keys(env)) if (/^(CODEX_HOME|CLAUDE_HOME|GEMINI_HOME|GEMINI_DATA_DIR|OPENCODE_HOME|OPENCODE_DB|KIMI_DATA_DIR|QWEN_DATA_DIR|AMP_DATA_DIR|CODEBUFF_DATA_DIR|DROID_SESSIONS_DIR|GOOSE_PATH_ROOT|HERMES_HOME|KILO_DATA_DIR|OPENCLAW_DIR|PI_AGENT_DIR|DSH_DATA_DIR|GROK_HOME|ZCODE_HOME|COPILOT_HOME|COPILOT_OTEL_FILE_EXPORTER_PATH|ANTIGRAVITY_DATA_DIR|TOKENFLOW_SERVER_URL|TOKENUSAGE_SERVER_URL|TOKENUSAGE_HOME|TOKENFLOW_CLI_PATH)$/.test(key)) delete env[key];
 const executablePath = process.env.TOKENFLOW_EXECUTABLE;
 if (executablePath) delete env.TOKENFLOW_NODE_PATH;
-const instance = await electron.launch({ args:executablePath ? [] : [desktop], ...(executablePath ? {executablePath} : {}),env,timeout:60_000 });
+const positionTest=process.platform==='darwin'&&!executablePath;
+const bootstrap=path.join(temp,'tray-test.cjs');
+if(positionTest) await fs.writeFile(bootstrap,`const {Tray}=require('electron');
+const on=Tray.prototype.on;
+Tray.prototype.on=function(event,...listeners){if(event==='click')globalThis.trayPositionTest=this;return on.call(this,event,...listeners);};
+`);
+const instance = await electron.launch({ args:executablePath ? [] : [...(positionTest?['-r',bootstrap]:[]),desktop], ...(executablePath ? {executablePath} : {}),env,timeout:60_000 });
 instance.process().stderr?.on('data',(data)=>process.stderr.write(data));
 try {
   const page = await instance.firstWindow(); await page.waitForURL(/mode=dashboard$/);
@@ -170,6 +177,38 @@ try {
     await page.evaluate(()=>window.tokenflow.dashboard());
     await instance.evaluate(({Menu})=>Menu.getApplicationMenu().getMenuItemById('status-panel').click());
     await expect.poll(()=>instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=tray')).isVisible())).toBe(true);
+  }
+  if(positionTest) {
+    assert.equal(await instance.evaluate(()=>!!globalThis.trayPositionTest),true);
+    const displays=await instance.evaluate(({screen})=>screen.getAllDisplays().map(d=>({id:d.id,bounds:d.bounds,workArea:d.workArea})));
+    const results=[];
+    for(const display of displays) {
+      const cursor={x:display.bounds.x+Math.round(display.bounds.width*0.7),y:display.bounds.y+12};
+      const icon={x:cursor.x-20,y:display.bounds.y,width:60,height:Math.max(24,display.workArea.y-display.bounds.y)};
+      await instance.evaluate(({BrowserWindow,screen},{cursor,icon})=>{
+        BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=tray')).hide();
+        const original=screen.getCursorScreenPoint;
+        screen.getCursorScreenPoint=()=>({...cursor});
+        try {
+          // Exercise the actual production Tray listener with the erroneous
+          // window-local point returned by Electron on macOS. Only the OS
+          // cursor read is controlled; real display layout and windows are used.
+          globalThis.trayPositionTest.emit('click',{},icon,{x:15,y:screen.getPrimaryDisplay().bounds.height-12});
+        } finally { screen.getCursorScreenPoint=original; }
+      },{cursor,icon});
+      await expect.poll(()=>instance.evaluate(({BrowserWindow,screen})=>{
+        const popup=BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=tray'));
+        return popup.isVisible()&&screen.getDisplayMatching(popup.getBounds()).id;
+      })).toBe(display.id);
+      const bounds=await instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=tray')).getBounds());
+      assert.deepEqual(bounds,trayPopupBounds(trayAnchor(icon,cursor,display.bounds),display.workArea,bounds.height));
+      await panel.evaluate(()=>window.tokenflow.resizeTray(600));
+      const resized=await instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=tray')).getBounds());
+      assert.deepEqual(resized,trayPopupBounds(trayAnchor(icon,cursor,display.bounds),display.workArea,resized.height));
+      results.push({display:display.id,cursor,bounds,resized});
+    }
+    await fs.writeFile(path.join(output,'desktop-tray-position.json'),JSON.stringify(results,null,2));
+    console.log('Native tray click positioning passed on '+displays.length+' connected display(s):',results);
   }
   await panel.screenshot({path:path.join(output,'desktop-tray.png')});
   const nativeBefore=await instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().filter(w=>!w.webContents.getURL().includes('mode=tray')).map(w=>({id:w.id,bounds:w.getBounds()})));

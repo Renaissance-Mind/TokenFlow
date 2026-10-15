@@ -1,10 +1,19 @@
 import type { Point, Rectangle } from "electron";
 
+export function trayClickHandler(cursor: () => Point, open: (bounds: Rectangle, point: Point) => unknown) {
+  return (_event: unknown, bounds: Rectangle, _eventPosition?: Point): void => {
+    // Electron 44's macOS click position converts locationInWindow as though it
+    // were a global point. Read the actual screen cursor synchronously instead.
+    void open(bounds, cursor());
+  };
+}
+
 export function trayAnchor(bounds: Rectangle, click: Point | undefined, display: Rectangle): Rectangle {
   // A duplicated macOS menu bar can report the icon bounds on another display.
   // Keep the actual click as the anchor in that case, including negative origins.
   const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
-  const valid = bounds.width > 0 && bounds.height > 0 && center.x >= display.x && center.x < display.x + display.width && center.y >= display.y && center.y < display.y + display.height;
+  const containsClick = !click || (click.x >= bounds.x - 2 && click.x <= bounds.x + bounds.width + 2 && click.y >= bounds.y - 2 && click.y <= bounds.y + bounds.height + 2);
+  const valid = containsClick && bounds.width > 0 && bounds.height > 0 && center.x >= display.x && center.x < display.x + display.width && center.y >= display.y && center.y < display.y + display.height;
   if (click && !valid) {
     return { ...click, width: 0, height: 0 };
   }

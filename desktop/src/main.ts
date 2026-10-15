@@ -14,7 +14,7 @@ import { sameRendererLocation } from "./ipc-origin.js";
 import { CliClient } from "./cli-client.js";
 import { collectorHome, findCli, installCli, rememberCli, type CliInstallation } from "./cli-installation.js";
 import { appSettings, sharedSettings } from "./settings.js";
-import { trayAnchor, trayPopupBounds } from "./tray-placement.js";
+import { trayAnchor, trayClickHandler, trayPopupBounds } from "./tray-placement.js";
 
 const { autoUpdater } = updater;
 const here = path.join(realpathSync.native(app.getAppPath()), "app");
@@ -566,7 +566,7 @@ async function initialize(): Promise<void> {
   if (icon.isEmpty()) throw new Error("Tray icon is missing");
   if (process.platform === "darwin") icon.setTemplateImage(true);
   tray = new Tray(icon);
-  tray.on("click", (_event, bounds, position) => { void togglePopup(bounds, position); });
+  tray.on("click", trayClickHandler(() => screen.getCursorScreenPoint(), togglePopup));
   tray.on("right-click", () => tray.popUpContextMenu(Menu.buildFromTemplate([
     { label: "Open Dashboard", click: () => void showDashboard() }, { label: "Settings", click: showSettings },
     { type: "separator" }, { label: "Quit TokenFlow", click: () => app.quit() },
