@@ -239,7 +239,7 @@ async function requestJsonOnce(
 }
 
 async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
-  const timeoutMs = requestTimeoutMs();
+  const timeoutMs = requestTimeoutMs(url, init);
   const controller = new AbortController();
   let timedOut = false;
   const timeout = setTimeout(() => {
@@ -256,11 +256,14 @@ async function fetchWithTimeout(url: string, init: RequestInit): Promise<Respons
   }
 }
 
-function requestTimeoutMs(): number {
+function requestTimeoutMs(url: string, init: RequestInit): number {
+  const largeSnapshot = new URL(url).pathname === "/api/ingest"
+    && typeof init.body === "string" && Buffer.byteLength(init.body) > 1024 * 1024;
+  const defaultTimeout = largeSnapshot ? 180_000 : REQUEST_TIMEOUT_MS;
   const value = Number(
-    process.env.TOKENFLOW_REQUEST_TIMEOUT_MS || process.env.TOKENUSAGE_REQUEST_TIMEOUT_MS || REQUEST_TIMEOUT_MS,
+    process.env.TOKENFLOW_REQUEST_TIMEOUT_MS || process.env.TOKENUSAGE_REQUEST_TIMEOUT_MS || defaultTimeout,
   );
-  if (!Number.isFinite(value) || value < 1_000) return REQUEST_TIMEOUT_MS;
+  if (!Number.isFinite(value) || value < 1_000) return defaultTimeout;
   return Math.floor(value);
 }
 

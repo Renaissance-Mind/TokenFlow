@@ -251,7 +251,12 @@ async fn http(runtime: &Runtime, payload: &Value) -> Result<Value> {
     }
     let method =
         reqwest::Method::from_bytes(text(payload, "method")?.as_bytes()).map_err(message)?;
+    let large_snapshot = url.path() == "/api/ingest"
+        && payload["body"].as_str().map(|body| body.len() > 1024 * 1024).unwrap_or(false);
     let mut request = runtime.http.request(method, url);
+    if large_snapshot {
+        request = request.timeout(Duration::from_secs(180));
+    }
     if let Some(headers) = payload["headers"].as_object() {
         for (name, value) in headers {
             request = request.header(name, value.as_str().ok_or("Invalid HTTP header")?);
