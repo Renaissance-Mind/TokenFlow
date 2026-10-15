@@ -2,6 +2,27 @@ import { describe, expect, it } from "vitest";
 import { aggregateEvents } from "../src/usage-buckets.js";
 
 describe("usage buckets", () => {
+  it("uses refreshed catalog rates and context thresholds on each aggregation", () => {
+    const event = {
+      agent: "codex" as const, model: "catalog-refresh-test", sessionId: "s", sourcePath: "/a.jsonl",
+      timestamp: "2026-10-15T01:00:00.000Z", bucketStart: "2026-10-15T01:00:00.000Z",
+      inputTokens: 1500, cachedInputTokens: 100, outputTokens: 10, reasoningOutputTokens: 0,
+      cacheCreationTokens: 0, totalTokens: 1510, serviceTier: "fast" as const,
+    };
+    const profiles = [{
+      modelId: event.model, displayName: event.model, inputUsdPerMillion: "1", outputUsdPerMillion: "0",
+      cacheReadUsdPerMillion: "0", cacheCreationUsdPerMillion: "0", inputAbove200kUsdPerMillion: "2",
+      longContextThresholdTokens: 1000, fastMultiplier: "2",
+    }];
+    const first = aggregateEvents([event, event], profiles)[0];
+    expect(first.longContextInputTokens).toBe(3000);
+    expect(first.cost.totalUsd).toBe("0.011200");
+    profiles[0].longContextThresholdTokens = 2000;
+    profiles[0].inputUsdPerMillion = "3";
+    const refreshed = aggregateEvents([event, event], profiles)[0];
+    expect(refreshed.longContextInputTokens).toBe(0);
+    expect(refreshed.cost.totalUsd).toBe("0.016800");
+  });
   it("aggregates by half-hour bucket, agent, and model with cached input priced separately", () => {
     const buckets = aggregateEvents(
       [

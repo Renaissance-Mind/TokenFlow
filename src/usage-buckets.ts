@@ -11,6 +11,9 @@ const ZERO_COST: CostBreakdown = {
 
 export function aggregateEvents(events: UsageEvent[], pricingProfiles: PricingProfile[] = []): UsageBucket[] {
   const buckets = new Map<string, UsageBucket>();
+  // A catalog is fixed for this aggregation; avoid rebuilding its model index
+  // for every historical event while still observing the next catalog refresh.
+  const modelPricing = new Map<string, PricingProfile | null>();
 
   for (const event of events) {
     const bucketStart = event.bucketStart;
@@ -61,17 +64,20 @@ export function aggregateEvents(events: UsageEvent[], pricingProfiles: PricingPr
       } satisfies UsageBucket);
 
     bucket.serviceTier = event.serviceTier === "flex" ? "flex" : "standard";
+    const pricingModel = event.pricingModel || event.model;
+    if (!modelPricing.has(pricingModel)) modelPricing.set(pricingModel, resolvePricing(pricingModel, pricingProfiles));
+    const eventPricing = modelPricing.get(pricingModel)!;
     addTotals(bucket, event);
-    addLongContextTotals(bucket, event, pricingProfiles);
-    addFastTotals(bucket, event, pricingProfiles);
+    addLongContextTotals(bucket, event, eventPricing);
+    addFastTotals(bucket, event, eventPricing);
     bucket.pricingModel ||= event.pricingModel;
     bucket.costMultiplier ||= event.costMultiplier;
     bucket.recordedCostUsd = addUsdStrings(bucket.recordedCostUsd, event.recordedCostUsd);
     if (event.recordedCostUsd !== undefined) {
       bucket.recordedUsage ||= { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningOutputTokens: 0, cacheCreationTokens: 0, totalTokens: 0 };
       addTotals(bucket.recordedUsage, event);
-      addLongContextTotals(bucket.recordedUsage, event, pricingProfiles);
-      addFastTotals(bucket.recordedUsage as UsageBucket, event, pricingProfiles);
+      addLongContextTotals(bucket.recordedUsage, event, eventPricing);
+      addFastTotals(bucket.recordedUsage as UsageBucket, event, eventPricing);
     }
     buckets.set(key, bucket);
   }
@@ -161,10 +167,9 @@ function addTotals(target: UsageTotals, delta: UsageTotals): void {
 function addLongContextTotals(
   target: UsageTotals,
   event: UsageEvent,
-  pricingProfiles: PricingProfile[],
+  pricing: PricingProfile | null,
 ): void {
   if (event.longContextInputTokens !== undefined) return;
-  const pricing = resolvePricing(event.pricingModel || event.model, pricingProfiles);
   if (!pricing?.longContextThresholdTokens || eventContextTokens(event) <= pricing.longContextThresholdTokens) return;
 
   target.longContextInputTokens = (target.longContextInputTokens || 0) + event.inputTokens;
@@ -184,7 +189,7 @@ function addLongContextTotals(
 function addFastTotals(
   target: UsageTotals,
   event: UsageEvent,
-  pricingProfiles: PricingProfile[],
+  pricing: PricingProfile | null,
 ): void {
   if (!event.costMultiplier && event.serviceTier !== "fast") return;
 
@@ -217,7 +222,6 @@ function addFastTotals(
     return;
   }
 
-  const pricing = resolvePricing(event.pricingModel || event.model, pricingProfiles);
   if (!pricing?.longContextThresholdTokens || eventContextTokens(event) <= pricing.longContextThresholdTokens) return;
 
   target.fastLongContextInputTokens = (target.fastLongContextInputTokens || 0) + event.inputTokens;
