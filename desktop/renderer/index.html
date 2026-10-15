@@ -5,7 +5,7 @@
 <body><main>
 <section class="operation-progress" id="operationProgress" hidden aria-live="polite"><span id="progressLabel"></span><div class="progress-track" id="progressTrack" role="progressbar" aria-valuemin="0" aria-valuemax="100"><span class="progress-fill" id="progressFill"></span></div><span id="progressPercent"></span></section>
 <header><div class="brand"><span>TokenFlow</span></div><nav class="breadcrumbs settings-only" aria-label="Navigation"><button id="breadcrumbDashboard" data-text="dashboardTitle">Dashboard</button><span aria-hidden="true">/</span><span data-text="settings">Settings</span></nav><div class="header-actions"><span id="account" class="tray-only"></span><button id="settingsShortcut" class="tray-only" data-text="settings">Settings</button><button id="dashboardShortcut" class="settings-only" data-text="backDashboard">Back to Dashboard</button></div></header>
-<div class="settings-shell"><aside class="settings-nav settings-only" aria-label="Settings sections"><button class="active" data-section="pageTitle" data-text="settings" aria-current="page">Settings</button><button data-section="authentication" data-text="accountNav">Account</button><button data-section="preferencesSection" data-text="preferences">Preferences</button><button data-section="cliSection" data-text="cliUpdates">CLI & updates</button></aside>
+<div class="settings-shell"><aside class="settings-nav settings-only" aria-label="Settings sections"><button class="active" data-section="pageTitle" data-text="settings" aria-current="page">Settings</button><button data-section="authentication" data-text="accountNav">Account</button><button data-section="preferencesSection" data-text="preferences">Preferences</button><button data-section="traySection" data-text="popupTitle">Menu bar popup</button><button data-section="cliSection" data-text="cliUpdates">CLI & updates</button></aside>
 <div class="content">
 <div class="page-intro settings-only"><h1 id="pageTitle" data-text="settings">Settings</h1><p data-text="settingsSubtitle">Your App and CLI, connected.</p></div>
   <section class="tray-only usage" aria-labelledby="todayTitle">
@@ -42,6 +42,23 @@
     <label class="toggle"><span class="toggle-copy"><span data-text="pause">Pause automatic sync</span><small data-text="pauseHint">Manual sync is always available</small></span><input id="paused" type="checkbox" role="switch"></label>
     <div class="save-row"><span id="savedStatus" role="status"></span><button type="submit" id="save" data-text="save">Save preferences</button></div>
   </div></form>
+</section>
+<section class="settings-only tray-preferences" id="traySection" aria-labelledby="trayTitle">
+  <div class="section-label"><h2 id="trayTitle" data-text="popupTitle">Menu bar popup</h2></div>
+  <p class="muted" data-text="popupDescription">Choose the Dashboard sections shown when you click the menu bar icon.</p>
+  <form id="trayPreferences">
+    <div class="setting-grid">
+      <label><span data-text="popupRange">Default time range</span><select id="trayRange"><option value="1" data-text="todayShort">Today</option><option value="7" data-text="popup7">Last 7 days</option><option value="30" data-text="popup30">Last 30 days</option></select></label>
+      <label><span data-text="popupTheme">Appearance</span><select id="trayTheme"><option value="system" data-text="popupSystem">Follow system</option><option value="light" data-text="popupLight">Light</option><option value="dark" data-text="popupDark">Dark</option></select></label>
+    </div>
+    <fieldset class="tray-widget-options"><legend data-text="popupSections">Dashboard sections</legend>
+      <label><input type="checkbox" name="trayWidgets" value="overview"><span><strong data-text="popupOverview">Usage overview</strong><small data-text="popupOverviewHint">Tokens, cost, and mini trends</small></span></label>
+      <label><input type="checkbox" name="trayWidgets" value="trend"><span><strong data-text="popupTrend">Daily trend</strong><small data-text="popupTrendHint">The same usage chart as Dashboard</small></span></label>
+      <label><input type="checkbox" name="trayWidgets" value="models"><span><strong data-text="popupModels">Model distribution</strong><small data-text="popupModelsHint">See your largest cost drivers</small></span></label>
+      <label><input type="checkbox" name="trayWidgets" value="activity"><span><strong data-text="popupActivity">Token activity</strong><small data-text="popupActivityHint">Your activity across the year</small></span></label>
+    </fieldset>
+    <div class="save-row"><span id="traySavedStatus" role="status"></span><button type="submit" id="saveTray" data-text="savePopup">Save popup</button></div>
+  </form>
 </section>
 <section class="settings-only cli-settings" id="cliSection" aria-labelledby="cliTitle"><div class="section-label"><h2 id="cliTitle" data-text="cliUpdates">CLI & updates</h2></div>
   <div class="update-row"><div class="update-details"><div class="version-line"><span data-text="cliTitle">CLI</span><span id="collectorVersion"></span></div><code id="cliPath"></code><p class="muted" id="cliSource"></p></div><div class="cli-actions"><button id="checkCliUpdate" data-text="checkCliUpdate">Check CLI updates</button><button id="upgradeCli" hidden data-text="upgradeCli">Upgrade CLI</button><span id="cliUpdateStatus" role="status"></span></div></div>

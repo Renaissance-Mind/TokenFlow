@@ -95,8 +95,14 @@ try {
   await instance.evaluate(({Menu})=>Menu.getApplicationMenu().getMenuItemById('status-panel').click());
   await expect.poll(()=>instance.windows().some(w=>w.url().includes('mode=tray'))).toBe(true);
   const panel=instance.windows().find(w=>w.url().includes('mode=tray')); await panel.waitForLoadState('domcontentloaded');
-  await expect(panel.locator('#cost')).toHaveText('$0.00'); await expect(panel.locator('#loginSection')).toBeHidden();
-  await expect(panel.locator('#preferences')).toBeHidden(); await expect(panel.locator('#trayDashboard')).toBeVisible();
+  panel.on('pageerror',error=>errors.push(error.message));
+  await expect(panel.locator('body')).toHaveAttribute('data-mini-loaded','true');
+  await expect(panel.locator('#totalCost')).toHaveText('$0.00');
+  await expect(panel.locator('#miniArchive')).toBeHidden();await expect(panel.locator('#trayDashboard')).toBeVisible();
+  await expect(panel.locator('#miniSource')).toHaveText('This device');
+  for(const name of ['overview','trend','models'])await expect(panel.locator('[data-mini-widget="'+name+'"]')).toBeVisible();
+  await expect(panel.locator('[data-mini-widget="activity"]')).toBeHidden();
+  assert.equal(await panel.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   await panel.screenshot({path:path.join(output,'desktop-tray.png')});
   const nativeBefore=await instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().filter(w=>!w.webContents.getURL().includes('mode=tray')).map(w=>({id:w.id,bounds:w.getBounds()})));
   await panel.evaluate(()=>window.tokenflow.openSettings());
@@ -122,6 +128,25 @@ try {
   await expect(page.locator('.desktop-toolbar strong')).toHaveText('Dashboard');
   assert.equal(await page.locator('#localDashboard,#cloudDashboard').count(),0);
   await expect(settings.locator('#connectTitle')).toHaveText('账号与同步');
+  const collectorConfigBefore=await fs.readFile(path.join(env.TOKENFLOW_HOME,'config.json'),'utf8');
+  await settings.locator('#trayRange').selectOption('30');await settings.locator('#trayTheme').selectOption('light');
+  for(const widget of ['trend','models'])await settings.locator('[name="trayWidgets"][value="'+widget+'"]').uncheck();
+  await settings.locator('[name="trayWidgets"][value="activity"]').check();
+  await settings.locator('#saveTray').click();await expect(settings.locator('#traySavedStatus')).toHaveText('小窗设置已保存。');
+  assert.equal(await fs.readFile(path.join(env.TOKENFLOW_HOME,'config.json'),'utf8'),collectorConfigBefore);
+  const stored=JSON.parse(await fs.readFile(path.join(env.TOKENFLOW_DESKTOP_DATA,'settings.json'),'utf8'));
+  assert.equal(stored.trayRange,30);assert.equal(stored.trayTheme,'light');assert.deepEqual(stored.trayWidgets,['overview','activity']);
+  await expect(panel.locator('[data-mini-widget="trend"]')).toBeHidden();await expect(panel.locator('[data-mini-widget="activity"]')).toBeVisible();
+  await expect(panel.locator('[data-mini-range="30"]')).toHaveAttribute('aria-pressed','true');
+  await expect(panel.locator('html')).toHaveAttribute('data-theme','light');
+  await instance.evaluate(({Menu})=>Menu.getApplicationMenu().getMenuItemById('status-panel').click());
+  await panel.screenshot({path:path.join(output,'desktop-tray-customized.png')});
+  await panel.locator('#miniSettings').click();
+  await expect(settings.locator('[data-section="traySection"]')).toHaveAttribute('aria-current','page');
+  // Invalid all-hidden input must not erase the last usable popup layout.
+  for(const input of await settings.locator('[name="trayWidgets"]:checked').all())await input.uncheck();
+  await settings.locator('#saveTray').click();await expect(settings.locator('#traySavedStatus')).toHaveText('请至少选择一个 Dashboard 模块。');
+  assert.deepEqual((await settings.evaluate(()=>window.tokenflow.getState())).settings.trayWidgets,['overview','activity']);
   await settings.screenshot({path:path.join(output,'desktop-settings.png'),fullPage:true});
   if(process.env.TOKENFLOW_SYSTEM_TEST==='1') {
     await settings.evaluate(()=>window.tokenflow.saveSettings({launchAtLogin:true}));
@@ -134,6 +159,7 @@ try {
   await expect.poll(()=>instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=dashboard')).isVisible())).toBe(true);
   assert.equal(instance.windows().some(w=>/mode=(login|local)$/.test(w.url())),false);
   try{await settings.evaluate(()=>window.tokenflow.checkUpdate());}catch(error){if(!executablePath)throw error;assert.equal((await settings.evaluate(()=>window.tokenflow.getState())).update.status,'error');}
+  await expect.poll(async()=>(await page.evaluate(()=>window.tokenflow.getState())).pendingRequests,{timeout:30_000}).toBe(0);
   assert.deepEqual(errors,[]);
   console.log('Desktop smoke passed: standalone CLI installation, canonical Dashboard with local data, Settings with token/login, tray, shared configuration, localization, and window close.');
 } finally {

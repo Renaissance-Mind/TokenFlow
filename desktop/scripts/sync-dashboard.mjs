@@ -38,8 +38,14 @@ try {
   replaceOnce('if (!previewMode && !snapshotMode) await loadApiKeys();','if (!window.tokenflow && !previewMode && !snapshotMode) await loadApiKeys();');
   replaceOnce('function scheduleWidgetPreviewPrefetch() {','function scheduleWidgetPreviewPrefetch() {\n      if (window.tokenflow) return;');
   replaceOnce('const action = previewMode','const action = (previewMode || window.tokenflow)');
-  replaceOnce('    boot();','    window.tokenflowDashboard = { boot, refresh: async () => { usageHeatmapCache.clear(); hourlyCache.clear(); await boot(); }, language: applyLanguage };');
-  html=html.replace('</head>','<link rel="stylesheet" href="/desktop.css"><link rel="stylesheet" href="/progress.css"><link rel="stylesheet" href="/window-chrome.css"></head>');
+  replaceOnce('loadTbti();\n      await loadDeviceFilters();','if (!window.tokenflowMini) loadTbti();\n      await loadDeviceFilters();');
+  replaceOnce('const fixedWidgetsPromise = options.refreshFixedWidgets === false','const fixedWidgetsPromise = options.refreshFixedWidgets === false || (window.tokenflowMini && !window.tokenflowMini.needsHeatmap)');
+  replaceOnce('const hourlyPromise = options.refreshFixedWidgets === false','const hourlyPromise = options.refreshFixedWidgets === false || !!window.tokenflowMini');
+  replaceOnce('const element = document.getElementById(elementId);\n      if (!window.echarts)', 'const element = document.getElementById(elementId);\n      if (window.tokenflowMini && (!element.clientWidth || !element.clientHeight)) return currentChart;\n      if (!window.echarts)');
+  replaceOnce('function renderDailyTrend(payload, options = {}) {','function renderDailyTrend(payload, options = {}) {\n      if (window.tokenflowMini && !window.tokenflowMini.widgets.includes("trend")) return;');
+  replaceOnce('    boot();',`    window.tokenflowDashboard = { boot, refresh: async () => { usageHeatmapCache.clear(); hourlyCache.clear(); await boot(); }, language: applyLanguage,
+      miniRange: days => { selectedTrendDays = days; dashboardAllRange = false; const to = today.toISOString().slice(0, 10); document.getElementById('from').value = rangeStartDate(to, days); document.getElementById('to').value = to; }, repaint: refreshThemeSensitiveViews };`);
+  html=html.replace('</head>','<link rel="stylesheet" href="/desktop.css"><link rel="stylesheet" href="/progress.css"><link rel="stylesheet" href="/window-chrome.css"><link rel="stylesheet" href="/tray.css"></head>');
   html=html.replace('</body>','<script type="module" src="/desktop.js"></script></body>');
   const destination=path.join(desktop,'dashboard');await fs.mkdir(destination,{recursive:true});
   await fs.writeFile(path.join(destination,'index.html'),html);

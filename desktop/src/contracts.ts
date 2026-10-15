@@ -6,6 +6,9 @@ export interface Settings {
   launchAtLogin: boolean;
   paused: boolean;
   trayMetric: "cost" | "tokens" | "icon";
+  trayRange: 1 | 7 | 30;
+  trayTheme: "system" | "light" | "dark";
+  trayWidgets: Array<"overview" | "trend" | "models" | "activity">;
   language: "en" | "zh";
 }
 export interface DayUsage { date: string; tokens: number; costUsd: number; unpricedTokens: number }

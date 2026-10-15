@@ -49,7 +49,7 @@ await withDesktopTestServer(async({url,approve,request,db,userId,sessionToken})=
     await dashboard.evaluate(()=>{window.dashboardIdentity=document.getElementById('app');});
     let state=await dashboard.evaluate(()=>window.tokenflow.getState());assert.equal(state.cli.source,'installed');assert.equal(state.hasCollector,true);assert.equal(state.hasDashboard,true);assert.equal(state.dashboardSource,'cloud');
     assert.equal(state.settings.deviceName,'Existing CLI');assert.equal(state.settings.serverUrl,url);assert.equal(state.settings.paused,false);
-    assert.deepEqual(JSON.parse(await fs.readFile(path.join(env.TOKENFLOW_DESKTOP_DATA,'settings.json'),'utf8')),{launchAtLogin:true,trayMetric:'cost',language:'en'});
+    assert.deepEqual(JSON.parse(await fs.readFile(path.join(env.TOKENFLOW_DESKTOP_DATA,'settings.json'),'utf8')),{launchAtLogin:true,trayMetric:'cost',language:'en',trayRange:7,trayTheme:'system',trayWidgets:['overview','trend','models']});
     assert.equal(JSON.parse(await fs.readFile(path.join(env.TOKENFLOW_HOME,'config.json'),'utf8')).deviceToken,linked.token);
     const nativeMain=await instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().map(w=>({id:w.id,bounds:w.getBounds()})));
     await dashboard.evaluate(()=>window.tokenflow.openSettings());
@@ -76,13 +76,19 @@ await withDesktopTestServer(async({url,approve,request,db,userId,sessionToken})=
     assert.equal((await db.prepare('SELECT COUNT(*) AS count FROM devices WHERE user_id=?1').bind(userId).first()).count,1);
     await assert.rejects(fs.access(path.join(env.TOKENFLOW_DESKTOP_DATA,'desktop-auth.bin')),error=>error.code==='ENOENT');
     await expect(dashboard.locator('#totalTokens')).toHaveAttribute('title','1,100');
+    await instance.evaluate(({Menu})=>Menu.getApplicationMenu().getMenuItemById('status-panel').click());
+    await expect.poll(()=>instance.windows().some(page=>page.url().includes('mode=tray'))).toBe(true);
+    let mini=instance.windows().find(page=>page.url().includes('mode=tray'));await mini.waitForLoadState('domcontentloaded');
+    await expect(mini.locator('body')).toHaveAttribute('data-mini-loaded','true');
+    await expect(mini.locator('#miniSource')).toHaveText('Synced data');
+    await expect(mini.locator('#totalTokens')).toHaveAttribute('title','1,100');
     assert.equal(await dashboard.evaluate(()=>location.href), 'tokenflow://dashboard/index.html?mode=dashboard');
     assert.equal(await dashboard.evaluate(()=>window.dashboardIdentity===document.getElementById('app')),true);
     assert.equal(await instance.evaluate(({webContents})=>webContents.getAllWebContents().some(c=>/^https?:/.test(c.getURL()))),false);
     await dashboard.screenshot({path:path.join(desktop,'test-results','desktop-dashboard-cloud.png')});
     await settings.evaluate(()=>window.tokenflow.saveSettings({deviceName:'App shared settings',paused:true,trayMetric:'tokens'}));
     let shared=cliConfig();assert.equal(shared.deviceName,'App shared settings');assert.equal(shared.autoSyncPaused,true);assert.equal(shared.deviceToken,linked.token);
-    assert.deepEqual(JSON.parse(await fs.readFile(path.join(env.TOKENFLOW_DESKTOP_DATA,'settings.json'),'utf8')),{launchAtLogin:true,trayMetric:'tokens',language:'en'});
+    assert.deepEqual(JSON.parse(await fs.readFile(path.join(env.TOKENFLOW_DESKTOP_DATA,'settings.json'),'utf8')),{launchAtLogin:true,trayMetric:'tokens',language:'en',trayRange:7,trayTheme:'system',trayWidgets:['overview','trend','models']});
     cliCommand(['device-name','CLI renamed device','--local']);cliAction('configure',{paused:false});
     await expect.poll(async()=>{const s=await settings.evaluate(()=>window.tokenflow.getState());return s.settings.deviceName==='CLI renamed device'&&!s.settings.paused;},{timeout:30_000}).toBe(true);
     await expect(settings.locator('#deviceName')).toHaveValue('CLI renamed device');await expect(settings.locator('#paused')).not.toBeChecked();
@@ -93,6 +99,10 @@ await withDesktopTestServer(async({url,approve,request,db,userId,sessionToken})=
     instance=await electron.launch({args:[desktop],env,timeout:60_000});dashboard=await instance.firstWindow();await dashboard.waitForURL(/mode=dashboard$/);
     await expect.poll(async()=>(await dashboard.evaluate(()=>window.tokenflow.getState())).dashboardSource==='cloud',{timeout:60_000}).toBe(true);
     assert.equal(instance.windows().some(p=>/mode=(login|local)$/.test(p.url())),false);
+    await instance.evaluate(({Menu})=>Menu.getApplicationMenu().getMenuItemById('status-panel').click());
+    await expect.poll(()=>instance.windows().some(page=>page.url().includes('mode=tray'))).toBe(true);
+    mini=instance.windows().find(page=>page.url().includes('mode=tray'));await mini.waitForLoadState('domcontentloaded');
+    await expect(mini.locator('body')).toHaveAttribute('data-mini-loaded','true');
     // CLI account changes are adopted while App stays open, even with a stale cookie.
     await dashboard.evaluate(()=>{window.dashboardIdentity=document.getElementById('app');});
     const otherSession='tu_sess_'+randomBytes(32).toString('base64url'),otherNow=new Date().toISOString();
@@ -109,6 +119,7 @@ await withDesktopTestServer(async({url,approve,request,db,userId,sessionToken})=
     await saveCliConfig({...config,deviceToken:otherLinked.token,deviceId:otherLinked.device_id,deviceName:'Other CLI',autoSyncPaused:true});
     await expect.poll(async()=>{const s=await dashboard.evaluate(()=>window.tokenflow.getState());if(s.notice||s.error)throw new Error('CLI account adoption: '+(s.notice||s.error));return s.account?.id;},{timeout:30_000}).toBe('usr_other_cli');
     await expect(dashboard.locator('#totalTokens')).toHaveAttribute('title','0');
+    await expect(mini.locator('#totalTokens')).toHaveAttribute('title','0');
     assert.equal(await dashboard.evaluate(()=>window.dashboardIdentity===document.getElementById('app')),true);
     await saveCliConfig({...config,autoSyncPaused:true});
     await expect.poll(async()=>(await dashboard.evaluate(()=>window.tokenflow.getState())).account?.id,{timeout:30_000}).toBe(userId);

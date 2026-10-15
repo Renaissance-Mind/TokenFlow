@@ -1,6 +1,9 @@
 // Data changes redraw the existing Dashboard; authentication never navigates it.
 import {renderProgress} from './progress.js';
 import {renderWindowChrome} from './window-chrome.js';
+if (new URLSearchParams(location.search).get('mode') === 'tray') {
+  await import('./tray.js');
+} else {
 let latest, started=false, revision='', refreshing=false, pending=false;
 const $=id=>document.getElementById(id);
 const words={en:{local:'This device’s data',cloud:'Synced data',scan:'Reading usage…',pricing:'Fetching pricing…',upload:'Syncing…',refresh:'Refresh',sync:'Sync',settings:'Settings'},zh:{local:'本机数据',cloud:'同步数据',scan:'正在读取用量…',pricing:'正在获取价格…',upload:'正在同步…',refresh:'刷新',sync:'同步',settings:'设置'}};
@@ -38,3 +41,5 @@ $('desktopSync').onclick=async()=>{await window.tokenflow.sync();await refresh()
 // Keep the web sidebar and filters aligned to the single native toolbar.
 new ResizeObserver(([entry])=>document.documentElement.style.setProperty('--desktop-toolbar-height',entry.target.getBoundingClientRect().height+'px')).observe(document.querySelector('.desktop-toolbar'));
 window.tokenflow.onState(update);window.tokenflow.getState().then(update);
+
+}

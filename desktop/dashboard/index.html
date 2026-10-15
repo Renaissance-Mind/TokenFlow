@@ -1062,7 +1062,7 @@
       .tbti-card-tilt { transition: none; }
     }
   </style>
-<link rel="stylesheet" href="/desktop.css"><link rel="stylesheet" href="/progress.css"><link rel="stylesheet" href="/window-chrome.css"></head>
+<link rel="stylesheet" href="/desktop.css"><link rel="stylesheet" href="/progress.css"><link rel="stylesheet" href="/window-chrome.css"><link rel="stylesheet" href="/tray.css"></head>
 <body>
 <header class="desktop-toolbar window-toolbar">
   <div class="desktop-heading"><strong>Dashboard</strong><span id="desktopDataSource"></span></div>
@@ -4004,6 +4004,7 @@
     }
     function ensureChart(elementId, currentChart) {
       const element = document.getElementById(elementId);
+      if (window.tokenflowMini && (!element.clientWidth || !element.clientHeight)) return currentChart;
       if (!window.echarts) {
         element.innerHTML = '<div class="empty-state">' + escapeHtml(t('state.chartUnavailable')) + '</div>';
         return null;
@@ -4157,7 +4158,7 @@
       renderAuth(me.user || {});
       document.getElementById('app').classList.remove('hidden');
       requestAnimationFrame(syncAllTrackIndicators);
-      loadTbti();
+      if (!window.tokenflowMini) loadTbti();
       await loadDeviceFilters();
       await loadDashboard();
     }
@@ -4210,10 +4211,10 @@
       const filterOptionsPromise = filterOptionsParams.toString() === params.toString()
         ? summaryPromise
         : api(endpoints.summary + filterOptionsParams.toString());
-      const fixedWidgetsPromise = options.refreshFixedWidgets === false
+      const fixedWidgetsPromise = options.refreshFixedWidgets === false || (window.tokenflowMini && !window.tokenflowMini.needsHeatmap)
         ? Promise.resolve()
         : refreshUsageHeatmap();
-      const hourlyPromise = options.refreshFixedWidgets === false
+      const hourlyPromise = options.refreshFixedWidgets === false || !!window.tokenflowMini
         ? Promise.resolve()
         : refreshHourlyInsightsSafely();
       const summary = await summaryPromise;
@@ -4942,6 +4943,7 @@
       };
     }
     function renderDailyTrend(payload, options = {}) {
+      if (window.tokenflowMini && !window.tokenflowMini.widgets.includes("trend")) return;
       const days = payload.days || [];
       const metric = payload.metric || 'tokens';
       const trend = document.getElementById('dailyTrend');
@@ -6377,7 +6379,8 @@
       });
       stage.addEventListener('pointerleave', () => { tilt.style.transform = ''; });
     }
-    window.tokenflowDashboard = { boot, refresh: async () => { usageHeatmapCache.clear(); hourlyCache.clear(); await boot(); }, language: applyLanguage };
+    window.tokenflowDashboard = { boot, refresh: async () => { usageHeatmapCache.clear(); hourlyCache.clear(); await boot(); }, language: applyLanguage,
+      miniRange: days => { selectedTrendDays = days; dashboardAllRange = false; const to = today.toISOString().slice(0, 10); document.getElementById('from').value = rangeStartDate(to, days); document.getElementById('to').value = to; }, repaint: refreshThemeSensitiveViews };
   </script>
 <script type="module" src="/desktop.js"></script></body>
 </html>

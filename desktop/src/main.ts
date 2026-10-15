@@ -53,7 +53,7 @@ const runtime = app.isPackaged ? path.join(realpathSync.native(process.resources
 const standaloneNode = () => process.env.TOKENFLOW_NODE_PATH || (app.isPackaged ? path.join(realpathSync.native(process.resourcesPath), `node-${process.arch}`, process.platform === "win32" ? "node.exe" : "node") : "");
 const defaultSettings: Settings = {
   serverUrl: process.env.TOKENFLOW_SERVER_URL || "https://tokenflow.renaissancemind.ai", deviceName: os.hostname(), launchAtLogin: true,
-  paused: false, trayMetric: "cost", language: app.getLocale().startsWith("zh") ? "zh" : "en",
+  paused: false, trayMetric: "cost", trayRange: 7, trayTheme: "system", trayWidgets: ["overview", "trend", "models"], language: app.getLocale().startsWith("zh") ? "zh" : "en",
 };
 const state: DesktopState = {
   version: app.getVersion(), windowChrome: { platform: process.platform, fullScreen: false }, collectorVersion: "", cli: { source: "managed", version: "", path: "", compatible: true, updateStatus: "idle" }, dashboardSource: "local", settings: { ...defaultSettings },
@@ -103,7 +103,7 @@ function protectLocalContents(contents: WebContents): void {
 function localPreferences() {
   return { preload: path.join(here, "preload.cjs"), nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true };
 }
-async function showSettings(): Promise<void> {
+async function showSettings(section?: unknown): Promise<void> {
   popup?.hide();
   await showDashboard();
   const win = dashboardWindow!;
@@ -117,26 +117,39 @@ async function showSettings(): Promise<void> {
     await settingsView.webContents.loadFile(renderer, { query: { mode: "settings" } });
   }
   settingsView.setVisible(true); state.settingsOpen = true; win.setTitle("TokenFlow · Settings");
+  if(section === "tray") settingsView.webContents.send("tokenflow:settings-section", "traySection");
   win.show(); win.focus(); settingsView.webContents.focus(); emit();
 }
 function useLocalData(): void {
   state.dashboardSource = "local"; emit();
 }
-function togglePopup(): void {
-  if (popup?.isVisible()) { popup.hide(); return; }
-  if (!popup || popup.isDestroyed()) {
-    popup = new BrowserWindow({ width: 380, height: 520, frame: false, resizable: false, show: false,
-      skipTaskbar: true, alwaysOnTop: true, backgroundColor: "#0b0e15", webPreferences: localPreferences() });
-    protectLocalContents(popup.webContents);
-    popup.on("blur", () => popup?.hide());
-    void popup.loadFile(renderer, { query: { mode: "tray" } });
-  }
+function positionPopup(): void {
+  if (!popup || popup.isDestroyed()) return;
   const bounds = tray.getBounds();
   const area = screen.getDisplayMatching(bounds).workArea;
   const size = popup.getBounds();
   const below = bounds.y < area.y + area.height / 2;
   popup.setPosition(Math.round(Math.min(Math.max(bounds.x + bounds.width / 2 - size.width / 2, area.x), area.x + area.width - size.width)),
     Math.round(below ? Math.max(area.y, bounds.y + bounds.height + 6) : Math.min(area.y + area.height - size.height, bounds.y - size.height - 6)));
+}
+function resizePopup(value: unknown): void {
+  if (!popup || popup.isDestroyed() || typeof value !== "number" || !Number.isFinite(value)) return;
+  const area = screen.getDisplayMatching(tray.getBounds()).workArea;
+  const height = Math.round(Math.max(260, Math.min(value, area.height - 18, 760)));
+  const width = Math.min(420, area.width);
+  if (popup.getBounds().height !== height || popup.getBounds().width !== width) popup.setSize(width, height);
+  positionPopup();
+}
+async function togglePopup(): Promise<void> {
+  if (popup?.isVisible()) { popup.hide(); return; }
+  if (!popup || popup.isDestroyed()) {
+    popup = new BrowserWindow({ width: 420, height: 640, frame: false, resizable: false, show: false,
+      skipTaskbar: true, alwaysOnTop: true, backgroundColor: "#f7f7f4", webPreferences: localPreferences() });
+    protectLocalContents(popup.webContents);
+    popup.on("blur", () => popup?.hide());
+    await popup.loadURL("tokenflow://dashboard/index.html?mode=tray");
+  }
+  positionPopup();
   popup.show(); popup.focus(); emit();
   if (!state.busy && (!state.summary || Date.now() - Date.parse(state.summary.scannedAt) > 60_000)) void runJob("scan");
 }
@@ -382,8 +395,9 @@ async function setApiToken(value: unknown): Promise<void> {
 }
 async function saveSettings(value: unknown): Promise<void> {
   if (!value || typeof value !== "object") throw new Error("Invalid settings");
-  if (state.busy || state.loginBusy || loggingOut) throw new Error("Wait for the current operation to finish");
   const patch = value as Partial<Settings>;
+  const connectionChange = ["serverUrl", "deviceName", "paused"].some(key => key in patch && patch[key as keyof Settings] !== state.settings[key as keyof Settings]);
+  if ((state.busy || state.loginBusy || loggingOut) && connectionChange) throw new Error("Wait for the current operation to finish");
   const next: Settings = { ...state.settings };
   if (patch.serverUrl !== undefined) next.serverUrl = normalizeDesktopServer(String(patch.serverUrl));
   if (patch.deviceName !== undefined) {
@@ -394,11 +408,17 @@ async function saveSettings(value: unknown): Promise<void> {
     if (patch[key] !== undefined) { if (typeof patch[key] !== "boolean") throw new Error("Invalid setting"); next[key] = patch[key]!; }
   }
   if (patch.trayMetric !== undefined) { if (!["cost", "tokens", "icon"].includes(patch.trayMetric)) throw new Error("Invalid menu bar metric"); next.trayMetric = patch.trayMetric; }
+  if (patch.trayRange !== undefined) { if (![1, 7, 30].includes(patch.trayRange)) throw new Error("Invalid popup range"); next.trayRange = patch.trayRange; }
+  if (patch.trayTheme !== undefined) { if (!["system", "light", "dark"].includes(patch.trayTheme)) throw new Error("Invalid popup theme"); next.trayTheme = patch.trayTheme; }
+  if (patch.trayWidgets !== undefined) {
+    if (!Array.isArray(patch.trayWidgets) || !patch.trayWidgets.length || patch.trayWidgets.some(item => !["overview", "trend", "models", "activity"].includes(item))) throw new Error("Choose at least one popup section");
+    next.trayWidgets = [...new Set(patch.trayWidgets)];
+  }
   if (patch.language !== undefined) { if (!["en", "zh"].includes(patch.language)) throw new Error("Invalid language"); next.language = patch.language; }
   if (next.serverUrl !== state.settings.serverUrl && (state.hasCollector || secret)) throw new Error("Sign out before changing the server");
-  await cli.request("configure", { serverUrl: next.serverUrl, deviceName: next.deviceName, paused: next.paused });
+  if (connectionChange) await cli.request("configure", { serverUrl: next.serverUrl, deviceName: next.deviceName, paused: next.paused });
   await atomicWrite(settingsPath(), JSON.stringify(appSettings(next), null, 2));
-  state.settings = next; await refreshCollector(); state.error = null; state.notice = null;
+  state.settings = next; if (connectionChange) await refreshCollector(); state.error = null; state.notice = null;
   configureLoginItem(); await marker(); emit();
 }
 async function logoutDesktop(): Promise<void> {
@@ -552,6 +572,7 @@ async function initialize(): Promise<void> {
   handle("cancel-login", () => { loginController?.abort(); });
   handle("settings", saveSettings); handle("sync", () => runJob("sync")); handle("scan", () => runJob("scan"));
   handle("dashboard", showDashboard); handle("dashboard-request", (value, options) => trackRequest(() => dashboardRequest(value, options)));
+  handle("resize-tray", resizePopup);
   handle("api-token", setApiToken); handle("cli-update", (action) => action === "check" ? checkCliUpdate() : upgradeCli()); handle("open-settings", showSettings); handle("logout", logoutDesktop);
   handle("update", async (action: unknown) => {
     try { await updateAction(action); }

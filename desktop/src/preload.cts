@@ -16,7 +16,13 @@ contextBridge.exposeInMainWorld("tokenflow", Object.freeze({
   checkUpdate: () => ipcRenderer.invoke("tokenflow:update", "check"),
   downloadUpdate: () => ipcRenderer.invoke("tokenflow:update", "download"),
   installUpdate: () => ipcRenderer.invoke("tokenflow:update", "install"),
-  openSettings: () => ipcRenderer.invoke("tokenflow:open-settings"),
+  openSettings: (section?: string) => ipcRenderer.invoke("tokenflow:open-settings", section),
+  onSettingsSection: (callback: (section: string) => void) => {
+    const listener=(_event: unknown, section: string)=>callback(section);
+    ipcRenderer.on("tokenflow:settings-section",listener);
+    return ()=>ipcRenderer.removeListener("tokenflow:settings-section",listener);
+  },
+  resizeTray: (height: number) => ipcRenderer.invoke("tokenflow:resize-tray", height),
   onState: (callback: (state: unknown) => void) => {
     const listener = (_event: unknown, state: unknown) => callback(state);
     ipcRenderer.on("tokenflow:changed", listener);
