@@ -56,9 +56,12 @@ try {
   await page.screenshot({path:path.join(output,'desktop-dashboard-local.png')});
   // Verify the local reading animation, with the real native state event.
   assert.equal(await page.evaluate(async()=>{
-    let sawLoading=false;
-    const off=window.tokenflow.onState(state=>{if(state.busy)sawLoading ||= document.querySelector('.desktop-toolbar').classList.contains('is-reading') && !document.getElementById('operationProgress').hidden && document.getElementById('progressTrack').hasAttribute('aria-valuenow');});
-    await window.tokenflow.scan();off();return sawLoading;
+    let sawLoading=false,sidebarClear=true;
+    const off=window.tokenflow.onState(state=>{if(state.busy){
+      sawLoading ||= document.querySelector('.desktop-toolbar').classList.contains('is-reading') && !document.getElementById('operationProgress').hidden && document.getElementById('progressTrack').hasAttribute('aria-valuenow');
+      sidebarClear &&= document.querySelector('.tbti-sidebar').getBoundingClientRect().top>=document.querySelector('.desktop-toolbar').getBoundingClientRect().bottom-1;
+    }});
+    await window.tokenflow.scan();off();return sawLoading&&sidebarClear;
   }),true);
   await expect.poll(async()=>!(await page.evaluate(()=>window.tokenflow.getState())).busy).toBe(true);
   await instance.evaluate(({Menu})=>Menu.getApplicationMenu().getMenuItemById('status-panel').click());

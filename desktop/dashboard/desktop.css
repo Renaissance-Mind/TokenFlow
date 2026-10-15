@@ -1,4 +1,5 @@
-:root{--desktop-toolbar-height:48px;--desktop-progress-height:0px;--desktop-top:calc(var(--desktop-toolbar-height) + var(--desktop-progress-height))}
+:root{--desktop-toolbar-height:48px;--desktop-progress-height:0px}
+body{--desktop-top:calc(var(--desktop-toolbar-height) + var(--desktop-progress-height))}
 .has-operation-progress{--desktop-progress-height:38px}
 .desktop-toolbar{position:sticky;top:var(--desktop-progress-height);z-index:100;display:flex;align-items:center;gap:14px;min-height:48px;box-sizing:border-box;padding:10px clamp(16px,2.6vw,40px);background:var(--bg);border-bottom:1px solid var(--line);color:var(--text);font:13px var(--font)}
 .desktop-toolbar strong{font-weight:600}.desktop-toolbar #desktopActivity{margin-right:auto;color:var(--muted)}
