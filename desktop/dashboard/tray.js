@@ -11,6 +11,7 @@ while(main.firstChild)archive.append(main.firstChild);
 main.append(archive);
 const content=document.createElement('div');content.id='miniWidgets';
 for(const [name,node] of Object.entries(widgets)){node.dataset.miniWidget=name;content.append(node);}
+const modelLimit=document.createElement('span');modelLimit.className='mini-model-limit';modelLimit.textContent='Top 4';widgets.models.querySelector('.section-head').append(modelLimit);
 main.append(content);
 const progress=$('operationProgress');
 document.querySelector('.desktop-toolbar').outerHTML=`<header class="mini-header">

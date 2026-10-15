@@ -4413,7 +4413,7 @@
       const items = models
         .slice()
         .sort((a, b) => numberValue(b.total_cost_usd) - numberValue(a.total_cost_usd))
-        .slice(0, 8)
+        .slice(0, window.tokenflowMini ? 4 : 8)
         .map((model, index) => ({
           name: model.agent + ' / ' + model.model,
           value: numberValue(model.total_cost_usd),

@@ -43,6 +43,8 @@ try {
   replaceOnce('const hourlyPromise = options.refreshFixedWidgets === false','const hourlyPromise = options.refreshFixedWidgets === false || !!window.tokenflowMini');
   replaceOnce('const element = document.getElementById(elementId);\n      if (!window.echarts)', 'const element = document.getElementById(elementId);\n      if (window.tokenflowMini && (!element.clientWidth || !element.clientHeight)) return currentChart;\n      if (!window.echarts)');
   replaceOnce('function renderDailyTrend(payload, options = {}) {','function renderDailyTrend(payload, options = {}) {\n      if (window.tokenflowMini && !window.tokenflowMini.widgets.includes("trend")) return;');
+  const modelItems="function renderModelShare(models) {\n      const items = models\n        .slice()\n        .sort((a, b) => numberValue(b.total_cost_usd) - numberValue(a.total_cost_usd))\n        .slice(0, 8)";
+  replaceOnce(modelItems,modelItems.replace('.slice(0, 8)','.slice(0, window.tokenflowMini ? 4 : 8)'));
   replaceOnce('    boot();',`    window.tokenflowDashboard = { boot, refresh: async () => { usageHeatmapCache.clear(); hourlyCache.clear(); await boot(); }, language: applyLanguage,
       miniRange: days => { selectedTrendDays = days; dashboardAllRange = false; const to = today.toISOString().slice(0, 10); document.getElementById('from').value = rangeStartDate(to, days); document.getElementById('to').value = to; }, repaint: refreshThemeSensitiveViews };`);
   html=html.replace('</head>','<link rel="stylesheet" href="/desktop.css"><link rel="stylesheet" href="/progress.css"><link rel="stylesheet" href="/window-chrome.css"><link rel="stylesheet" href="/tray.css"></head>');
