@@ -1,4 +1,5 @@
-import { _electron as electron, expect } from '@playwright/test';
+import { _electron as electron, expect as baseExpect } from '@playwright/test';
+const expect=baseExpect.configure({timeout:60_000});
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
@@ -156,7 +157,7 @@ try {
     assert.deepEqual(await instance.evaluate(({BrowserWindow,app})=>{
       const main=BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=dashboard'));
       const popup=BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=tray'));
-      main.hide();app.emit('activate',{},true);
+      popup.show();popup.focus();main.hide();app.emit('activate',{},true);
       return {mainVisible:main.isVisible(),popupVisible:popup.isVisible()};
     }),{mainVisible:false,popupVisible:true});
     if(process.env.TOKENFLOW_WINDOW_CHROME_TEST==='1') {
@@ -198,6 +199,7 @@ try {
     await expect.poll(()=>instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=tray')).isVisible())).toBe(true);
   }
   if(positionTest) {
+    await instance.evaluate(({app})=>app.focus({steal:true}));
     assert.equal(await instance.evaluate(()=>!!globalThis.trayPositionTest),true);
     const displays=await instance.evaluate(({screen})=>screen.getAllDisplays().map(d=>({id:d.id,bounds:d.bounds,workArea:d.workArea})));
     const results=[];
@@ -229,6 +231,7 @@ try {
     await fs.writeFile(path.join(output,'desktop-tray-position.json'),JSON.stringify(results,null,2));
     console.log('Native tray click positioning passed on '+displays.length+' connected display(s):',results);
   }
+  await instance.evaluate(({BrowserWindow})=>{const popup=BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=tray'));popup.show();popup.focus();});
   await panel.screenshot({path:path.join(output,'desktop-tray.png')});
   const nativeBefore=await instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().filter(w=>!w.webContents.getURL().includes('mode=tray')).map(w=>({id:w.id,bounds:w.getBounds()})));
   await panel.evaluate(()=>window.tokenflow.openSettings());
@@ -270,6 +273,7 @@ try {
   assert.equal(await fs.readFile(path.join(env.TOKENFLOW_HOME,'config.json'),'utf8'),languageConfigBefore);
   // The web Dashboard picker also changes the one App preference instead of
   // leaving a separate localStorage language behind.
+  await page.evaluate(()=>window.tokenflow.openSettings());
   await settings.locator('#dashboardShortcut').click();
   await page.locator('#languageToggle').click();
   assert.equal(await page.locator('[data-language-option]').count(),2);

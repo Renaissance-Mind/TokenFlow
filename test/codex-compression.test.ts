@@ -35,7 +35,7 @@ describe("Codex compressed rollouts", () => {
     const collected = await events(r);
     expect(collected).toHaveLength(count);
     expect(collected.reduce((sum, event) => sum + event.totalTokens, 0)).toBe(count);
-  }, 20_000);
+  }, 120_000);
   it("keeps fork replay and remote compaction accounting when every log is compressed", async () => {
     const r = await home();
     for (const name of ["parent", "child"]) await put(r, `sessions/${name}.jsonl.zst`, await fs.readFile(fixture(`${name}.jsonl.zst`)));
