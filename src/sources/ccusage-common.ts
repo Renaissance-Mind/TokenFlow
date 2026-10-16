@@ -10,6 +10,7 @@ export interface ParseOptions {
 export interface JsonlUsageParser {
   pushLine(line: string): void;
   finish(): UsageEvent[];
+  snapshot?(): unknown;
 }
 
 export interface UsageEventParts {

@@ -7,13 +7,13 @@ if (new URLSearchParams(location.search).get('mode') === 'tray') {
 } else {
 let latest, started=false, revision='', refreshing=false, pending=false;
 const $=id=>document.getElementById(id);
-const words={en:{local:'This device’s data',cloud:'Synced data',scan:'Reading usage…',pricing:'Fetching pricing…',upload:'Syncing…',refresh:'Refresh',sync:'Sync',settings:'Settings'},zh:{local:'本机数据',cloud:'同步数据',scan:'正在读取用量…',pricing:'正在获取价格…',upload:'正在同步…',refresh:'刷新',sync:'同步',settings:'设置'}};
+const words={en:{prepare:'Preparing statistics…',local:'This device’s data',cloud:'Synced data',scan:'Reading usage…',pricing:'Fetching pricing…',upload:'Syncing…',refresh:'Refresh',sync:'Sync',settings:'Settings'},zh:{prepare:'正在准备统计…',local:'本机数据',cloud:'同步数据',scan:'正在读取用量…',pricing:'正在获取价格…',upload:'正在同步…',refresh:'刷新',sync:'同步',settings:'设置'}};
 function activity(){
   if(!latest)return;
   renderWindowChrome(latest);renderProgress(latest);
   const t=words[latest.settings.language]||words.en;
   $('desktopDataSource').textContent=t[latest.dashboardSource];
-  $('desktopActivity').textContent=latest.notice||latest.error||'';
+  $('desktopActivity').textContent=latest.notice||latest.error||(!latest.summary&&latest.cli.compatible?t.prepare:'');
   $('desktopActivity').hidden=!$('operationProgress').hidden||!$('desktopActivity').textContent;
   document.querySelector('.desktop-toolbar').classList.toggle('is-reading',!!latest.busy);
   for(const [id,key] of [['desktopRefresh','refresh'],['desktopSync','sync'],['desktopSettings','settings']])$(id).textContent=t[key];

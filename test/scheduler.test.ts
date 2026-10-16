@@ -3,6 +3,13 @@ import { describe, expect, it } from "vitest";
 import { buildSyncCommand } from "../src/scheduler.js";
 
 describe("auto-sync scheduler command", () => {
+  it("runs the persistent CLI collector independently of Dashboard", () => {
+    expect(buildSyncCommand("https://usage.example.com", {env:{},continuous:true})).toMatch(/tokenflow collect --watch$/);
+  });
+
+  it("migrates an existing scheduled CLI command while preserving its quoted runtime", () => {
+    expect(buildSyncCommand("https://usage.example.com", {continuous:true,env:{TOKENFLOW_AUTO_SYNC_COMMAND:"'/path with spaces/node' '/path with spaces/cli.js' sync --auto"}})).toMatch(/'\/path with spaces\/node' '\/path with spaces\/cli.js' collect --watch$/);
+  });
   it("uses the installed CLI instead of resolving npm on every scheduled run", () => {
     expect(
       buildSyncCommand("https://usage.example.com", {

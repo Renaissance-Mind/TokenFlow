@@ -1,3 +1,4 @@
+import { cachedSource } from "../collection-cache.js";
 import { appendItems } from "../arrays.js";
 import { scanFile, discoveredFile, scannedBytes } from "../scan-progress.js";
 import path from "node:path";
@@ -25,12 +26,14 @@ export function parseOpenClawJsonl(jsonl: string, options: OpenClawParseOptions)
   return parseJsonlWithParser(jsonl, createOpenClawJsonlParser(options));
 }
 
-export function createOpenClawJsonlParser(options: OpenClawParseOptions): JsonlUsageParser {
-  const events: UsageEvent[] = [];
+export function createOpenClawJsonlParser(options: OpenClawParseOptions, saved?: unknown): JsonlUsageParser {
+  const checkpoint = saved as { events: UsageEvent[]; currentModel: string | null } | undefined;
+  const events: UsageEvent[] = checkpoint?.events || [];
   const sessionId = options.sessionId || openClawSessionIdFromPath(options.sourcePath);
-  let currentModel: string | null = null;
+  let currentModel: string | null = checkpoint?.currentModel || null;
 
   return {
+    snapshot: () => ({ events, currentModel }),
     pushLine(line: string): void {
       if (!line.includes("\"model_change\"") && !line.includes("\"model-snapshot\"") && !line.includes("\"usage\"")) {
         return;
@@ -122,14 +125,15 @@ export async function planOpenClawDatabases(roots: string[]) {
     collect: async () => {
       const events: UsageEvent[] = [];
       for (const file of files) {
-        await scanFile(file, async () => {
+        appendItems(events, await scanFile(file, () => cachedSource("openclaw-db", [file, file + "-wal"], async () => {
+          const events: UsageEvent[] = [];
           const columns = await tableColumns(file, "transcript_events");
           if (
             !["session_id", "seq", "event_json", "created_at"].every((column) =>
               columns.has(column),
             )
           )
-            return;
+            return [];
           const rows = await sqliteRows<{
             session_id: string;
             event_json: string;
@@ -162,7 +166,8 @@ export async function planOpenClawDatabases(roots: string[]) {
             parser?.pushLine(JSON.stringify(value));
           }
           if (parser) appendItems(events, parser.finish());
-        });
+          return events;
+        })));
       }
       return { events, files };
     },

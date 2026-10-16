@@ -1,3 +1,5 @@
+import { requestCollectorYield } from "./collector-control.js";
+import { readLocalCache, publishLocalCache } from "./local-cache.js";
 import type { ScanProgress } from "./scan-progress.js";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -7,9 +9,7 @@ import { createInterface } from "node:readline";
 import { acquireSyncLock, syncLocalUsageWithHeldLock } from "./collector.js";
 import { readConfig, tokenUsageDir, writeConfig, DEFAULT_SERVER_URL } from "./config.js";
 import { collectLocalUsage } from "./file-scan.js";
-import { readPricingCatalog } from "./server-pricing-catalog.js";
-import { summarizeLocal } from "./local-summary.js";
-import { dashboardCache, localDashboardApi } from "./local-dashboard.js";
+import { localDashboardApi } from "./local-dashboard.js";
 import { aggregateEvents } from "./usage-buckets.js";
 import { getUploadApiTokenStatus, getDeviceStatus, renameDevice } from "./api.js";
 import { installAutoSync } from "./scheduler.js";
@@ -20,13 +20,19 @@ import { initializeSqliteReader } from "./sources/store-io.js";
 // Credentials stay on stdin/stdout between the two local processes.
 export async function desktopAction(action: string, params: Record<string, any> = {}, phase = (_value: string) => {}, progress?: (value: ScanProgress) => void): Promise<unknown> {
   if (action === "dashboard") {
+    const snapshot = await readLocalCache();
+    if (snapshot) return localDashboardApi(snapshot.dashboard, await readConfig(), params.path);
     const file = await fs.readFile(path.join(tokenUsageDir(), "desktop-dashboard.json"), "utf8").catch((error: NodeJS.ErrnoException) => { if (error.code === "ENOENT") return null; throw error; });
     return localDashboardApi(file ? JSON.parse(file) : null, await readConfig(), params.path);
   }
   if (action === "state") {
     const config = await readConfig();
+    const backgroundText = await fs.readFile(path.join(tokenUsageDir(), "background-status.json"), "utf8").catch((error: NodeJS.ErrnoException) => { if (error.code === "ENOENT") return null; throw error; });
+    const background = backgroundText ? JSON.parse(backgroundText) : null;
+    const snapshot = await readLocalCache();
+    if (snapshot) return { config, home: tokenUsageDir(), summary: snapshot.summary, background };
     const cache = await fs.readFile(path.join(tokenUsageDir(), "desktop-summary.json"), "utf8").catch(() => null);
-    return { config, home: tokenUsageDir(), summary: cache ? JSON.parse(cache) : null };
+    return { config, home: tokenUsageDir(), summary: cache ? JSON.parse(cache) : null, background };
   }
   if (action === "owner") {
     const file = path.join(tokenUsageDir(), "desktop-agent.json");
@@ -37,7 +43,7 @@ export async function desktopAction(action: string, params: Record<string, any> 
   if (action === "scheduler") {
     const quote = (s: string) => `'${s.replaceAll("'", "'\\''")}'`;
     return installAutoSync(params.serverUrl || (await readConfig())?.serverUrl || DEFAULT_SERVER_URL, os.homedir(), {
-      env: { ...process.env, TOKENFLOW_AUTO_SYNC_COMMAND: `TOKENFLOW_HOME=${quote(tokenUsageDir())} ${quote(process.execPath)} ${quote(fileURLToPath(new URL("cli.js", import.meta.url)))} sync --auto` },
+      env: { ...process.env, TOKENFLOW_AUTO_SYNC_COMMAND: `TOKENFLOW_HOME=${quote(tokenUsageDir())} ${quote(process.execPath)} ${quote(fileURLToPath(new URL("cli.js", import.meta.url)))} collect --watch` },
     });
   }
   if (action === "account") {
@@ -47,29 +53,19 @@ export async function desktopAction(action: string, params: Record<string, any> 
     return {};
   }
   let release: (() => Promise<void>) | null = null;
-  if (action !== "scan") {
-    release = await acquireSyncLock();
-    if (!release) throw new Error("Another TokenFlow sync is running. Try again shortly.");
-  }
-  const unlock = async () => { const owned = release; release = null; if (owned) await owned(); };
+  let resume: (() => Promise<void>) | null = null;
+  const unlock = async () => { const owned = release; release = null; if (owned) await owned(); const pending = resume; resume = null; if (pending) await pending(); };
   const cleanup = () => { void unlock().finally(() => process.exit(0)); };
   process.once("SIGTERM", cleanup);
   try {
+    resume = await requestCollectorYield();
+    release = await acquireSyncLock(true);
+    if (!release) throw new Error("Another TokenFlow sync is running. Try again shortly.");
     const config = await readConfig();
     if (action === "scan" || action === "sync") {
       const home = process.env.TOKENFLOW_SCAN_HOME;
       phase("scan");
-      const persist = async (collection: Awaited<ReturnType<typeof collectLocalUsage>>, pricedBuckets?: ReturnType<typeof aggregateEvents>) => {
-        const pricing = await readPricingCatalog(config?.serverUrl || DEFAULT_SERVER_URL);
-        const profiles = [...pricing?.profiles || [], ...collection.pricingProfiles];
-        const summary = summarizeLocal(collection.events, profiles, collection.sources);
-        await fs.mkdir(tokenUsageDir(), { recursive: true });
-        for (const [name, value] of [["desktop-summary.json", summary], ["desktop-dashboard.json", dashboardCache(pricedBuckets || aggregateEvents(collection.events, profiles))]] as const) {
-          const file = path.join(tokenUsageDir(), name), tmp = `${file}.${process.pid}.tmp`;
-          await fs.writeFile(tmp, JSON.stringify(value), { mode: 0o600 }); await fs.rename(tmp, file);
-        }
-        return summary;
-      };
+      const persist = (collection: Awaited<ReturnType<typeof collectLocalUsage>>, buckets?: ReturnType<typeof aggregateEvents>) => publishLocalCache(collection, config, buckets);
       const sync = action === "sync" ? await syncLocalUsageWithHeldLock({ home, onPhase: phase, onProgress: progress, onCollected: async collection => { await persist(collection); phase("pricing"); } }) : null;
       const collection = sync?.collection || await collectLocalUsage(home, progress);
       const summary = await persist(collection, sync?.buckets);
@@ -104,7 +100,6 @@ export async function desktopAction(action: string, params: Record<string, any> 
 }
 
 export async function runDesktopService(): Promise<void> {
-  await initializeSqliteReader();
   const send = (data: unknown) => process.stdout.write(`${JSON.stringify(data)}\n`);
   const responses = new Map<number, { resolve: (value: any) => void; reject: (error: Error) => void }>();
   let requestCounter = 0;
@@ -135,7 +130,10 @@ export async function runDesktopService(): Promise<void> {
       });
       return new Response(response.body || null, { status: response.status, headers: response.headers });
     });
-    void desktopAction(request.action, request.params, (phase) => send({ type: "phase", phase }), (progress) => send({ type: "progress", progress }))
+    void (async () => {
+      if (["scan", "sync"].includes(request.action)) await initializeSqliteReader();
+      return desktopAction(request.action, request.params, (phase) => send({ type: "phase", phase }), (progress) => send({ type: "progress", progress }));
+    })()
       .then((result) => send({ type: "result", result }))
       .catch((error) => { send({ type: "result", error: error instanceof Error ? error.message : String(error) }); process.exitCode = 1; })
       .finally(() => { lines.close(); process.stdin.destroy(); });

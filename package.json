@@ -1,6 +1,6 @@
 {
   "name": "@renaissancemind/tokenflow",
-  "version": "0.2.77",
+  "version": "0.2.78",
   "description": "Local token usage collector for multi-device AI agent accounting.",
   "license": "Apache-2.0",
   "repository": {
@@ -9,7 +9,8 @@
   },
   "type": "module",
   "tokenflow": {
-    "desktopProtocol": 2
+    "desktopProtocol": 2,
+    "backgroundCollector": 1
   },
   "bin": {
     "tokenflow": "dist/cli.js",

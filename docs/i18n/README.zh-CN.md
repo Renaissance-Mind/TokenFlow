@@ -43,7 +43,7 @@ Home: /Users/alice/.tokenflow
 - 📊 **UTC 半小时 bucket** - 保留本地使用细节，同时 dashboard 仍可按天汇总。
 - 💸 **成本感知统计** - 区分 fresh input、cached input、cache creation、output 和 reasoning output tokens。
 - 🧾 **未计价模型可见** - 未知模型仍然计入 token，并标记为 `unpriced`。
-- 🔁 **自动同步** - 在 macOS `launchd` 或 Linux systemd user timer 中安装 10 分钟同步任务。
+- 🔁 **自动同步** - 在 macOS `launchd` 或 Linux systemd 用户服务中运行后台采集，登录后每 10 分钟上传变化的统计。
 - 🔑 **设备登录或 API key 上传** - 支持浏览器设备授权和 `read_write` API token。
 - 🛠️ **适合自托管** - 可以指向任意兼容的 TokenFlow server URL。
 
@@ -108,6 +108,8 @@ tokenflow login
 tokenflow login --server-url http://127.0.0.1:8787
 ```
 
+`tokenflow collect --watch` 在后台每 15 秒检查来源变化：首次读取历史，后续复用未变文件的检查点，追加型 JSONL 从已保存的位置续读。Dashboard 和菜单栏小窗直接读取共享缓存，打开窗口不触发采集。登录后仍每 10 分钟上传变化的用量统计。
+
 ### 2. 查看会扫描哪些数据
 
 ```bash
@@ -122,7 +124,7 @@ tokenflow status
 tokenflow sync
 ```
 
-`sync` 会扫描本地日志、聚合使用量、幂等上传 bucket、记录同步心跳，并报告解析到的 events 和上传的 buckets。
+`sync` 复用本地采集检查点，处理新增或变化的来源，聚合使用量、幂等上传 bucket 并记录同步心跳。
 
 ### 4. 安装自动同步
 
@@ -130,7 +132,7 @@ tokenflow sync
 tokenflow init
 ```
 
-`init` 会写入 `~/.tokenflow/config.json`，在 macOS 或 Linux 上安装每 10 分钟运行一次的自动同步任务，然后在没有 token 时启动浏览器设备授权流程。
+`init` 会写入 `~/.tokenflow/config.json`，在 macOS 或 Linux 上安装持续运行的后台采集服务，然后在没有 token 时启动浏览器设备授权流程。
 
 ## API Token 模式
 

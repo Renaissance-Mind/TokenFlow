@@ -1,3 +1,5 @@
+import { readIncrementalJsonl } from "../incremental-jsonl.js";
+import { cachedSource } from "../collection-cache.js";
 import { scanFile, discoveredFile, scannedBytes } from "../scan-progress.js";
 import { createReadStream } from "node:fs";
 import fs from "node:fs/promises";
@@ -14,7 +16,7 @@ const MAX_LINE_CHARS = 16 * 1024 * 1024;
 const SESSION_FILE = /^session(?:\.v([1-9]\d*))?\.jsonl(?:\.zstd)?$/;
 
 interface DshUsageEvent extends UsageEvent { eventSeq: number }
-interface DshParser { pushLine(line: string): void; finish(): DshUsageEvent[] }
+interface DshParser { pushLine(line: string): void; finish(): DshUsageEvent[]; snapshot(): unknown }
 
 export function resolveDshSessionDirs(home: string, env = process.env): string[] {
   const expand = (value: string) => path.resolve(value === "~" ? home : value.startsWith("~/") ? path.join(home, value.slice(2)) : value);
@@ -29,17 +31,19 @@ export function parseDshJsonl(jsonl: string, sourcePath: string): UsageEvent[] {
   return parser.finish();
 }
 
-export function createDshParser(sourcePath: string): DshParser {
-  let events: Array<DshUsageEvent | null> = [];
-  let sessionId: string | null = null;
-  let model: string | null = null;
-  let seedLength = 0;
-  let seeded = false;
-  let sawSeedEnd = false;
-  let last: { turn: unknown; step: unknown; index: number } | null = null;
+export function createDshParser(sourcePath: string, saved?: unknown): DshParser {
+  const checkpoint = saved as { events: Array<DshUsageEvent | null>; sessionId: string | null; model: string | null; seedLength: number; seeded: boolean; sawSeedEnd: boolean; last: {turn:unknown;step:unknown;index:number} | null } | undefined;
+  let events: Array<DshUsageEvent | null> = checkpoint?.events || [];
+  let sessionId: string | null = checkpoint?.sessionId || null;
+  let model: string | null = checkpoint?.model || null;
+  let seedLength = checkpoint?.seedLength || 0;
+  let seeded = checkpoint?.seeded || false;
+  let sawSeedEnd = checkpoint?.sawSeedEnd || false;
+  let last: { turn: unknown; step: unknown; index: number } | null = checkpoint?.last || null;
   const filenameVersion = SESSION_FILE.exec(path.basename(sourcePath));
 
   return {
+    snapshot: () => ({ events, sessionId, model, seedLength, seeded, sawSeedEnd, last }),
     pushLine(line): void {
       if (!line.trim()) return;
       const record: unknown = JSON.parse(line);
@@ -146,10 +150,13 @@ export async function planDshUsage(candidates: string[]) {
     collect: async () => {
       const events = new Map<string, DshUsageEvent>();
       for (const file of files) {
-        await scanFile(file, async () => {
+        const parsed = await scanFile(file, () => cachedSource("dsh", [file], async () => {
+          if (!file.endsWith(".zstd")) return (await readIncrementalJsonl(file, saved => createDshParser(file, saved), null, false)).events as DshUsageEvent[];
           const parser = createDshParser(file);
           await readSessionLines(file, (line) => parser.pushLine(line));
-          for (const event of parser.finish()) {
+          return parser.finish();
+        }));
+        for (const event of parsed) {
             const key = `${event.sessionId}:${event.eventSeq}`;
             const previous = events.get(key);
             if (previous) {
@@ -158,8 +165,7 @@ export async function planDshUsage(candidates: string[]) {
               if (JSON.stringify(left) !== JSON.stringify(right))
                 throw new Error(`Conflicting copies of dsh usage ${key}`);
             } else events.set(key, event);
-          }
-        });
+        }
       }
       return { roots, files, events: [...events.values()] };
     },

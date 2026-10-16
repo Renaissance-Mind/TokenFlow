@@ -5,7 +5,29 @@ import type { CliInstallation } from "./cli-installation.js";
 
 export class CliClient {
   private active = new Set<ChildProcessWithoutNullStreams>();
+  private background: ReturnType<typeof spawn> | null = null;
   constructor(public installation: CliInstallation, private fetcher: typeof fetch = fetch) {}
+  startBackground(onError: (error: Error) => void): void {
+    if (this.background) return;
+    const env = { ...process.env }; delete env.ELECTRON_RUN_AS_NODE;
+    const child = spawn(this.installation.node, [this.installation.entrypoint, "collect", "--watch"], { env, stdio: "ignore", windowsHide: true });
+    this.background = child;
+    child.once("error", onError);
+    child.once("close", code => {
+      if (this.background !== child) return;
+      this.background = null;
+      if (code) onError(new Error(`Background CLI stopped (${code})`));
+    });
+  }
+  async stopBackground(): Promise<void> {
+    const child = this.background; this.background = null;
+    if (!child) return;
+    await new Promise<void>(resolve => {
+      const timeout = setTimeout(() => child.kill("SIGKILL"), 10_000);
+      child.once("close", () => { clearTimeout(timeout); resolve(); });
+      child.kill();
+    });
+  }
   request<T = any>(action: string, params: Record<string, unknown> = {}, onPhase?: (phase: "scan" | "pricing" | "upload") => void, onProgress?: (progress: ScanProgress) => void): Promise<T> {
     if (!this.installation.compatible) return Promise.reject(new Error("Upgrade the installed CLI in Settings to enable local statistics."));
     const env = { ...process.env }; delete env.ELECTRON_RUN_AS_NODE;

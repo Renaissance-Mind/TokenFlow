@@ -1,3 +1,4 @@
+import { publishLocalCache } from "./local-cache.js";
 import type { ScanProgress } from "./scan-progress.js";
 import os from "node:os";
 import path from "node:path";
@@ -22,6 +23,7 @@ export interface SyncResult {
   warning?: string;
 }
 export interface SyncOptions {
+  signal?: AbortSignal;
   serverUrl?: string;
   home?: string;
   onProgress?: (progress: ScanProgress) => void;
@@ -29,9 +31,9 @@ export interface SyncOptions {
   onCollected?: (collection: CollectionResult) => Promise<void>;
 }
 
-export async function acquireSyncLock(): Promise<(() => Promise<void>) | null> {
+export async function acquireSyncLock(wait = false): Promise<(() => Promise<void>) | null> {
   await fs.mkdir(tokenUsageDir(), { recursive: true });
-  return lock(path.join(tokenUsageDir(), "sync"), { realpath: false, retries: 0, stale: 120_000, update: 30_000 })
+  return lock(path.join(tokenUsageDir(), "sync"), { realpath: false, retries: wait ? { retries: 120, minTimeout: 100, maxTimeout: 500 } : 0, stale: 120_000, update: 30_000 })
     .catch((error: NodeJS.ErrnoException) => {
       if (error.code === "ELOCKED") return null;
       throw error;
@@ -66,13 +68,19 @@ export async function syncLocalUsageWithHeldLock(options: SyncOptions = {}): Pro
   const serverUrl = normalizeServerUrl(options.serverUrl || config.serverUrl);
   const deviceName = config.deviceName || os.hostname();
   options.onPhase?.("scan");
-  const collection = await collectLocalUsage(options.home, options.onProgress);
+  const collection = await collectLocalUsage(options.home, options.onProgress, options.signal);
+  await publishLocalCache(collection, config);
   await options.onCollected?.(collection);
+  options.signal?.throwIfAborted();
   options.onPhase?.("pricing");
   const pricing = await refreshPricingCatalog(serverUrl);
   const buckets = aggregateEvents(collection.events, [...pricing.catalog?.profiles || [], ...collection.pricingProfiles]);
+  await publishLocalCache(collection, config, buckets);
   const state = await readSyncState();
   const plan = planIncrementalSync(buckets, state, { maxBuckets: Number.MAX_SAFE_INTEGER });
+  const authorization = await readConfig();
+  if ((authorization?.apiToken || authorization?.deviceToken) !== uploadToken || authorization?.serverUrl !== config.serverUrl) throw new Error("Collector authorization changed during collection. Retry with the current account.");
+  options.signal?.throwIfAborted();
   options.onPhase?.("upload");
   const result = plan.buckets.length
     ? await ingestUsageSnapshot({ serverUrl, uploadToken, deviceName, platform: process.platform, buckets })

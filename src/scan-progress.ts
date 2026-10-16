@@ -1,3 +1,4 @@
+import { checkCollectionCancellation } from "./collection-cache.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 import fs from "node:fs/promises";
 import { codexRolloutStat, isCodexRollout } from "./sources/codex-reader.js";
@@ -103,9 +104,11 @@ export function withScanTracker<T>(
   return tracker ? context.run(tracker, action) : action();
 }
 export function discoveredFile(file: string): void {
+  checkCollectionCancellation();
   context.getStore()?.discover(file);
 }
 export function scannedBytes(file: string, consumed: number): void {
+  checkCollectionCancellation();
   context.getStore()?.bytes(file, consumed);
 }
 export async function scanFile<T>(

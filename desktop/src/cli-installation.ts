@@ -39,7 +39,7 @@ export async function inspectCli(entrypoint: string, node: string, source: CliIn
     const pkg = JSON.parse(await fs.readFile(path.join(packageDir, "package.json"), "utf8"));
     if (!["@renaissancemind/tokenflow", "@renaissancemind/tokenusage"].includes(pkg.name)) return null;
     return { source, entrypoint: real, node, packageDir, version: pkg.version,
-      compatible: pkg.tokenflow?.desktopProtocol === 2 && await fs.access(path.join(packageDir, "dist", "desktop-service.js")).then(() => true).catch(() => false) };
+      compatible: pkg.tokenflow?.desktopProtocol === 2 && pkg.tokenflow?.backgroundCollector === 1 && await fs.access(path.join(packageDir, "dist", "desktop-service.js")).then(() => true).catch(() => false) };
   } catch { return null; }
 }
 export async function findCli(options: { home?: string; env?: NodeJS.ProcessEnv; fallbackNode?: string } = {}): Promise<CliInstallation | null> {

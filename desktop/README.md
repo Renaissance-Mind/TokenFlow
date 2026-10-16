@@ -4,17 +4,17 @@ TokenFlow Desktop is a Dashboard, Settings page, and menu bar/system tray popup 
 
 ## Installation and shared CLI
 
-Install the macOS DMG or the Windows EXE. On startup, App finds an existing TokenFlow CLI and reuses its configuration and login. CLI versions with desktop protocol 2 are supported (starting with 0.2.73). An older installation, including the legacy `tokenusage` package, is shown in Settings with an upgrade action. Upgrading keeps its terminal entrypoint and existing configuration.
+Install the macOS DMG or the Windows EXE. On startup, App finds an existing TokenFlow CLI and reuses its configuration and login. CLI versions with desktop protocol 2 and the background-collector capability are supported (starting with 0.2.78). An older installation, including the legacy `tokenusage` package, is shown in Settings with an upgrade action. Upgrading keeps its terminal entrypoint and existing configuration.
 
 If no CLI is installed, App installs and configures a standalone CLI under the collector's data directory. Release installers include a checksummed official Node.js runtime, SQLite, and the CLI's dependencies; users do not need Node.js or npm. The terminal launchers use the active CLI recorded in `cli-installation.json`. A compatible global CLI installed later can become the active installation without leaving App on another collector.
 
 The macOS installer adds `~/.local/bin` to the user's shell login profile. Windows installs launchers under the user's Local AppData directory and adds them to the user's PATH. Open a new terminal to use `tokenflow` or the compatibility command `tokenusage`. Removing or quitting App retains the standalone CLI and its data.
 
-Existing `~/.tokenflow/config.json` and legacy `~/.tokenusage/config.json` are reused. App uses CLI processes over private stdio for local reading, sync, token validation, and configuration changes. It does not run a separate collector or require a local HTTP port. Sync and credential changes share the CLI's lock. Browser sign-in reuses an existing device, and account changes clear the upload ledger so the new account receives a full snapshot.
+Existing `~/.tokenflow/config.json` and legacy `~/.tokenusage/config.json` are reused. App reads the CLI’s atomic statistics cache directly. It uses private stdio for manual collection, sync, token validation, and configuration changes. It does not run a separate collector or require a local HTTP port. Sync and credential changes share the CLI's lock. Browser sign-in reuses an existing device, and account changes clear the upload ledger so the new account receives a full snapshot.
 
 ## Dashboard, Settings, and tray
 
-App always opens the canonical web Dashboard, bundled with its chart, UI, and persona assets for offline use. The same layout, charts, date ranges, and device/agent/model filters work before and after sign-in. Without account authorization, the data adapter reads this device's CLI usage cache; after sign-in, it reads synced account data. Reading local records shows a loading animation, and the cache is published before network pricing and uploads finish.
+App always opens the canonical web Dashboard, bundled with its chart, UI, and persona assets for offline use. The same layout, charts, date ranges, and device/agent/model filters work before and after sign-in. Without account authorization, the data adapter reads this device's CLI usage cache; after sign-in, it reads synced account data. Dashboard and menu bar popup opens read the existing CLI cache; opening or focusing a window does not start collection. The CLI runs independently, checks source metadata every 15 seconds, and publishes changed statistics atomically. Its first pass reads existing history once; later passes reuse unchanged files and resume append-only logs from saved byte offsets. A manual Refresh retains measured collection progress. Local results are published before network pricing and uploads finish.
 
 Account, token, server, device name, and automatic-sync preferences are read from and written to the active CLI configuration. App sign-in, sign-out, and account switching immediately apply to terminal commands; CLI changes update Settings while App is open. Switch account opens the existing browser/token controls and retains the current login until the replacement is approved. Language, popup layout/range/appearance, menu bar display, and App startup preferences are stored separately in App settings.
 
@@ -28,11 +28,11 @@ The tray popup is a miniature Dashboard using the canonical overview, trend, mod
 
 The popup gear opens this editor in the existing Settings window. Layout height follows the selected modules, scrolls when needed, and stays inside the clicked display. Refresh, Open Dashboard, and Settings remain icons in its header. Presentation preferences can be changed during collection without changing CLI connection settings.
 
-Closing a window keeps App resident in the tray. Quit stops the App, while macOS launchd continues invoking the standalone CLI every ten minutes. The same scheduled task is used by CLI and App installations. App owns collection while running, so scheduled CLI sync yields. Pausing is stored in shared CLI configuration and also applies after App quits; manual sync remains available. Windows automatic collection runs while App is resident.
+Closing a window keeps App resident in the tray. Quit stops the App, while macOS launchd keeps the standalone CLI collector running. The CLI checks for source changes every 15 seconds and uploads every ten minutes. The same scheduled task is used by CLI and App installations. A CLI process lock elects one background collector. Manual collection and account changes ask it to yield and share the CLI sync lock. Pausing is stored in shared CLI configuration and also applies after App quits; manual sync remains available. Windows runs the same background CLI while App is resident.
 
-CLI requests use App's Chromium networking while App is running, including its system proxy configuration. Collection is cancellable when signing in, disconnecting, or quitting, and has a five-minute limit. Only aggregated usage metadata is uploaded; prompts, responses, session IDs, and source paths remain local.
+Interactive CLI requests use App's Chromium networking, including its system proxy configuration. The independent background collector uses CLI networking. Collection is cancellable when signing in, disconnecting, or quitting, and has a five-minute limit. Only aggregated usage metadata is uploaded; prompts, responses, session IDs, and source paths remain local.
 
-The current desktop entrypoint is the App validated on `caopu/tokenflow-desktop` (0.1.15), backed by the shared CLI. The earlier Tauri migration remains available on `caopu/tokenflow-tauri` and in Git history; it is not the default desktop runtime on `main`.
+The current desktop entrypoint is the Electron App on `main` (0.1.16), backed by the shared CLI (0.2.78). The earlier Tauri migration remains available on `caopu/tokenflow-tauri` and in Git history; it is not the default desktop runtime on `main`.
 
 ## Development and verification
 
@@ -53,6 +53,8 @@ npm run typecheck
 npm run build --prefix desktop
 npm test --prefix desktop
 npm run smoke --prefix desktop
+node desktop/scripts/cache-smoke.mjs
+TOKENFLOW_AUTH_TEST_SERVER=/absolute/path/TokenFlow_Server/scripts/desktop-test-server.mjs node desktop/scripts/background-sync-smoke.mjs
 TOKENFLOW_AUTH_TEST_SERVER=/absolute/path/TokenFlow_Server/scripts/desktop-test-server.mjs node desktop/scripts/auth-smoke.mjs
 ```
 

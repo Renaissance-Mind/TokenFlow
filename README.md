@@ -50,7 +50,7 @@ Home: /Users/alice/.tokenflow
 - 📊 **Half-hour UTC buckets** - keeps local usage detail while dashboards can still summarize by day.
 - 💸 **Cost-aware accounting** - separates fresh input, cached input, cache creation, output, and reasoning output tokens.
 - 🧾 **Unpriced model visibility** - unknown models are counted and marked as `unpriced` instead of silently disappearing.
-- 🔁 **Incremental automatic sync** - installs a 10-minute macOS `launchd` or Linux systemd user timer and uploads only new or changed buckets after the initial backfill.
+- 🔁 **Incremental automatic sync** - runs a background collector through macOS `launchd` or a Linux systemd user service and uploads new or changed buckets every 10 minutes after the initial backfill.
 - 🔑 **Device login or API key upload** - supports browser device linking and `read_write` API tokens.
 - 🛠️ **Self-host friendly** - point the CLI at any compatible TokenFlow server URL.
 
@@ -144,7 +144,9 @@ tokenflow status
 tokenflow sync
 ```
 
-`sync` scans local logs, aggregates half-hour usage buckets, uploads only new or changed buckets, records a sync heartbeat, and reports parsed events plus uploaded buckets. The local upload ledger lives in `~/.tokenflow/sync-state.json`.
+`collect --watch` runs the background collector. It checks source metadata every 15 seconds, reuses persistent per-file checkpoints, resumes append-only JSONL logs from their committed byte offsets, and publishes local statistics without opening Dashboard. Initial collection reads existing history once. Truncation, replacement, parsing-code changes, relevant source settings, and SQLite WAL changes invalidate the affected checkpoints. Changed JSON documents and databases are parsed again; unchanged historical files are reused.
+
+`sync` uses the same checkpoints, aggregates half-hour usage buckets, uploads only new or changed buckets, and records a sync heartbeat. The background collector uploads every 10 minutes when signed in. Checkpoints live in `~/.tokenflow/collection-cache/`, the atomic Dashboard snapshot in `local-cache.json`, and the upload ledger in `sync-state.json`. Checkpoints contain usage metadata and parser state; transcript text is not cached or uploaded. `collect` performs one local collection without uploading.
 
 ### 4. Install automatic sync
 
@@ -152,7 +154,7 @@ tokenflow sync
 tokenflow init
 ```
 
-`init` writes `~/.tokenflow/config.json`, installs automatic sync every 10 minutes on macOS or Linux, then starts the browser device-link flow unless a token already exists.
+`init` writes `~/.tokenflow/config.json`, installs the persistent background collector on macOS or Linux, then starts the browser device-link flow unless a token already exists.
 It also accepts `--device-name`:
 
 ```bash

@@ -1,10 +1,12 @@
+import { readIncrementalJsonl, type CheckpointParser } from "../incremental-jsonl.js";
+import { cachedSource } from "../collection-cache.js";
 import { appendItems } from "../arrays.js";
 import { scanFile, discoveredFile, scannedBytes } from "../scan-progress.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { isRecord, makeUsageEvent, recordField, stringField } from "./ccusage-common.js";
 import { nonNegativeInt } from "../token-totals.js";
-import { readStoreLines, storeFiles } from "./store-io.js";
+import { storeFiles } from "./store-io.js";
 import type { UsageEvent } from "../types.js";
 import { toUtcHalfHourStart } from "../time.js";
 
@@ -14,15 +16,40 @@ const normalizeModel = (model: string) => model.trim().replace(/-1m(?:-internal)
 const time = (event: UsageEvent) => Date.parse(event.timestamp);
 const pair = (event: UsageEvent) => JSON.stringify([event.sessionId, event.pricingModel || event.model]);
 const numeric = (value: unknown): number | null => value !== undefined && value !== null && Number.isFinite(Number(value)) && Number(value) >= 0 ? Math.round(Number(value)) : null;
-async function records(file: string) {
-  const rows: Record<string, unknown>[] = [];
-  await readStoreLines(file, line => {
-    if (!line.trim()) return;
-    let row: unknown;
-    try { row = JSON.parse(line); } catch { return; }
-    if (isRecord(row)) rows.push(row);
-  });
-  return rows;
+function telemetryProjection(row: Record<string, unknown>): Record<string, unknown> {
+  const attributes = recordField(row, "attributes") || {};
+  const safe = Object.fromEntries(Object.entries(attributes).filter(([key, value]) =>
+    (/^gen_ai\.(usage\.|conversation\.id$|response\.(id|model)$|request\.model$|operation\.name$)/.test(key)
+      || ["copilot_chat.session_id", "copilot_chat.chat_session_id", "session.id", "github.copilot.interaction_id", "event.name"].includes(key))
+      && ["number", "string", "boolean"].includes(typeof value)));
+  const context = recordField(row, "spanContext");
+  const name = String(row.name || ""), body = String(row.body || row._body || "");
+  const projected: Record<string, unknown> = { attributes: safe,
+    type: row.type ? row.type === "span" ? "span" : "log" : undefined,
+    name: name.startsWith("chat ") ? "chat " : name.startsWith("invoke_agent ") ? "invoke_agent " : name ? "other" : undefined,
+    body: body.startsWith("GenAI inference:") ? "GenAI inference:" : body.startsWith("copilot_chat.agent.turn") ? "copilot_chat.agent.turn" : "",
+    traceId: stringField(row, "traceId") || undefined, spanId: stringField(row, "spanId") || undefined,
+    spanContext: context ? {traceId:stringField(context,"traceId"),spanId:stringField(context,"spanId")} : undefined,
+    kind: !!row.kind, duration: !!row.duration };
+  for (const key of ["endTime", "startTime", "hrTime", "_hrTime", "time", "timestamp", "observedTimestamp", "timeUnixNano"]) {
+    if (Array.isArray(row[key])) projected[key] = (row[key] as unknown[]).map(Number);
+    else if (Number.isFinite(Number(row[key]))) projected[key] = row[key];
+  }
+  return projected;
+}
+function copilotParser(file: string, telemetry: boolean, saved?: unknown): CheckpointParser {
+  const state = (saved || {entries:[],credits:[],rows:[]}) as {entries:Entry[];credits:Credit[];rows:Record<string,unknown>[]};
+  return {
+    pushLine(line) {
+      let row: unknown;
+      try { row = JSON.parse(line); } catch (error) { if (error instanceof SyntaxError) return; throw error; }
+      if (!isRecord(row)) return;
+      if (telemetry) state.rows.push(telemetryProjection(row));
+      else { const result = nativeRows([row], file); appendItems(state.entries, result.entries); appendItems(state.credits, result.credits); }
+    },
+    snapshot: () => state,
+    finish: () => [],
+  };
 }
 
 function nativeRows(rows: Record<string, unknown>[], file: string): { entries: Entry[]; credits: Credit[] } {
@@ -209,20 +236,15 @@ export async function planCopilot(home: string) {
         otel: Entry[] = [],
         credits: Credit[] = [];
       for (const file of nativeFiles) {
-        await scanFile(file, async () => {
-          const parsed = nativeRows(await records(file), file);
-          appendItems(native, parsed.entries);
-          appendItems(credits, parsed.credits);
-        });
+        const parsed = await scanFile(file, () => cachedSource("copilot-native", [file], async () => (await readIncrementalJsonl(file, saved => copilotParser(file, false, saved))).state as {entries:Entry[];credits:Credit[]}));
+        appendItems(native, parsed.entries);
+        appendItems(credits, parsed.credits);
       }
       for (const file of new Set(otelFiles))
-        await scanFile(file, async () => {
-          appendItems(otel, otelRows(
-            await records(file),
-            file,
-            (await fs.stat(file)).mtime.toISOString(),
-          ));
-        });
+        appendItems(otel, await scanFile(file, () => cachedSource("copilot-otel", [file], async () => {
+          const result = await readIncrementalJsonl(file, saved => copilotParser(file, true, saved));
+          return otelRows((result.state as {rows:Record<string,unknown>[]}).rows, file, (await fs.stat(file)).mtime.toISOString());
+        })));
       return {
         events: reconcile(native, otel, credits),
         source: {

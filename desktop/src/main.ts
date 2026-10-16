@@ -164,7 +164,6 @@ async function togglePopup(bounds = tray.getBounds(), click?: Point): Promise<vo
     positionPopup();
     // A native panel receives keyboard focus without activating the application.
     popup.show(); emit();
-    if (!state.busy && (!state.summary || Date.now() - Date.parse(state.summary.scannedAt) > 60_000)) void runJob("scan");
   } finally { openingPopup = false; }
 }
 function showDashboard(): Promise<void> {
@@ -229,7 +228,10 @@ async function dashboardRequest(value: unknown, options: any = {}): Promise<any>
       useLocalData();
     }
   }
-  const data = await cli.request("dashboard", { path: endpoint });
+  const snapshot = await cachedJson("local-cache.json");
+  const cache = snapshot?.dashboard || await cachedJson("desktop-dashboard.json");
+  const local = await (localDashboardModule ??= import(pathToFileURL(path.join(runtime, "dist/local-dashboard.js")).href));
+  const data = local.localDashboardApi(cache, await cachedJson("config.json"), endpoint);
   if (url.pathname === "/api/me") {
     const preference = await readOptional(path.join(app.getPath("userData"), "dashboard-persona.json"));
     if (preference) data.user.persona_key = JSON.parse(preference.toString()).persona_key;
@@ -245,10 +247,45 @@ async function stopCollection(): Promise<void> {
   stoppingCollection = true;
   try { await cli.stop(); await task; } finally { stoppingCollection = false; }
 }
+const jsonCache = new Map<string, { stamp: string; value: Promise<any> }>();
+let localDashboardModule: Promise<any> | undefined;
+async function cachedJson(name: string): Promise<any> {
+  const file = path.join(dataHome, name);
+  const stat = await fs.stat(file).catch((error: NodeJS.ErrnoException) => { if (error.code === "ENOENT") return null; throw error; });
+  if (!stat) { jsonCache.delete(name); return null; }
+  const stamp = `${stat.ino}:${stat.mtimeMs}:${stat.ctimeMs}:${stat.size}`;
+  const previous = jsonCache.get(name);
+  if (previous?.stamp === stamp) return previous.value;
+  const value = readOptional(file).then(bytes => {
+    if (!bytes) return null;
+    try { return JSON.parse(bytes.toString()); }
+    catch (error) { if (error instanceof SyntaxError && name !== "config.json") return null; throw error; }
+  });
+  jsonCache.set(name, { stamp, value });
+  return value;
+}
 async function readCollector(): Promise<any> {
-  if (installation?.compatible) return cli.request("state");
-  const raw = await readOptional(path.join(dataHome, "config.json"));
-  return { config: raw ? JSON.parse(raw.toString()) : null, home: dataHome, summary: null };
+  const [config, snapshot, background] = await Promise.all([cachedJson("config.json"), cachedJson("local-cache.json"), cachedJson("background-status.json")]);
+  const summary = snapshot?.summary || await cachedJson("desktop-summary.json");
+  return { config, home: dataHome, summary, background };
+}
+let refreshingSnapshot: Promise<void> | null = null;
+let backgroundNotice: string | null = null;
+function refreshLocalSnapshot(): Promise<void> {
+  if (refreshingSnapshot) return refreshingSnapshot;
+  refreshingSnapshot = (async () => {
+    const cached = await readCollector();
+    const previousNotice = backgroundNotice;
+    backgroundNotice = cached.background?.error || null;
+    if (backgroundNotice) state.notice = backgroundNotice;
+    else if (previousNotice && state.notice === previousNotice) state.notice = null;
+    if (previousNotice !== backgroundNotice) emit();
+    if (cached.summary && cached.summary.scannedAt !== state.summary?.scannedAt) {
+      state.summary = cached.summary;
+      emit();
+    }
+  })().finally(() => { refreshingSnapshot = null; });
+  return refreshingSnapshot;
 }
 async function refreshCollector(): Promise<any> {
   const result = await readCollector(); const config = result.config;
@@ -267,10 +304,11 @@ async function reconcileCollector(): Promise<void> {
     }
     if (!installation?.compatible) return;
     const previousSettings = JSON.stringify(state.settings);
+    const previousSync = state.lastSyncAt;
     let config = await refreshCollector();
     const changed = JSON.stringify([config?.serverUrl, config?.apiToken, config?.deviceToken]) !== watchedAuthorization;
     if (!changed && ((!state.hasCollector) || (state.hasDashboard && state.dashboardSource === "cloud") || state.busy)) {
-      if (JSON.stringify(state.settings) !== previousSettings) emit();
+      if (JSON.stringify(state.settings) !== previousSettings || state.lastSyncAt !== previousSync) emit();
       return;
     }
     if (changed) {
@@ -334,7 +372,6 @@ async function pollLogin(flow: any, verifier: string, existing: string | undefin
   finally {
     if (loginController === controller) {
       loginController = null; state.login = null; state.loginBusy = false; emit();
-      if (state.hasCollector && state.hasDashboard && !state.settings.paused) void runJob("sync");
     }
   }
 }
@@ -344,11 +381,13 @@ function configureLoginItem(): void {
   }
 }
 async function configureScheduler(): Promise<void> {
-  if (app.isPackaged && !process.env.TOKENFLOW_DESKTOP_DATA && state.hasCollector && installation?.compatible) {
+  if (!installation?.compatible) return;
+  if (app.isPackaged && !process.env.TOKENFLOW_DESKTOP_DATA && process.platform === "darwin") {
     await cli.request("scheduler", { serverUrl: state.settings.serverUrl });
-  }
+  } else cli.startBackground(error => { state.notice = message(error); emit(); });
 }
 async function selectCli(value: CliInstallation): Promise<void> {
+  await cli?.stopBackground();
   await rememberCli(value);
   installation = value; cli = new CliClient(value, desktopFetch);
   state.collectorVersion = value.version;
@@ -367,7 +406,6 @@ async function upgradeCli(): Promise<void> {
     const value = await installCli(runtime, standaloneNode() || installation!.node, { replace: installation?.source === "installed" ? installation : undefined, copyRuntime: app.isPackaged });
     await selectCli(value); state.cli.updateStatus = "current";
     await refreshCollector(); await configureScheduler(); await marker();
-    void runJob(state.hasCollector ? "sync" : "scan");
   } catch (error) { state.cli.updateStatus = "error"; throw error; }
 }
 async function checkCliUpdate(): Promise<void> {
@@ -385,7 +423,7 @@ async function checkCliUpdate(): Promise<void> {
 async function configureCliDashboard(config: any): Promise<void> {
   dashboardSession().webRequest.onBeforeSendHeaders(null);
   dashboardBearer = config?.apiToken || config?.deviceToken || null;
-  if (!dashboardBearer || !installation?.compatible) { state.hasDashboard = false; state.account = null; useLocalData(); return; }
+  if (!dashboardBearer) { state.hasDashboard = false; state.account = null; useLocalData(); return; }
   const data = await apiRequest(state.settings.serverUrl, "/api/me", undefined, dashboardBearer, AbortSignal.timeout(8_000));
   if (!data.authenticated || !data.user?.id) throw new Error("Unable to reuse CLI sign-in");
   state.account = { id: data.user.id, name: data.user.name || null, email: data.user.email || null };
@@ -404,7 +442,6 @@ async function setApiToken(value: unknown): Promise<void> {
   await refreshCollector(); await configureCliDashboard((await readCollector()).config);
   watchedAuthorization = JSON.stringify([state.settings.serverUrl, value.trim(), undefined]);
   await marker(); await configureScheduler(); await showDashboard();
-  if (!state.settings.paused) void runJob("sync");
   } finally { changingCollector = false; }
 }
 async function saveSettings(value: unknown): Promise<void> {
@@ -452,7 +489,7 @@ async function logoutDesktop(): Promise<void> {
     useLocalData(); dashboardSession().webRequest.onBeforeSendHeaders(null);
     dashboardBearer = null; state.account = null; state.hasDashboard = false; state.hasCollector = false; state.lastSyncAt = null;
     watchedAuthorization = JSON.stringify([state.settings.serverUrl, undefined, undefined]);
-    state.error = null; await marker(); await showDashboard(); void runJob("scan");
+    state.error = null; await marker(); await showDashboard();
   } finally { loggingOut = false; emit(); }
 }
 function runJob(action: "scan" | "sync"): Promise<void> {
@@ -505,7 +542,7 @@ async function shutdown(): Promise<void> {
   loginController?.abort(); timers.forEach(clearInterval);
   configWatcher?.close();
   await stopCollection();
-  await cli?.stop();
+  await cli?.stop(); await cli?.stopBackground();
   if (installation?.compatible) await cli.request("owner", { pid: null }).catch(() => {});
   tray?.destroy();
 }
@@ -600,16 +637,17 @@ async function initialize(): Promise<void> {
   autoUpdater.on("error", (error) => { state.update = { status: "error", message: message(error) }; emit(); });
   configureLoginItem(); await marker(); await configureScheduler();
   timers.push(setInterval(() => { void marker().catch((error) => { state.error = message(error); emit(); }); }, 30_000));
-  timers.push(setInterval(() => { if (!state.settings.paused) void runJob(state.hasCollector ? "sync" : "scan"); }, 600_000));
-  powerMonitor.on("resume", () => { if (!state.settings.paused) void runJob(state.hasCollector ? "sync" : "scan"); });
+  powerMonitor.on("resume", () => { void refreshLocalSnapshot().catch(error => { state.notice = message(error); emit(); }); });
   const background = process.argv.includes("--background") || (process.platform === "darwin" && app.getLoginItemSettings().wasOpenedAtLogin);
   try { await configureCliDashboard(config); } catch (error) { state.notice = message(error); }
   ready = true; emit();
   if (!background) await showDashboard();
-  if (installation.compatible) void runJob(state.hasCollector && !state.settings.paused ? "sync" : "scan");
   configWatcher = watch(dataHome, (_event, filename) => {
     if (filename === "config.json") void reconcileCollector().catch((error) => { state.notice = message(error); emit(); });
+    if (filename === "local-cache.json" || filename === "background-status.json") void refreshLocalSnapshot().catch(error => { state.notice = message(error); emit(); });
   });
+  await refreshLocalSnapshot();
+  timers.push(setInterval(() => { void refreshLocalSnapshot().catch(error => { state.notice = message(error); emit(); }); }, 15_000));
   timers.push(setInterval(() => { void reconcileCollector().catch(() => {}); }, 15_000));
 }
 async function scheduledCollector(): Promise<void> {

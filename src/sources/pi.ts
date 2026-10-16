@@ -1,3 +1,5 @@
+import { readIncrementalJsonl, type CheckpointParser } from "../incremental-jsonl.js";
+import { cachedSource } from "../collection-cache.js";
 import { scanFile } from "../scan-progress.js";
 import path from "node:path";
 
@@ -25,11 +27,14 @@ export function parsePiJsonl(
 
 export function createPiJsonlParser(
   options: ParseOptions & { agent?: AgentSource },
+  saved?: unknown,
 ): JsonlUsageParser {
-  const events: UsageEvent[] = [];
-  let sessionId = piSessionIdFromPath(options.sourcePath);
+  const checkpoint = saved as {events:UsageEvent[];sessionId:string|null} | undefined;
+  const events: UsageEvent[] = checkpoint?.events || [];
+  let sessionId = checkpoint?.sessionId || piSessionIdFromPath(options.sourcePath);
 
   return {
+    snapshot: () => ({ events, sessionId }),
     pushLine(line: string): void {
       if (line.includes('"session"')) {
         const header = JSON.parse(line) as Record<string, unknown>;
@@ -210,45 +215,31 @@ export async function planPiStores(home: string, defaultRoots: string[]) {
           }
         >();
         for (const file of files) {
-          await scanFile(file, async () => {
-            const parser = createPiJsonlParser({
-              sourcePath: file,
-              agent: store.name as AgentSource,
-            });
-            let parent: string | undefined;
-            let time: string | undefined;
-            const links: Array<{
-              id?: string;
-              parentId?: string;
-            }> = [];
-            await readStoreLines(file, (line) => {
-              const record = JSON.parse(line) as Record<string, unknown>;
-              if (record.type !== "session")
-                links.push({
-                  id: stringField(record, "id") || undefined,
-                  parentId: stringField(record, "parentId") || undefined,
-                });
-              if (line.includes('"session"')) {
-                const row = JSON.parse(line) as Record<string, unknown>;
-                if (row.type === "session") {
-                  if (typeof row.parentSession === "string")
-                    parent = path.resolve(
-                      path.dirname(file),
-                      row.parentSession.replace(/^~(?=\/|$)/, home),
-                    );
-                  time = timestampFromValue(row.timestamp) || undefined;
-                }
-              }
-              parser.pushLine(line);
-            });
-            const events = parser.finish();
-            sessions.set(path.resolve(file), {
-              events,
-              replay: piReplayPath(events, links),
-              parent,
-              time,
-            });
-          });
+          const session = await scanFile(file, () => cachedSource("pi", [file], async () => {
+            type SessionState = { parser: unknown; links: Array<{ id?: string; parentId?: string }>; parent?: string; time?: string };
+            const create = (saved?: unknown): CheckpointParser => {
+              const checkpoint = saved as SessionState | undefined;
+              const parser = createPiJsonlParser({ sourcePath: file, agent: store.name as AgentSource }, checkpoint?.parser);
+              const links = checkpoint?.links || [];
+              let parent = checkpoint?.parent, time = checkpoint?.time;
+              return {
+                pushLine(line) {
+                  const row = JSON.parse(line) as Record<string, unknown>;
+                  if (row.type === "session") {
+                    if (typeof row.parentSession === "string") parent = path.resolve(path.dirname(file), row.parentSession.replace(/^~(?=\/|$)/, home));
+                    time = timestampFromValue(row.timestamp) || undefined;
+                  } else links.push({ id: stringField(row, "id") || undefined, parentId: stringField(row, "parentId") || undefined });
+                  parser.pushLine(line);
+                },
+                finish: () => parser.finish(),
+                snapshot: () => ({ parser: parser.snapshot!(), links, parent, time }),
+              };
+            };
+            const result = await readIncrementalJsonl(file, create, [store.name, home]);
+            const state = result.state as SessionState;
+            return { events: result.events, replay: piReplayPath(result.events, state.links), parent: state.parent, time: state.time };
+          }, [store.name, home]));
+          sessions.set(path.resolve(file), session);
         }
         const seen = new Set<string>();
         const key = (event: UsageEvent) =>

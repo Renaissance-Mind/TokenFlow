@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { runBackgroundCollector } from "./background.js";
 import { execFileSync } from "node:child_process";
 import { realpathSync } from "node:fs";
 import os from "node:os";
@@ -46,8 +47,13 @@ import { aggregateEvents } from "./usage-buckets.js";
 type Command = "init" | "login" | "sync" | "status" | "device-name" | "update" | "logout" | "help";
 
 export async function main(argv: string[]): Promise<void> {
-  await initializeSqliteReader();
   if (argv[0] === "desktop-service") return runDesktopService();
+  await initializeSqliteReader();
+  if (argv[0] === "collect") {
+    if (argv.includes("--watch")) return runBackgroundCollector();
+    await desktopAction("scan");
+    return;
+  }
   if (argv[0] === "--version" || argv[0] === "version") {
     const { readFile } = await import("node:fs/promises");
     const pkg = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
@@ -240,14 +246,14 @@ async function cmdUpdate(argv: string[]): Promise<void> {
     const pkg = JSON.parse(await fs.readFile(path.join(packageDir, "package.json"), "utf8"));
     active = { node: process.execPath, entrypoint: path.join(packageDir, "dist", "cli.js") };
     await fs.writeFile(`${metadata}.${process.pid}.tmp`, JSON.stringify({ ...JSON.parse(selected), ...active, packageDir,
-      source: "installed", version: pkg.version, compatible: pkg.tokenflow?.desktopProtocol === 1 }), { mode: 0o600 });
+      source: "installed", version: pkg.version, compatible: pkg.tokenflow?.desktopProtocol === 2 }), { mode: 0o600 });
     await fs.rename(`${metadata}.${process.pid}.tmp`, metadata);
   }
   const config = await readConfig();
   const serverUrl = normalizeServerUrl(optionString(options, "server-url") || config?.serverUrl);
   const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
   const schedulerStatus = await installAutoSync(serverUrl, os.homedir(), active ? {
-    env: { ...process.env, TOKENFLOW_AUTO_SYNC_COMMAND: `${quote(active.node)} ${quote(active.entrypoint)} sync --auto` },
+    env: { ...process.env, TOKENFLOW_AUTO_SYNC_COMMAND: `${quote(active.node)} ${quote(active.entrypoint)} collect --watch` },
   } : {});
   process.stdout.write(`TokenFlow updated from ${packageSpec}.\n${schedulerStatus}\n`);
 }
@@ -372,6 +378,7 @@ function printHelp(): void {
       "  tokenflow login --no-sync",
       "  tokenflow login --server-url https://tokenflow.renaissancemind.ai --api-token tu_api_...",
       "  tokenflow device-name \"Private Mac\"",
+      "  tokenflow collect [--watch]",
       "  tokenflow sync",
       "  tokenflow status",
       "  tokenflow update [--source @renaissancemind/tokenflow@latest|/path/to/TokenFlow]",

@@ -12,6 +12,7 @@ interface ParseOptions {
 interface JsonlUsageParser {
   pushLine(line: string): void;
   finish(): UsageEvent[];
+  snapshot(): unknown;
 }
 
 interface CumulativeUsage {
@@ -37,19 +38,31 @@ export function parseCodexJsonl(jsonl: string, options: ParseOptions): UsageEven
   return parser.finish();
 }
 
-export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser {
-  const events: ParsedCodexUsageEvent[] = [];
-  const seenModels = new Map<string, UsageModelNormalization>();
-  let sessionId: string | null = null;
-  let currentModel: UsageModelNormalization = { model: "unknown", originalModel: "unknown" };
-  let currentServiceTier: CodexServiceTier | null = null;
-  let previousTotal: CumulativeUsage | null = null;
+export interface CodexCheckpoint {
+  events: ParsedCodexUsageEvent[]; seenModels: Array<[string, UsageModelNormalization]>;
+  sessionId: string | null; currentModel: UsageModelNormalization; currentServiceTier: CodexServiceTier | null;
+  previousTotal: CumulativeUsage | null; suppressInheritedSubagentReplay: boolean;
+  compacted: string[]; emitted: string[];
+  pending: Array<[string, { event: ParsedCodexUsageEvent; threadUsage: CumulativeUsage | null }]>;
+  latestResponse: string | null; compactions: Array<[string, string]>;
+  session: { id: string; parent?: string; forkTime?: string } | null;
+}
+export function createCodexJsonlParser(options: ParseOptions, saved?: unknown): JsonlUsageParser {
+  const checkpoint = saved as CodexCheckpoint | undefined;
+  const events: ParsedCodexUsageEvent[] = checkpoint?.events || [];
+  const seenModels = new Map<string, UsageModelNormalization>(checkpoint?.seenModels);
+  let sessionId: string | null = checkpoint?.sessionId || null;
+  let currentModel: UsageModelNormalization = checkpoint?.currentModel || { model: "unknown", originalModel: "unknown" };
+  let currentServiceTier: CodexServiceTier | null = checkpoint?.currentServiceTier || null;
+  let previousTotal: CumulativeUsage | null = checkpoint?.previousTotal || null;
   // Codex subagent rollouts begin with a replay of their parent's history.
-  let suppressInheritedSubagentReplay = false;
-  const compacted = new Set<string>();
-  const emitted = new Set<string>();
-  const pending = new Map<string, { event: ParsedCodexUsageEvent; threadUsage: CumulativeUsage | null }>();
-  let latestResponse: string | null = null;
+  let suppressInheritedSubagentReplay = checkpoint?.suppressInheritedSubagentReplay || false;
+  const compacted = new Set<string>(checkpoint?.compacted);
+  const emitted = new Set<string>(checkpoint?.emitted);
+  const pending = new Map<string, { event: ParsedCodexUsageEvent; threadUsage: CumulativeUsage | null }>(checkpoint?.pending);
+  let latestResponse: string | null = checkpoint?.latestResponse || null;
+  let session: CodexCheckpoint["session"] = checkpoint?.session || null;
+  if (checkpoint) for (const [id, time] of checkpoint.compactions) options.compactionHistory?.set(id, time);
 
   function setCurrentModel(model: string): void {
     const normalized = normalizeAgentModelForUsage("codex", model);
@@ -58,6 +71,9 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
   }
 
   return {
+    snapshot: (): CodexCheckpoint => ({ events, seenModels: [...seenModels], sessionId, currentModel, currentServiceTier, previousTotal,
+      suppressInheritedSubagentReplay, compacted: [...compacted], emitted: [...emitted], pending: [...pending], latestResponse,
+      compactions: [...(options.compactionHistory || [])], session }),
     pushLine(line: string): void {
       if (!line.trim()) return;
       if (
@@ -82,6 +98,12 @@ export function createCodexJsonlParser(options: ParseOptions): JsonlUsageParser 
       if (!isRecord(row)) return;
       const type = stringField(row, "type");
       const payload = recordField(row, "payload");
+      if (type === "session_meta" && payload) {
+        const source = recordField(payload, "source");
+        session = { id: stringField(payload, "id") || stringField(payload, "session_id") || options.sourcePath,
+          parent: stringField(payload, "forked_from_id") || stringField(recordField(recordField(source, "subagent"), "thread_spawn"), "parent_thread_id") || undefined,
+          forkTime: stringField(row, "timestamp") || undefined };
+      }
 
       if (type === "compacted") {
         const id = stringField(payload, "compaction_response_id");

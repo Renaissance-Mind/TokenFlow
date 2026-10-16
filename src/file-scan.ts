@@ -1,3 +1,5 @@
+import { cachedSource, withCollectionCache, collectionRevision } from "./collection-cache.js";
+import { readIncrementalJsonl, type CheckpointParser } from "./incremental-jsonl.js";
 import { appendItems } from "./arrays.js";
 import { ScanTracker, withScanTracker, scanFile, discoveredFile, scannedBytes, type ScanProgress } from "./scan-progress.js";
 import { createReadStream } from "node:fs";
@@ -8,10 +10,10 @@ import { parse as parseToml } from "smol-toml";
 
 import { parseAmpThread } from "./sources/amp.js";
 import { createClaudeJsonlParser } from "./sources/claude.js";
-import { createCodexJsonlParser } from "./sources/codex.js";
+import { createCodexJsonlParser, type CodexCheckpoint } from "./sources/codex.js";
 import { dedupeCodexSessions, type CodexSession } from "./sources/codex-replay.js";
 import { sqliteRows, tableColumns } from "./sources/store-io.js";
-import { codexRolloutLines, initialCodexSessionRecord, isCodexRollout, plainRolloutPath } from "./sources/codex-reader.js";
+import { codexRolloutLines, isCodexRollout, plainRolloutPath } from "./sources/codex-reader.js";
 import { parseCodebuffChatMessages } from "./sources/codebuff.js";
 import { extractDroidModelFromLine, parseDroidSettings } from "./sources/droid.js";
 import { planDshUsage, resolveDshSessionDirs } from "./sources/dsh.js";
@@ -35,6 +37,7 @@ const MAX_JSONL_LINE_CHARS = 16 * 1024 * 1024;
 interface JsonlUsageParser {
   pushLine(line: string): void;
   finish(): UsageEvent[];
+  snapshot?(): unknown;
 }
 
 export interface SourceStatus {
@@ -45,14 +48,15 @@ export interface SourceStatus {
 }
 
 export interface CollectionResult {
+  revision?: string;
   events: UsageEvent[];
   pricingProfiles: PricingProfile[];
   sources: SourceStatus[];
 }
 
-export async function collectLocalUsage(home = os.homedir(), onProgress?: (progress: ScanProgress) => void): Promise<CollectionResult> {
+export async function collectLocalUsage(home = process.env.TOKENFLOW_SCAN_HOME || os.homedir(), onProgress?: (progress: ScanProgress) => void, signal?: AbortSignal): Promise<CollectionResult> {
   const tracker = onProgress ? new ScanTracker(onProgress) : undefined;
-  return withScanTracker(tracker, () => collectUsage(home, tracker));
+  return withCollectionCache(home, async () => ({ ...await withScanTracker(tracker, () => collectUsage(home, tracker)), revision: collectionRevision() }), signal);
 }
 
 async function collectUsage(
@@ -150,7 +154,7 @@ async function collectUsage(
   );
   const openclawPlan = await planOpenClawDatabases(openclawRoots);
   const piPlan = await planPiStores(home, piRoots);
-  await tracker?.begin([
+  const allFiles = [
     ...codexFiles,
     ...claudeFiles,
     ...geminiFiles,
@@ -169,276 +173,223 @@ async function collectUsage(
     ...openclawPlan.files,
     ...piPlan.files,
     ...additionalPlans.flatMap((plan) => plan.files),
-  ]);
-  const dsh = await dshPlan.collect();
-  const additional = await Promise.all(
-    additionalPlans.map((plan) => plan.collect()),
-  );
-  const events: UsageEvent[] = [];
-  appendItems(events, dsh.events);
-  for (const source of additional) appendItems(events, source.events);
-  const codexSessions: CodexSession[] = [];
-  for (const file of codexFiles) {
-    await scanFile(file, async () => {
-      const row = await initialCodexSessionRecord(file);
-      const metadata =
-        row?.payload && typeof row.payload === "object"
-          ? (row.payload as Record<string, unknown>)
-          : null;
-      const forkTime =
-        typeof row?.timestamp === "string" ? row.timestamp : undefined;
-      const source = metadata?.source as
-        | {
-            subagent?: {
-              thread_spawn?: {
-                parent_thread_id?: string;
-              };
-            };
-          }
-        | undefined;
-      const compactions = new Map<string, string>();
-      codexSessions.push({
-        id: String(metadata?.id || plainRolloutPath(file)),
-        parent:
-          typeof metadata?.forked_from_id === "string"
-            ? metadata.forked_from_id
-            : source?.subagent?.thread_spawn?.parent_thread_id,
-        forkTime,
-        compactions,
-        events: await readCodexEvents(file, (options) =>
-          createCodexJsonlParser({
-            ...options,
-            serviceTier: codexServiceTier,
-            compactionHistory: compactions,
-            useReplayPlan: true,
-          }),
-        ),
-      });
-    });
-  }
-  appendItems(events, dedupeCodexSessions(codexSessions));
-  for (const file of claudeFiles) {
-    await scanFile(file, async () => {
-      appendItems(events, await readJsonlEvents(file, createClaudeJsonlParser));
-    });
-  }
-  for (const file of geminiFiles) {
-    await scanFile(file, async () => {
-      const fallbackTimestamp =
-        (await fileModifiedTimestamp(file)) || undefined;
-      if (file.endsWith(".jsonl")) {
-        appendItems(events, await readJsonlEvents(file, (options) =>
-          createGeminiJsonlParser({ ...options, fallbackTimestamp }),
-        ));
-      } else {
-        appendItems(events, parseGeminiSession(await readUsageText(file), {
-          sourcePath: file,
-          fallbackTimestamp,
-        }));
-      }
-    });
-  }
-  for (const file of kimiFiles) {
-    await scanFile(file, async () => {
-      const model = await readKimiModelForWireFile(file);
+  ];
+  await tracker?.begin(allFiles);
+  const dependencies = [...new Set([
+    ...allFiles,
+    ...allFiles.filter(file => /\.(?:db|sqlite|sqlite3|vscdb)$/.test(file)).map(file => file + "-wal"),
+    path.join(codexHome, "config.toml"), path.join(codexHome, "sessions"), path.join(codexHome, "archived_sessions"),
+    path.join(claudeHome, "projects"), ...geminiRoots, ...kimiCandidates, ...qwenRoots, ...ampRoots,
+    ...codebuffProjectRoots, ...droidRoots, ...openclawRoots, ...piRoots, ...resolveDshSessionDirs(home),
+    ...kimiCandidates.map(root => path.join(root, "config.json")),
+    ...droidFiles.map(file => file.replace(/\.settings\.json$/, ".jsonl")),
+    ...additionalPlans[0].files.map(file => path.join(path.dirname(file), "summary.json")),
+    path.join(process.cwd(), ".ccusage/ccusage.json"), path.join(home, ".config/claude/ccusage.json"), path.join(home, ".claude/ccusage.json"),
+  ])].sort();
+  const result = await cachedSource("collection-result", dependencies, async () => {
+    const dsh = await dshPlan.collect();
+    const additional = await Promise.all(
+      additionalPlans.map((plan) => plan.collect()),
+    );
+    const events: UsageEvent[] = [];
+    appendItems(events, dsh.events);
+    for (const source of additional) appendItems(events, source.events);
+    const codexSessions: CodexSession[] = [];
+    for (const file of codexFiles) {
+      const result = await scanFile(file, () => cachedSource("codex-session", [file], async () => {
+        const create = (saved?: unknown) => createCodexJsonlParser({ sourcePath: plainRolloutPath(file), serviceTier: codexServiceTier,
+          compactionHistory: new Map(), useReplayPlan: true }, saved);
+        let result: { events: UsageEvent[]; state: unknown };
+        if (file.endsWith(".jsonl") && await fs.access(file).then(() => true, () => false)) {
+          result = await readIncrementalJsonl(file, create, codexServiceTier);
+        } else {
+          const parser = create();
+          for await (const line of codexRolloutLines(file, bytes => scannedBytes(file, bytes))) parser.pushLine(line);
+          const state = parser.snapshot();
+          result = { events: parser.finish(), state };
+        }
+        const state = result.state as CodexCheckpoint;
+        return { ...state.session || { id: plainRolloutPath(file) }, events: result.events,
+          compactions: state.compactions.filter(([id]) => state.compacted.includes(id)) };
+      }, codexServiceTier));
+      codexSessions.push({ ...result, compactions: new Map(result.compactions) });
+    }
+    appendItems(events, dedupeCodexSessions(codexSessions));
+    for (const file of claudeFiles) {
+      appendItems(events, await scanFile(file, () => readJsonlEvents(file, createClaudeJsonlParser)));
+    }
+    for (const file of geminiFiles) {
+      appendItems(events, await scanFile(file, () => cachedSource("gemini", [file], async () => {
+        const fallbackTimestamp = (await fileModifiedTimestamp(file)) || undefined;
+        return file.endsWith(".jsonl")
+          ? readJsonlEvents(file, (options, saved) => createGeminiJsonlParser({ ...options, fallbackTimestamp }, saved))
+          : parseGeminiSession(await readUsageText(file), { sourcePath: file, fallbackTimestamp });
+      })));
+    }
+    for (const file of kimiFiles) {
+      const parts = file.split(path.sep);
+      const config = path.join(parts.slice(0, parts.lastIndexOf("sessions")).join(path.sep) || path.sep, "config.json");
+      appendItems(events, await scanFile(file, () => cachedSource("kimi", [file, config], async () => {
+        const model = await readKimiModelForWireFile(file);
+        const fallbackTimestamp = (await fileModifiedTimestamp(file)) || undefined;
+        return readJsonlEvents(file, (options, saved) => createKimiWireJsonlParser({ ...options, model, fallbackTimestamp }, saved), model);
+      })));
+    }
+    for (const file of qwenFiles) appendItems(events, await scanFile(file, () => readJsonlEvents(file, createQwenChatJsonlParser)));
+    for (const file of ampFiles) appendItems(events, await scanFile(file, () => cachedSource("amp", [file], async () => parseAmpThread(await readUsageText(file), { sourcePath: file }))));
+    for (const file of codebuffFiles) appendItems(events, await scanFile(file, () => cachedSource("codebuff", [file], async () => parseCodebuffChatMessages(await readUsageText(file), { sourcePath: file }))));
+    const droidEvents: UsageEvent[] = [];
+    for (const file of droidFiles) {
+      const result = await scanFile(file, () => cachedSource("droid", [file, file.replace(/\.settings\.json$/, ".jsonl")], async () =>
+        parseDroidSettings(await readUsageText(file), { sourcePath: file, sidecarModel: await readDroidSidecarModel(file), fallbackTimestamp: await fileModifiedTimestamp(file) })));
+      if (result) droidEvents.push(result);
+    }
+    appendItems(events, latestEventsBySession(droidEvents));
+    for (const dbPath of gooseDbPaths) appendItems(events, await scanFile(dbPath, () => cachedSource("goose", [dbPath, dbPath + "-wal"], () => readGooseEvents(dbPath))));
+    for (const dbPath of hermesDbPaths) appendItems(events, await scanFile(dbPath, () => cachedSource("hermes", [dbPath, dbPath + "-wal"], () => readHermesEvents(dbPath))));
+    for (const dbPath of kiloDbPaths) appendItems(events, await scanFile(dbPath, () => cachedSource("kilo", [dbPath, dbPath + "-wal"], () => readKiloEvents(dbPath))));
+    const openclawEvents: UsageEvent[] = [];
+    for (const file of openclawFiles) appendItems(openclawEvents, await scanFile(file, () => cachedSource("openclaw-jsonl", [file], async () => {
       const fallbackTimestamp = await fileModifiedTimestamp(file);
-      appendItems(events, await readJsonlEvents(file, (options) =>
-        createKimiWireJsonlParser({
-          ...options,
-          model,
-          fallbackTimestamp: fallbackTimestamp || undefined,
-        }),
-      ));
-    });
-  }
-  for (const file of qwenFiles) {
-    await scanFile(file, async () => {
-      appendItems(events, await readJsonlEvents(file, createQwenChatJsonlParser));
-    });
-  }
-  for (const file of ampFiles) {
-    await scanFile(file, async () => {
-      const raw = await readUsageText(file);
-      appendItems(events, parseAmpThread(raw, { sourcePath: file }));
-    });
-  }
-  for (const file of codebuffFiles) {
-    await scanFile(file, async () => {
-      const raw = await readUsageText(file);
-      appendItems(events, parseCodebuffChatMessages(raw, { sourcePath: file }));
-    });
-  }
-  const droidEvents: UsageEvent[] = [];
-  for (const file of droidFiles) {
-    await scanFile(file, async () => {
-      const raw = await readUsageText(file);
-      const event = parseDroidSettings(raw, {
-        sourcePath: file,
-        sidecarModel: await readDroidSidecarModel(file),
-        fallbackTimestamp: await fileModifiedTimestamp(file),
-      });
-      if (event) droidEvents.push(event);
-    });
-  }
-  appendItems(events, latestEventsBySession(droidEvents));
-  for (const dbPath of gooseDbPaths) {
-    await scanFile(dbPath, async () => {
-      appendItems(events, await readGooseEvents(dbPath));
-    });
-  }
-  for (const dbPath of hermesDbPaths) {
-    await scanFile(dbPath, async () => {
-      appendItems(events, await readHermesEvents(dbPath));
-    });
-  }
-  for (const dbPath of kiloDbPaths) {
-    await scanFile(dbPath, async () => {
-      appendItems(events, await readKiloEvents(dbPath));
-    });
-  }
-  const openclawEvents: UsageEvent[] = [];
-  for (const file of openclawFiles) {
-    await scanFile(file, async () => {
-      const fallbackTimestamp = await fileModifiedTimestamp(file);
-      appendItems(openclawEvents, await readJsonlEvents(file, (options) =>
-        createOpenClawJsonlParser({ ...options, fallbackTimestamp }),
-      ));
-    });
-  }
-  const openclawDatabase = await openclawPlan.collect();
-  appendItems(events, mergeOpenClawStores(openclawEvents, openclawDatabase.events));
-  const piStores = await piPlan.collect();
-  appendItems(events, piStores.events);
-  const opencodeEvents = await readOpenCodeEvents(
-    opencodeDbPaths,
-    opencodeMessageFiles,
-  );
-  appendItems(events, opencodeEvents.events);
-  tracker?.processing();
-  return {
-    events: dedupeTranscriptEvents(events),
-    pricingProfiles: [],
-    sources: [
-      ...additional.map((source) => source.source),
-      ...piStores.sources.filter((source) => source.agent !== "pi"),
-      {
-        agent: "dsh",
-        path: sourcePathLabel(dsh.roots, resolveDshSessionDirs(home)),
-        files: dsh.files.length,
-        exists: dsh.roots.length > 0,
-      },
-      {
-        agent: "codex",
-        path: path.join(codexHome, "sessions"),
-        files: codexFiles.length,
-        exists: await exists(path.join(codexHome, "sessions")),
-      },
-      {
-        agent: "claude",
-        path: path.join(claudeHome, "projects"),
-        files: claudeFiles.length,
-        exists: await exists(path.join(claudeHome, "projects")),
-      },
-      {
-        agent: "gemini",
-        path: geminiRoots.join(","),
-        files: geminiFiles.length,
-        exists: await exists(path.join(geminiHome, "tmp")),
-      },
-      {
-        agent: "opencode",
-        path: sourcePathLabel(
-          opencodeEvents.sourcePaths,
-          resolveOpenCodeDataDirs(home),
-        ),
-        files: opencodeEvents.sourcePaths.length,
-        exists: opencodeEvents.sourcePaths.length > 0,
-      },
-      {
-        agent: "kimi",
-        path: sourcePathLabel(kimiRoots, kimiCandidates),
-        files: kimiFiles.length,
-        exists: kimiRoots.length > 0,
-      },
-      {
-        agent: "qwen",
-        path: sourcePathLabel(
-          qwenRoots,
-          resolveDataDirs("QWEN_DATA_DIR", home, ".qwen"),
-        ),
-        files: qwenFiles.length,
-        exists: qwenRoots.length > 0,
-      },
-      {
-        agent: "amp",
-        path: sourcePathLabel(
-          ampRoots,
-          resolveDataDirs("AMP_DATA_DIR", home, ".local/share/amp"),
-        ),
-        files: ampFiles.length,
-        exists: ampRoots.length > 0,
-      },
-      {
-        agent: "codebuff",
-        path: sourcePathLabel(
-          codebuffProjectRoots,
-          resolveCodebuffProjectRoots(home),
-        ),
-        files: codebuffFiles.length,
-        exists: codebuffProjectRoots.length > 0,
-      },
-      {
-        agent: "droid",
-        path: sourcePathLabel(
-          droidRoots,
-          resolveDataDirs("DROID_SESSIONS_DIR", home, ".factory/sessions"),
-        ),
-        files: droidFiles.length,
-        exists: droidRoots.length > 0,
-      },
-      {
-        agent: "goose",
-        path: sourcePathLabel(gooseDbPaths, resolveGooseDbPaths(home)),
-        files: gooseDbPaths.length,
-        exists: gooseDbPaths.length > 0,
-      },
-      {
-        agent: "hermes",
-        path: sourcePathLabel(hermesDbPaths, resolveHermesDbPaths(home)),
-        files: hermesDbPaths.length,
-        exists: hermesDbPaths.length > 0,
-      },
-      {
-        agent: "kilo",
-        path: sourcePathLabel(
-          kiloDbPaths,
-          kiloRoots.map((root) => path.join(root, "kilo.db")),
-        ),
-        files: kiloDbPaths.length,
-        exists: kiloDbPaths.length > 0,
-      },
-      {
-        agent: "openclaw",
-        path: sourcePathLabel(openclawRoots, resolveOpenClawRoots(home)),
-        files: openclawFiles.length + openclawDatabase.files.length,
-        exists: openclawRoots.length > 0,
-      },
-      {
-        agent: "pi",
-        path:
-          piStores.sources.find((source) => source.agent === "pi")?.path ||
-          sourcePathLabel(
-            piRoots,
-            resolveDataDirs("PI_AGENT_DIR", home, ".pi/agent/sessions"),
+      return readJsonlEvents(file, (options, saved) => createOpenClawJsonlParser({ ...options, fallbackTimestamp }, saved));
+    })));
+    const openclawDatabase = await openclawPlan.collect();
+    appendItems(events, mergeOpenClawStores(openclawEvents, openclawDatabase.events));
+    const piStores = await piPlan.collect();
+    appendItems(events, piStores.events);
+    const opencodeEvents = await readOpenCodeEvents(
+      opencodeDbPaths,
+      opencodeMessageFiles,
+    );
+    appendItems(events, opencodeEvents.events);
+    return {
+      events: dedupeTranscriptEvents(events),
+      pricingProfiles: [],
+      sources: [
+        ...additional.map((source) => source.source),
+        ...piStores.sources.filter((source) => source.agent !== "pi"),
+        {
+          agent: "dsh",
+          path: sourcePathLabel(dsh.roots, resolveDshSessionDirs(home)),
+          files: dsh.files.length,
+          exists: dsh.roots.length > 0,
+        },
+        {
+          agent: "codex",
+          path: path.join(codexHome, "sessions"),
+          files: codexFiles.length,
+          exists: await exists(path.join(codexHome, "sessions")),
+        },
+        {
+          agent: "claude",
+          path: path.join(claudeHome, "projects"),
+          files: claudeFiles.length,
+          exists: await exists(path.join(claudeHome, "projects")),
+        },
+        {
+          agent: "gemini",
+          path: geminiRoots.join(","),
+          files: geminiFiles.length,
+          exists: await exists(path.join(geminiHome, "tmp")),
+        },
+        {
+          agent: "opencode",
+          path: sourcePathLabel(
+            opencodeEvents.sourcePaths,
+            resolveOpenCodeDataDirs(home),
           ),
-        files:
-          piStores.sources.find((source) => source.agent === "pi")?.files || 0,
-        exists:
-          piStores.sources.find((source) => source.agent === "pi")?.exists ||
-          false,
-      },
-    ],
-  };
+          files: opencodeEvents.sourcePaths.length,
+          exists: opencodeEvents.sourcePaths.length > 0,
+        },
+        {
+          agent: "kimi",
+          path: sourcePathLabel(kimiRoots, kimiCandidates),
+          files: kimiFiles.length,
+          exists: kimiRoots.length > 0,
+        },
+        {
+          agent: "qwen",
+          path: sourcePathLabel(
+            qwenRoots,
+            resolveDataDirs("QWEN_DATA_DIR", home, ".qwen"),
+          ),
+          files: qwenFiles.length,
+          exists: qwenRoots.length > 0,
+        },
+        {
+          agent: "amp",
+          path: sourcePathLabel(
+            ampRoots,
+            resolveDataDirs("AMP_DATA_DIR", home, ".local/share/amp"),
+          ),
+          files: ampFiles.length,
+          exists: ampRoots.length > 0,
+        },
+        {
+          agent: "codebuff",
+          path: sourcePathLabel(
+            codebuffProjectRoots,
+            resolveCodebuffProjectRoots(home),
+          ),
+          files: codebuffFiles.length,
+          exists: codebuffProjectRoots.length > 0,
+        },
+        {
+          agent: "droid",
+          path: sourcePathLabel(
+            droidRoots,
+            resolveDataDirs("DROID_SESSIONS_DIR", home, ".factory/sessions"),
+          ),
+          files: droidFiles.length,
+          exists: droidRoots.length > 0,
+        },
+        {
+          agent: "goose",
+          path: sourcePathLabel(gooseDbPaths, resolveGooseDbPaths(home)),
+          files: gooseDbPaths.length,
+          exists: gooseDbPaths.length > 0,
+        },
+        {
+          agent: "hermes",
+          path: sourcePathLabel(hermesDbPaths, resolveHermesDbPaths(home)),
+          files: hermesDbPaths.length,
+          exists: hermesDbPaths.length > 0,
+        },
+        {
+          agent: "kilo",
+          path: sourcePathLabel(
+            kiloDbPaths,
+            kiloRoots.map((root) => path.join(root, "kilo.db")),
+          ),
+          files: kiloDbPaths.length,
+          exists: kiloDbPaths.length > 0,
+        },
+        {
+          agent: "openclaw",
+          path: sourcePathLabel(openclawRoots, resolveOpenClawRoots(home)),
+          files: openclawFiles.length + openclawDatabase.files.length,
+          exists: openclawRoots.length > 0,
+        },
+        {
+          agent: "pi",
+          path:
+            piStores.sources.find((source) => source.agent === "pi")?.path ||
+            sourcePathLabel(
+              piRoots,
+              resolveDataDirs("PI_AGENT_DIR", home, ".pi/agent/sessions"),
+            ),
+          files:
+            piStores.sources.find((source) => source.agent === "pi")?.files || 0,
+          exists:
+            piStores.sources.find((source) => source.agent === "pi")?.exists ||
+            false,
+        },
+      ],
+    };
+  }, { home, codexHome, claudeHome, geminiHome, codexServiceTier });
+  for (const file of allFiles) tracker?.complete(file);
+  tracker?.processing();
+  return result;
 }
 
 async function readCodexServiceTier(codexHome: string): Promise<"standard" | "fast" | "priority" | "flex"> {
@@ -459,17 +410,15 @@ export function codexServiceTierFromConfig(content: string): "standard" | "fast"
 
 async function readJsonlEvents(
   filePath: string,
-  createParser: (options: { sourcePath: string }) => JsonlUsageParser,
+  createParser: (options: { sourcePath: string }, saved?: unknown) => JsonlUsageParser,
+  settings: unknown = null,
 ): Promise<UsageEvent[]> {
   const parser = createParser({ sourcePath: filePath });
-  await streamJsonlLines(filePath, (line) => parser.pushLine(line));
-  return parser.finish();
-}
-
-async function readCodexEvents(file: string, createParser: (options: { sourcePath: string }) => JsonlUsageParser): Promise<UsageEvent[]> {
-  const parser = createParser({ sourcePath: plainRolloutPath(file) });
-  for await (const line of codexRolloutLines(file, bytes => scannedBytes(file, bytes))) parser.pushLine(line);
-  return parser.finish();
+  if (parser.snapshot) return (await readIncrementalJsonl(filePath, saved => createParser({ sourcePath: filePath }, saved) as CheckpointParser, settings)).events;
+  return cachedSource("jsonl-events", [filePath], async () => {
+    await streamJsonlLines(filePath, line => parser.pushLine(line));
+    return parser.finish();
+  }, settings);
 }
 
 async function streamJsonlLines(filePath: string, onLine: (line: string) => void): Promise<void> {
@@ -610,62 +559,31 @@ interface OpenCodeCollection {
   sourcePaths: string[];
 }
 
-async function readOpenCodeEvents(
-  dbPaths: string[],
-  messageFiles: string[],
-): Promise<OpenCodeCollection> {
-  const events: UsageEvent[] = [];
-  const sourcePaths = new Set<string>();
-  const seenIds = new Set<string>();
-  const aggregateRows: Array<{
-    row: OpenCodeMessageRow;
-    path: string;
-  }> = [];
-  for (const dbPath of dbPaths) {
-    await scanFile(dbPath, async () => {
-      for (const row of await readOpenCodeDbRows(dbPath)) {
-        if (row.aggregate) {
-          aggregateRows.push({ row, path: dbPath });
-          continue;
-        }
-        const event = parseOpenCodeMessageRow(row, dbPath);
-        if (!event) continue;
-        if (row.id && seenIds.has(row.id)) continue;
-        if (row.id) seenIds.add(row.id);
-        events.push(event);
-        sourcePaths.add(dbPath);
-      }
-    });
-  }
-  for (const file of messageFiles) {
-    await scanFile(file, async () => {
-      const fileStem = path.basename(file, ".json");
-      if (fileStem && seenIds.has(fileStem)) return;
-      const row = await readOpenCodeMessageFile(file);
-      if (!row) return;
-      const event = parseOpenCodeMessageRow(row, file);
-      if (!event) return;
-      if (row.id && seenIds.has(row.id)) return;
-      if (row.id) seenIds.add(row.id);
-      events.push(event);
-      sourcePaths.add(file);
-    });
-  }
-  const covered = new Set(events.map((event) => event.sessionId));
-  for (const { row, path: sourcePath } of aggregateRows) {
-    if (covered.has(row.session_id)) continue;
-    const event = parseOpenCodeMessageRow(row, sourcePath);
-    if (event) {
-      events.push(event);
-      covered.add(row.session_id);
-      sourcePaths.add(sourcePath);
+async function readOpenCodeEvents(dbPaths: string[], messageFiles: string[]): Promise<OpenCodeCollection> {
+  const events: UsageEvent[] = [], aggregates: UsageEvent[] = [];
+  const seenIds = new Set<string>(), sourcePaths = new Set<string>();
+  for (const file of [...dbPaths, ...messageFiles]) {
+    const database = dbPaths.includes(file);
+    const entries = await scanFile(file, () => cachedSource("opencode", database ? [file, file + "-wal"] : [file], async () => {
+      const rows = database ? await readOpenCodeDbRows(file) : [await readOpenCodeMessageFile(file)];
+      return rows.flatMap(row => {
+        const event = row && parseOpenCodeMessageRow(row, file);
+        return row && event ? [{ event, id: row.id, aggregate: !!row.aggregate }] : [];
+      });
+    }));
+    for (const entry of entries) {
+      if (entry.aggregate) { aggregates.push(entry.event); continue; }
+      if (entry.id && seenIds.has(entry.id)) continue;
+      if (entry.id) seenIds.add(entry.id);
+      events.push(entry.event); sourcePaths.add(file);
     }
   }
+  const covered = new Set(events.map(event => event.sessionId));
+  for (const event of aggregates) if (!covered.has(event.sessionId)) {
+    events.push(event); sourcePaths.add(event.sourcePath); covered.add(event.sessionId);
+  }
   events.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
-  return {
-    events,
-    sourcePaths: [...sourcePaths].sort((a, b) => a.localeCompare(b)),
-  };
+  return { events, sourcePaths: [...sourcePaths].sort() };
 }
 
 async function readOpenCodeDbRows(dbPath: string): Promise<OpenCodeMessageRow[]> {

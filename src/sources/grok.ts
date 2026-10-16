@@ -1,3 +1,5 @@
+import { readIncrementalJsonl, type CheckpointParser } from "../incremental-jsonl.js";
+import { cachedSource } from "../collection-cache.js";
 import { appendItems } from "../arrays.js";
 import { scanFile, discoveredFile, scannedBytes } from "../scan-progress.js";
 import path from "node:path";
@@ -21,9 +23,13 @@ export function createGrokParser(
   sourcePath: string,
   fallbackModel = "unknown",
   seen = new Set<string>(),
+  saved?: unknown,
 ): JsonlUsageParser {
-  const events: UsageEvent[] = [];
+  const checkpoint = saved as {events: UsageEvent[]; seen: string[]} | undefined;
+  const events: UsageEvent[] = checkpoint?.events || [];
+  if (checkpoint) for (const id of checkpoint.seen) seen.add(id);
   return {
+    snapshot: () => ({ events, seen: [...seen] }),
     pushLine(line) {
       if (!line.includes("turn_completed")) return;
       const row = JSON.parse(line) as Record<string, unknown>;
@@ -77,6 +83,7 @@ export function createGrokParser(
         if (event) {
           event.pricingModel = model.endsWith("-build") ? model.replace(/-build$/, "") : event.pricingModel || event.model;
           seen.add(key);
+          event.messageId = key;
           events.push(event);
         }
       }
@@ -103,18 +110,17 @@ export async function planGrok(home: string) {
       const events: UsageEvent[] = [];
       const seen = new Set<string>();
       for (const file of files) {
-        await scanFile(file, async () => {
+        const parsed = await scanFile(file, () => cachedSource("grok", [file, path.join(path.dirname(file), "summary.json")], async () => {
           const summary = await optionalJson(
             path.join(path.dirname(file), "summary.json"),
           );
-          const parser = createGrokParser(
-            file,
-            stringField(summary, "current_model_id") || "unknown",
-            seen,
-          );
-          await readStoreLines(file, parser.pushLine);
-          appendItems(events, parser.finish());
-        });
+          const model = stringField(summary, "current_model_id") || "unknown";
+          return (await readIncrementalJsonl(file, saved => createGrokParser(file, model, new Set(), saved) as CheckpointParser, model)).events;
+        }));
+        for (const event of parsed) if (!event.messageId || !seen.has(event.messageId)) {
+          if (event.messageId) seen.add(event.messageId);
+          events.push(event);
+        }
       }
       return {
         events,

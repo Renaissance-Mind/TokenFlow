@@ -8,12 +8,13 @@ import { tokenUsageDir } from "./config.js";
 interface SyncCommandOptions {
   argvPath?: string;
   env?: Record<string, string | undefined>;
+  continuous?: boolean;
 }
 
 export async function installAutoSync(serverUrl: string, home = os.homedir(), options: SyncCommandOptions = {}): Promise<string> {
-  const syncCommand = buildSyncCommand(serverUrl, options);
+  const syncCommand = buildSyncCommand(serverUrl, { ...options, continuous: true });
   if (process.platform === "darwin") return installLaunchAgent(syncCommand, home);
-  if (process.platform === "linux") return installSystemdUserTimer(syncCommand, home);
+  if (process.platform === "linux") return installSystemdCollector(syncCommand, home);
   return "automatic sync is not installed on this platform; run tokenflow sync manually or add it to your scheduler";
 }
 
@@ -22,7 +23,10 @@ async function installLaunchAgent(syncCommand: string, home: string): Promise<st
   const binDir = path.join(dir, "bin");
   await fs.mkdir(binDir, { recursive: true });
   const scriptPath = path.join(binDir, "sync.sh");
-  await fs.writeFile(scriptPath, `#!/bin/sh\n${syncCommand}\n`, { mode: 0o755 });
+  const version = JSON.parse(await fs.readFile(new URL("../package.json", import.meta.url), "utf8")).version;
+  const script = `#!/bin/sh\n# TokenFlow CLI ${version}\n${syncCommand}\n`;
+  const oldScript = await fs.readFile(scriptPath, "utf8").catch(error => { if (error.code === "ENOENT") return null; throw error; });
+  await fs.writeFile(scriptPath, script, { mode: 0o755 });
 
   const launchAgentsDir = path.join(home, "Library", "LaunchAgents");
   await fs.mkdir(launchAgentsDir, { recursive: true });
@@ -37,7 +41,8 @@ async function installLaunchAgent(syncCommand: string, home: string): Promise<st
   <key>Label</key><string>dev.tokenflow.sync</string>
   <key>ProgramArguments</key>
   <array><string>${escapeXml(scriptPath)}</string></array>
-  <key>StartInterval</key><integer>600</integer>
+  <key>KeepAlive</key><true/>
+  <key>ThrottleInterval</key><integer>15</integer>
   <key>RunAtLoad</key><true/>
   <key>StandardOutPath</key><string>${escapeXml(path.join(dir, "sync.log"))}</string>
   <key>StandardErrorPath</key><string>${escapeXml(path.join(dir, "sync.err.log"))}</string>
@@ -48,12 +53,13 @@ async function installLaunchAgent(syncCommand: string, home: string): Promise<st
 
   spawnSync("launchctl", ["unload", legacyPlistPath], { stdio: "ignore" });
   await fs.rm(legacyPlistPath, { force: true });
+  if (oldScript === script && spawnSync("launchctl", ["list", "dev.tokenflow.sync"], { stdio: "ignore" }).status === 0) return `launchd collector running: ${plistPath}`;
   spawnSync("launchctl", ["unload", plistPath], { stdio: "ignore" });
   execFileSync("launchctl", ["load", plistPath], { stdio: "ignore" });
   return `launchd agent installed: ${plistPath}`;
 }
 
-async function installSystemdUserTimer(syncCommand: string, home: string): Promise<string> {
+async function installSystemdCollector(syncCommand: string, home: string): Promise<string> {
   const configDir = path.join(home, ".config", "systemd", "user");
   await fs.mkdir(configDir, { recursive: true });
   const servicePath = path.join(configDir, "tokenflow-sync.service");
@@ -66,32 +72,25 @@ async function installSystemdUserTimer(syncCommand: string, home: string): Promi
 Description=TokenFlow sync
 
 [Service]
-Type=oneshot
+Type=simple
 ExecStart=/bin/sh -lc ${shellQuote(syncCommand)}
-`,
-  );
-  await fs.writeFile(
-    timerPath,
-    `[Unit]
-Description=Run TokenFlow sync every 10 minutes
-
-[Timer]
-OnBootSec=2min
-OnUnitActiveSec=10min
-Persistent=true
+Restart=always
+RestartSec=15
 
 [Install]
-WantedBy=timers.target
+WantedBy=default.target
 `,
   );
   spawnSync("systemctl", ["--user", "disable", "--now", "tokenusage-sync.timer"], { stdio: "ignore" });
   await fs.rm(legacyServicePath, { force: true });
   await fs.rm(legacyTimerPath, { force: true });
   execFileSync("systemctl", ["--user", "daemon-reload"], { stdio: "inherit" });
-  execFileSync("systemctl", ["--user", "enable", "--now", "tokenflow-sync.timer"], {
+  spawnSync("systemctl", ["--user", "disable", "--now", "tokenflow-sync.timer"], { stdio: "ignore" });
+  await fs.rm(timerPath, { force: true });
+  execFileSync("systemctl", ["--user", "enable", "--now", "tokenflow-sync.service"], {
     stdio: "inherit",
   });
-  return `systemd user timer installed: ${timerPath}`;
+  return `systemd background collector installed: ${servicePath}`;
 }
 
 export function buildSyncCommand(
@@ -100,7 +99,8 @@ export function buildSyncCommand(
 ): string {
   const env = options.env || process.env;
   const override = env.TOKENFLOW_AUTO_SYNC_COMMAND?.trim() || env.TOKENUSAGE_AUTO_SYNC_COMMAND?.trim();
-  const command = override || "tokenflow sync --auto";
+  const selected = options.continuous ? override?.replace(/sync --auto$/, "collect --watch") : override;
+  const command = selected || (options.continuous ? "tokenflow collect --watch" : "tokenflow sync --auto");
   return [
     `PATH=${shellQuote(schedulerPath(env))}`,
     `TOKENFLOW_SERVER_URL=${shellQuote(serverUrl)}`,

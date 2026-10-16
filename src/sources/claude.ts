@@ -9,6 +9,7 @@ interface ParseOptions {
 interface JsonlUsageParser {
   pushLine(line: string): void;
   finish(): UsageEvent[];
+  snapshot(): unknown;
 }
 
 export function parseClaudeJsonl(jsonl: string, options: ParseOptions): UsageEvent[] {
@@ -19,11 +20,13 @@ export function parseClaudeJsonl(jsonl: string, options: ParseOptions): UsageEve
   return parser.finish();
 }
 
-export function createClaudeJsonlParser(options: ParseOptions): JsonlUsageParser {
-  const events: UsageEvent[] = [];
-  const seen = new Set<string>();
+export function createClaudeJsonlParser(options: ParseOptions, saved?: unknown): JsonlUsageParser {
+  const checkpoint = saved as { events: UsageEvent[]; seen?: string[] } | undefined;
+  const events: UsageEvent[] = checkpoint?.events || [];
+  const seen = new Set<string>(checkpoint?.seen);
 
   return {
+    snapshot: () => ({ events, seen: [...seen] }),
     pushLine(line: string): void {
       if (!line.trim() || !line.includes('"usage"')) return;
 

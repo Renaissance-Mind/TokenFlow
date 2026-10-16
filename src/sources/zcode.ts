@@ -1,3 +1,4 @@
+import { cachedSource } from "../collection-cache.js";
 import { scanFile, discoveredFile, scannedBytes } from "../scan-progress.js";
 import path from "node:path";
 import { makeUsageEvent } from "./ccusage-common.js";
@@ -77,7 +78,9 @@ export async function planZcode(home: string) {
       const events: UsageEvent[] = [];
       const seen = new Set<string>();
       for (const file of files) {
-        await scanFile(file, async () => {
+        const parsed = await scanFile(file, () => cachedSource("zcode", [file, file + "-wal"], async () => {
+          const events: UsageEvent[] = [];
+          const seen = new Set<string>();
           const columns = await tableColumns(file, "model_usage");
           const sessions = await tableColumns(file, "session");
           if (
@@ -92,7 +95,7 @@ export async function planZcode(home: string) {
             ].every((column) => columns.has(column)) ||
             !["id", "directory"].every((column) => sessions.has(column))
           )
-            return;
+            return [];
           const optional = [
             "provider_id",
             "cache_creation_input_tokens",
@@ -112,10 +115,16 @@ export async function planZcode(home: string) {
             const event = parseZcodeRow(row, file);
             if (event) {
               seen.add(String(row.id));
+              event.messageId = String(row.id);
               events.push(event);
             }
           }
-        });
+          return events;
+        }));
+        for (const event of parsed) if (!event.messageId || !seen.has(event.messageId)) {
+          if (event.messageId) seen.add(event.messageId);
+          events.push(event);
+        }
       }
       return {
         events,

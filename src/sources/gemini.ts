@@ -57,12 +57,14 @@ export function parseGeminiSession(rawJson: string, options: ParseOptions): Usag
   return events;
 }
 
-export function createGeminiJsonlParser(options: ParseOptions): JsonlUsageParser {
-  const entries = new Map<string, UsageEvent>();
-  let sessionId = path.basename(options.sourcePath, path.extname(options.sourcePath));
-  let currentModel = "unknown";
-  let serial = 0;
+export function createGeminiJsonlParser(options: ParseOptions, saved?: unknown): JsonlUsageParser {
+  const checkpoint = saved as { entries: Array<[string, UsageEvent]>; sessionId: string; currentModel: string; serial: number } | undefined;
+  const entries = new Map<string, UsageEvent>(checkpoint?.entries);
+  let sessionId = checkpoint?.sessionId || path.basename(options.sourcePath, path.extname(options.sourcePath));
+  let currentModel = checkpoint?.currentModel || "unknown";
+  let serial = checkpoint?.serial || 0;
   return {
+    snapshot: () => ({ entries: [...entries], sessionId, currentModel, serial }),
     pushLine(line) {
       const row = JSON.parse(line) as Record<string, unknown>;
       sessionId = stringField(row, "sessionId") || stringField(row, "session_id") || sessionId;

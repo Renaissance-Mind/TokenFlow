@@ -52,6 +52,8 @@ jobs:
         run: npm test --prefix desktop
       - name: Test native desktop process
         run: npm run smoke --prefix desktop
+      - name: Verify cached Dashboard and incremental background collection
+        run: node desktop/scripts/cache-smoke.mjs
       - name: Build installation packages
         working-directory: desktop
         run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never

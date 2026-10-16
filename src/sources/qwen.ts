@@ -12,6 +12,7 @@ interface ParseOptions {
 interface JsonlUsageParser {
   pushLine(line: string): void;
   finish(): UsageEvent[];
+  snapshot(): unknown;
 }
 
 export function parseQwenChatJsonl(jsonl: string, options: ParseOptions): UsageEvent[] {
@@ -20,10 +21,12 @@ export function parseQwenChatJsonl(jsonl: string, options: ParseOptions): UsageE
   return parser.finish();
 }
 
-export function createQwenChatJsonlParser(options: ParseOptions): JsonlUsageParser {
-  const events: UsageEvent[] = [];
+export function createQwenChatJsonlParser(options: ParseOptions, saved?: unknown): JsonlUsageParser {
+  const checkpoint = saved as { events: UsageEvent[]; seen?: string[] } | undefined;
+  const events: UsageEvent[] = checkpoint?.events || [];
 
   return {
+    snapshot: () => ({ events }),
     pushLine(line: string): void {
       if (!line.includes("usageMetadata")) return;
       const parsed = JSON.parse(line) as unknown;

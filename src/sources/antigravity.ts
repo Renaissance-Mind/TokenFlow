@@ -1,3 +1,4 @@
+import { cachedSource } from "../collection-cache.js";
 import { appendItems } from "../arrays.js";
 import { scanFile, discoveredFile, scannedBytes } from "../scan-progress.js";
 import fs from "node:fs/promises";
@@ -258,14 +259,15 @@ export async function planAntigravity(home: string) {
     collect: async () => {
       const parsed: IdentifiedUsage[] = [];
       for (const file of files) {
-        await scanFile(file, async () => {
+        const result = await scanFile(file, () => cachedSource("antigravity", [file, file + "-wal"], async () => {
+          const parsed: IdentifiedUsage[] = [];
           const stat = await fs.stat(file);
-          if (!stat.size) return;
+          if (!stat.size) return [];
           const snapshot = await archivedSqliteSnapshot(file);
           try {
             const database = snapshot.path;
             if (!(await tableColumns(database, "gen_metadata")).has("data"))
-              return;
+              return [];
             const generation = (
               await sqliteRows<{
                 hex: string;
@@ -356,7 +358,9 @@ export async function planAntigravity(home: string) {
           } finally {
             await snapshot.close();
           }
-        });
+          return parsed;
+        }));
+        appendItems(parsed, result);
       }
       return {
         events: mergeAntigravityUsage(parsed),

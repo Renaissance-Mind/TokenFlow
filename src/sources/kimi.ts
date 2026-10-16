@@ -17,6 +17,7 @@ interface ParseOptions {
 interface JsonlUsageParser {
   pushLine(line: string): void;
   finish(): UsageEvent[];
+  snapshot(): unknown;
 }
 
 export function parseKimiWireJsonl(jsonl: string, options: ParseOptions): UsageEvent[] {
@@ -25,12 +26,14 @@ export function parseKimiWireJsonl(jsonl: string, options: ParseOptions): UsageE
   return parser.finish();
 }
 
-export function createKimiWireJsonlParser(options: ParseOptions): JsonlUsageParser {
-  const events: UsageEvent[] = [];
+export function createKimiWireJsonlParser(options: ParseOptions, saved?: unknown): JsonlUsageParser {
+  const checkpoint = saved as { events: UsageEvent[]; seen?: string[] } | undefined;
+  const events: UsageEvent[] = checkpoint?.events || [];
   const model = normalizeKimiModel(options.model);
   const sessionId = sessionIdFromWirePath(options.sourcePath);
 
   return {
+    snapshot: () => ({ events }),
     pushLine(line: string): void {
       if (!line.includes("usage.record") && (!line.includes("StatusUpdate") || !line.includes("token_usage"))) return;
       const parsed = JSON.parse(line) as unknown;
