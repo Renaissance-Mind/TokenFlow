@@ -65,7 +65,7 @@ try{
   await expect.poll(async()=>tokens(await page.evaluate(()=>window.tokenflow.getState())),{timeout:30_000}).toBe(count+2);
   assert.equal(await page.evaluate(()=>window.collectionStates.some(Boolean)),false);
   assert.deepEqual(errors,[]);
-  console.log('Cache acceptance passed: fresh-process warm read 0 bytes; append reads only new bytes; opening Dashboard/popup with an old cache triggers no collection; background changes update the open Dashboard without Reading files.');
+  console.log('Cache acceptance passed: fresh-process warm read 0 bytes; append parses only new records with bounded boundary checks; opening Dashboard/popup with an old cache triggers no collection; background changes update the open Dashboard without Reading files.');
 }finally{
   if(instance)await instance.close();
   if(background&&background.exitCode===null){const closed=new Promise(resolve=>background.once('close',resolve));background.kill();await closed;}

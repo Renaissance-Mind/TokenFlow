@@ -1,4 +1,6 @@
 import fs from "node:fs/promises";
+import { appendFileSync } from "node:fs";
+import { ScanTracker, withScanTracker } from "../src/scan-progress.js";
 import path from "node:path";
 import os from "node:os";
 import { afterEach, expect, it, vi } from "vitest";
@@ -178,7 +180,7 @@ const transcriptCases: Array<{ name: string; file: string; prefix?: unknown[]; n
   { name:"Copilot native", file:".copilot/session-state/a/events.jsonl",next:n=>({type:"session.shutdown",id:String(n),timestamp:stamp(n),data:{modelMetrics:{"gpt-5":{usage:{inputTokens:n*10,outputTokens:n*2},requests:{count:n},totalNanoAiu:n}},totalNanoAiu:n}}) },
   { name:"Copilot telemetry", file:".copilot/otel/a.jsonl",next:n=>({type:"span",traceId:"trace"+n,spanId:"span"+n,name:"chat gpt-5",startTime:Date.parse(stamp(n)),endTime:Date.parse(stamp(n))+10,attributes:{"gen_ai.operation.name":"chat","gen_ai.response.model":"gpt-5","gen_ai.conversation.id":"a","gen_ai.usage.input_tokens":10,"gen_ai.usage.output_tokens":2,"gen_ai.usage.total_tokens":12,"gen_ai.prompt":"PRIVATE_PROMPT_DO_NOT_CACHE"}}) },
 ];
-it.each(transcriptCases)("resumes $name without rereading its existing transcript", async ({file:name,prefix=[],next}) => {
+it.each(transcriptCases)("resumes $name from its saved transcript checkpoint", async ({file:name,prefix=[],next}) => {
   const root = await setup();
   const file = await put(root,name,jsonl([...prefix,next(1)]));
   expect((await scan(root)).tokens).toBe(12);
@@ -203,4 +205,22 @@ it("continues an initially empty log and skips an oversized tail across appends"
   const result=await scan(root);
   expect(result.tokens).toBe(140);
   expect(result.bytes).toBe(Buffer.byteLength(tail));
+});
+
+it("commits the captured prefix while a live log grows during the read", async () => {
+  const root=await setup();
+  const file=await put(root,".codex/sessions/live.jsonl",jsonl([...header(),{type:"message",text:"private".repeat(50_000)},row(100)]));
+  const tail=jsonl([row(150)]);
+  let appended=false;
+  const tracker=new ScanTracker(progress=>{
+    if(!appended&&progress.readBytes>0){appended=true;appendFileSync(file,tail);}
+  },0);
+  await tracker.begin([file]);
+  const first=await withScanTracker(tracker,()=>collectLocalUsage(root));
+  expect(appended).toBe(true);
+  expect(first.events.reduce((n,event)=>n+event.totalTokens,0)).toBe(100);
+  const resumed=await scan(root);
+  expect(resumed.tokens).toBe(150);
+  expect(resumed.bytes).toBe(Buffer.byteLength(tail));
+  expect((await scan(root)).bytes).toBe(0);
 });

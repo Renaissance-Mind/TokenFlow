@@ -144,7 +144,7 @@ tokenflow status
 tokenflow sync
 ```
 
-`collect --watch` runs the background collector. It checks source metadata every 15 seconds, reuses persistent per-file checkpoints, resumes append-only JSONL logs from their committed byte offsets, and publishes local statistics without opening Dashboard. Initial collection reads existing history once. Truncation, replacement, parsing-code changes, relevant source settings, and SQLite WAL changes invalidate the affected checkpoints. Changed JSON documents and databases are parsed again; unchanged historical files are reused.
+`collect --watch` runs the background collector. It checks source metadata every 15 seconds, reuses persistent per-file checkpoints, resumes append-only plain JSONL logs from their committed byte offsets with bounded head/tail validation, including when a log continues growing during collection, and publishes local statistics without opening Dashboard. Initial collection reads existing history once. Truncation, replacement, parsing-code changes, relevant source settings, and SQLite WAL changes invalidate the affected checkpoints. Changed JSON documents and databases are parsed again; unchanged historical files are reused.
 
 `sync` uses the same checkpoints, aggregates half-hour usage buckets, uploads only new or changed buckets, and records a sync heartbeat. The background collector uploads every 10 minutes when signed in. Checkpoints live in `~/.tokenflow/collection-cache/`, the atomic Dashboard snapshot in `local-cache.json`, and the upload ledger in `sync-state.json`. Checkpoints contain usage metadata and parser state; transcript text is not cached or uploaded. `collect` performs one local collection without uploading.
 

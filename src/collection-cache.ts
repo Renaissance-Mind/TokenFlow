@@ -48,7 +48,7 @@ class CollectionCache {
     this.memory = memory.get(directory)!;
   }
   revision(): string { return hash(JSON.stringify([this.directory, this.roots.sort()])); }
-  async read<T>(key: string, files: string[], load: (previous?: CachedSource<T>) => Promise<T>): Promise<T> {
+  async read<T>(key: string, files: string[], load: (previous?: CachedSource<T>) => Promise<T>, snapshotVersions?: (value: T) => Array<FileVersion | null>): Promise<T> {
     this.signal?.throwIfAborted();
     const name = hash(key) + ".bin";
     const file = path.join(this.directory, name);
@@ -77,10 +77,11 @@ class CollectionCache {
     }
     const value = await depth.run(level + 1, () => load(previous));
     this.signal?.throwIfAborted();
-    // A writer changing a source while it is read must be revisited next cycle.
-    if (JSON.stringify(versions) === JSON.stringify(await Promise.all(files.map(fileVersion)))) {
+    // Ordinary readers cache only stable inputs. Bounded JSONL readers commit
+    // their captured prefix version so concurrent appends resume at its offset.
+    if (snapshotVersions || JSON.stringify(versions) === JSON.stringify(await Promise.all(files.map(fileVersion)))) {
       const tmp = `${file}.${process.pid}.tmp`;
-      const entry = { key, files: versions, value };
+      const entry = { key, files: snapshotVersions ? snapshotVersions(value) : versions, value };
       const bytes = serialize(entry);
       const handle = await fs.open(tmp, "w", 0o600);
       try {
@@ -99,8 +100,8 @@ export function checkCollectionCancellation(): void { context.getStore()?.signal
 
 export function collectionRevision(): string | undefined { return context.getStore()?.revision(); }
 
-export function cachedSource<T>(kind: string, files: string[], load: (previous?: CachedSource<T>) => Promise<T>, settings: unknown = null): Promise<T> {
-  return context.getStore()?.read(JSON.stringify([kind, files, settings]), files, load) ?? load();
+export function cachedSource<T>(kind: string, files: string[], load: (previous?: CachedSource<T>) => Promise<T>, settings: unknown = null, snapshotVersions?: (value: T) => Array<FileVersion | null>): Promise<T> {
+  return context.getStore()?.read(JSON.stringify([kind, files, settings]), files, load, snapshotVersions) ?? load();
 }
 export async function withCollectionCache<T>(home: string, action: () => Promise<T>, signal?: AbortSignal): Promise<T> {
   const root = path.join(tokenUsageDir(home), "collection-cache");

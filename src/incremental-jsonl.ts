@@ -9,7 +9,7 @@ export interface CheckpointParser {
   finish(): UsageEvent[];
   snapshot(): unknown;
 }
-interface Checkpoint { offset: number; oversized: boolean; state: unknown; viewState?: unknown; events: UsageEvent[]; head: string; boundary: string }
+interface Checkpoint { version: FileVersion; offset: number; oversized: boolean; state: unknown; viewState?: unknown; events: UsageEvent[]; head: string; boundary: string }
 const WINDOW = 4096;
 const MAX_LINE = 16 * 1024 * 1024;
 const digest = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex");
@@ -67,8 +67,8 @@ export async function readIncrementalJsonl(file: string, create: (state?: unknow
         try { JSON.parse(pending.toString("utf8")); view.pushLine(pending.toString("utf8").replace(/\r$/, "")); }
         catch (error) { if (!(error instanceof SyntaxError)) throw error; }
       }
-      return { offset, oversized, state, viewState: view.snapshot(), events: view.finish(), head, boundary };
+      return { version: current, offset, oversized, state, viewState: view.snapshot(), events: view.finish(), head, boundary };
     } finally { await handle.close(); }
-  }, [settings, includeTail]);
+  }, [settings, includeTail], checkpoint => [checkpoint.version]);
   return { events: result.events, state: result.viewState ?? result.state };
 }
