@@ -102,6 +102,7 @@ const MODEL_IDS: Record<number, string> = {
   1071: "gemini-3.6-flash-high",
   1072: "gemini-3.6-flash-medium",
   1073: "gemini-3.6-flash-low",
+  1417: "gemini-4-argon",
   1026: "claude-opus-4-6",
   1035: "claude-sonnet-4-6",
   1036: "gemini-3.1-pro",
