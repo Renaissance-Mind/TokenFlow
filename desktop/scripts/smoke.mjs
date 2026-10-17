@@ -274,7 +274,8 @@ try {
   // The web Dashboard picker also changes the one App preference instead of
   // leaving a separate localStorage language behind.
   await page.evaluate(()=>window.tokenflow.openSettings());
-  await settings.locator('#dashboardShortcut').click();
+  // The breadcrumb remains available at the native window's compact width.
+  await settings.locator('#breadcrumbDashboard').click();
   await page.locator('#languageToggle').click();
   assert.equal(await page.locator('[data-language-option]').count(),2);
   await page.locator('[data-language-option="en"]').click();
