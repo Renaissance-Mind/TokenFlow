@@ -300,6 +300,9 @@ try {
   await settings.reload();await expect(settings.locator('#language')).toHaveValue('zh');
   await expect(settings.locator('#connectTitle')).toHaveText('账号与同步');
   const collectorConfigBefore=await fs.readFile(path.join(env.TOKENFLOW_HOME,'config.json'),'utf8');
+  // The multi-add and cross-pane drag flow uses the wide editor layout.
+  // Compact drawer layouts are exercised separately below.
+  await settings.setViewportSize({width:1440,height:960});
   await settings.locator('[data-section="traySection"]').click();
   await expect(settings.locator('body')).toHaveClass(/editing-tray/);
   const preview=settings.frameLocator('#widgetPreview');
