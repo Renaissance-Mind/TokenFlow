@@ -25,6 +25,7 @@ export interface DesktopState {
   windowChrome: { platform: string; fullScreen: boolean };
   cli: { source: "installed" | "managed"; version: string; path: string; compatible: boolean; updateStatus: string; availableVersion?: string };
   dashboardSource: "local" | "cloud";
+  dashboardRevision: number;
   version: string;
   collectorVersion: string;
   settings: Settings;

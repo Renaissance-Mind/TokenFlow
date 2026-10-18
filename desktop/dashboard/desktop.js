@@ -55,7 +55,7 @@ function update(state){
   if(previous && dataContext(previous)!==dataContext(state))dataReady=false;
   loginDialog.update(state);activity();
   if(!previous||previous.settings.language!==state.settings.language)window.tokenflowDashboard.language(state.settings.language);
-  const key=[state.dashboardSource,state.summary?.scannedAt,state.settings.serverUrl,state.account?.id,state.lastSyncAt].join('|');
+  const key=[state.dashboardSource,state.dashboardRevision,state.summary?.scannedAt,state.settings.serverUrl,state.account?.id,state.lastSyncAt].join('|');
   if(key!==revision){revision=key;void refresh();}
 }
 async function runAction(action){

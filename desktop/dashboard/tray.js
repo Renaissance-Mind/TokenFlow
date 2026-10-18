@@ -3,6 +3,7 @@
 // their auxiliary labels; no separate usage calculations live in the tray.
 import {operationProgress} from './progress.js';
 document.body.classList.add('mini-dashboard');
+document.body.dataset.miniLoaded='false';
 const $=id=>document.getElementById(id);
 const main=document.querySelector('main');
 const widgets={overview:document.querySelector('.summary-board'),trend:$('dailyTrend').closest('.panel'),models:$('modelShare').closest('.panel'),activity:$('usageHeatmap').closest('.panel'),composition:$('tokenMix').closest('.panel'),devices:$('deviceShare').closest('.panel'),cache:$('cacheHitRate').closest('.metric'),output:$('outputTokens').closest('.metric')};
@@ -13,6 +14,7 @@ const content=document.createElement('div');content.id='miniWidgets';
 for(const [name,node] of Object.entries(widgets)){node.dataset.miniWidget=name;content.append(node);}
 const modelLimit=document.createElement('span');modelLimit.className='mini-model-limit';modelLimit.textContent='Top 4';widgets.models.querySelector('.section-head').append(modelLimit);
 main.append(content);
+const loading=document.createElement('p');loading.id='miniLoading';loading.setAttribute('role','status');main.insertBefore(loading,content);
 document.querySelector('.desktop-toolbar').outerHTML=`<header class="mini-header">
   <div class="mini-title"><svg class="mini-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 17a15 15 0 1 0 15 15" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><path d="M32 25a7 7 0 1 0 7 7" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><circle cx="47" cy="17" r="4" fill="currentColor"/></svg><strong>Dashboard</strong>
     <nav class="mini-actions" aria-label="Dashboard actions">
@@ -39,6 +41,7 @@ function actions(){
   const percent=operation?.percent;
   const error=lastError||latest.error;
   const detail=error||operation?.label||(running?t.loading:'');
+  loading.textContent=error||t.loading;
   button.title=[t.refresh,detail,percent!=null?Math.floor(percent)+'%':''].filter(Boolean).join(' · ');
   button.setAttribute('aria-label',button.title);button.setAttribute('aria-busy',String(busy));
   button.classList.toggle('has-error',!!error);
@@ -57,7 +60,7 @@ function theme(){
 }
 async function refresh(){
   if(running){pending=true;return;}running=true;
-  document.body.dataset.miniLoaded='false';actions();
+  if(!document.body.dataset.miniLoaded)document.body.dataset.miniLoaded='false';actions();
   try{if(!started){started=true;await window.tokenflowDashboard.boot();}else await window.tokenflowDashboard.refresh();
     document.body.dataset.miniLoaded='true';lastError='';
   }catch(error){lastError=error.message;}
@@ -83,7 +86,7 @@ function update(state){
   modelLimit.textContent=t.models;
   for(const button of document.querySelectorAll('[data-mini-range]'))button.setAttribute('aria-pressed',String(Number(button.dataset.miniRange)===state.settings.trayRange));
   actions();
-  const key=JSON.stringify([state.dashboardSource,state.summary?.scannedAt,state.settings.serverUrl,state.account?.id,state.lastSyncAt,state.settings.trayRange,state.settings.trayWidgets,state.settings.language]);
+  const key=JSON.stringify([state.dashboardSource,state.dashboardRevision,state.summary?.scannedAt,state.settings.serverUrl,state.account?.id,state.lastSyncAt,state.settings.trayRange,state.settings.trayWidgets,state.settings.language]);
   if(key!==revision){revision=key;window.tokenflowDashboard.language(state.settings.language);window.tokenflowDashboard.miniRange(state.settings.trayRange);theme();void refresh();}
   else theme();
   resize();

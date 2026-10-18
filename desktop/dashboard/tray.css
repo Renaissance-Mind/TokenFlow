@@ -9,6 +9,9 @@
 .mini-context{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px}.mini-context>span{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}.mini-context>span:before{content:'';width:5px;height:5px;background:var(--accent);border-radius:50%}
 .mini-ranges{display:flex;align-items:center;gap:13px}.mini-ranges button{padding:3px 0;border:0;background:none;color:var(--muted);font:11px var(--font);cursor:pointer}.mini-ranges button[aria-pressed="true"]{color:var(--accent);font-weight:650;text-decoration:underline;text-underline-offset:6px}
 .mini-dashboard #miniWidgets{display:flex;flex-direction:column;min-width:0}
+.mini-dashboard #miniLoading{display:none;padding:18px 0;color:var(--muted);font-size:12px}
+.mini-dashboard[data-mini-loaded="false"] #miniLoading{display:block}
+.mini-dashboard[data-mini-loaded="false"] #miniWidgets{display:none}
 .mini-dashboard [data-mini-widget]{margin:0;padding:14px 0;border:0;border-top:1px solid var(--line);background:none;min-width:0}
 .mini-dashboard .section-head{margin:0 0 10px;gap:8px;align-items:center}.mini-dashboard .section-head h2{font-size:12px;font-weight:600;letter-spacing:0}.mini-dashboard .section-head h2:before{display:none}
 .mini-model-limit{margin-left:auto;font-size:10px;color:var(--muted)}
