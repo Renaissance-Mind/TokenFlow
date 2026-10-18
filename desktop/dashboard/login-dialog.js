@@ -1,6 +1,6 @@
 const copy = {
-  en: { title:'Sign in to TokenFlow',description:'Your usage, across every device.',choose:'Continue with',github:'Sign in with GitHub',google:'Sign in with Google',close:'Close',local:'Continue locally',cancel:'Cancel sign-in',browser:'Secure sign-in opens in your browser.',starting:'Opening your browser…',waiting:'After signing in, click “Connect this app →” in your browser.',required:'Update the CLI in Settings to sign in.' },
-  zh: { title:'登录 TokenFlow',description:'在每台设备上，查看你的用量。',choose:'选择登录方式',github:'通过 GitHub 登录',google:'通过 Google 登录',close:'关闭',local:'继续使用本机数据',cancel:'取消登录',browser:'将在浏览器中安全登录。',starting:'正在打开浏览器…',waiting:'请在浏览器中登录，再点击“Connect this app →”完成授权。',required:'请在设置中更新 CLI 后登录。' },
+  en: { title:'Sign in to TokenFlow',description:'Your usage, across every device.',choose:'Continue with',github:'Sign in with GitHub',google:'Sign in with Google',close:'Close',local:'Continue locally',cancel:'Cancel sign-in',browser:'Secure sign-in opens in your browser.',starting:'Opening your browser…',waiting:'Finish signing in in your browser. TokenFlow will connect automatically.',required:'Update the CLI in Settings to sign in.' },
+  zh: { title:'登录 TokenFlow',description:'在每台设备上，查看你的用量。',choose:'选择登录方式',github:'通过 GitHub 登录',google:'通过 Google 登录',close:'关闭',local:'继续使用本机数据',cancel:'取消登录',browser:'将在浏览器中安全登录。',starting:'正在打开浏览器…',waiting:'请在浏览器中完成登录，TokenFlow 会自动连接。',required:'请在设置中更新 CLI 后登录。' },
 };
 
 export function createLoginDialog() {

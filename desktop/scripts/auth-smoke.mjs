@@ -10,7 +10,7 @@ const helper=process.env.TOKENFLOW_AUTH_TEST_SERVER;
 if(!helper)throw new Error('Set TOKENFLOW_AUTH_TEST_SERVER to TokenFlow_Server/scripts/desktop-test-server.mjs');
 const {withDesktopTestServer}=await import(pathToFileURL(path.resolve(helper)).href);
 const desktop=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
-await withDesktopTestServer(async({url,approve,request,db,userId,sessionToken})=>{
+await withDesktopTestServer(async({url,approve,completeSignIn,request,db,userId,sessionToken})=>{
   const temp=await fs.mkdtemp(path.join(os.tmpdir(),'tokenflow-desktop-auth-'));
   const env={...process.env,TOKENFLOW_HOME:path.join(temp,'collector'),TOKENFLOW_DESKTOP_DATA:path.join(temp,'app'),TOKENFLOW_SCAN_HOME:path.join(temp,'sources'),TOKENFLOW_SERVER_URL:url,TOKENFLOW_NODE_PATH:process.execPath,TOKENFLOW_CLI_PATH:path.resolve(desktop,'../dist/cli.js')};
   delete env.ELECTRON_RUN_AS_NODE;
@@ -147,10 +147,10 @@ await withDesktopTestServer(async({url,approve,request,db,userId,sessionToken})=
     await dashboard.locator('#desktopSignIn').click();
     await dashboard.locator('#desktopLoginGithub').click();
     await expect.poll(async()=>!!(await dashboard.evaluate(()=>window.tokenflow.getState())).login).toBe(true);
-    await expect(dashboard.locator('#desktopLoginWaiting')).toContainText('Connect this app');
+    await expect(dashboard.locator('#desktopLoginWaiting')).toContainText('connect automatically');
     assert.equal((await dashboard.evaluate(()=>window.tokenflow.getState())).hasDashboard,false);
 
-    const code=(await dashboard.evaluate(()=>window.tokenflow.getState())).login.code;assert.equal((await approve(code)).status,200);
+    const code=(await dashboard.evaluate(()=>window.tokenflow.getState())).login.code;await completeSignIn(code);
     await expect.poll(async()=>{const s=await dashboard.evaluate(()=>window.tokenflow.getState());return s.hasDashboard&&!s.loginBusy&&!s.busy;},{timeout:60_000}).toBe(true);
     await expect(dashboard.locator('#desktopLoginDialog')).toBeHidden();
     assert.equal((await dashboard.evaluate(()=>window.tokenflow.getState())).error,null);
