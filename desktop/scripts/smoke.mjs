@@ -252,10 +252,17 @@ try {
     const displays=await instance.evaluate(({screen})=>screen.getAllDisplays().map(d=>({id:d.id,bounds:d.bounds,workArea:d.workArea})));
     const results=[];
     for(const display of displays) {
+      // Let the native hide/blur transition finish before reopening the panel.
+      // Hiding and showing in one JS turn can deliver the old blur after show.
+      await page.evaluate(()=>window.tokenflow.dashboard());
+      await expect.poll(()=>instance.evaluate(({BrowserWindow})=>{
+        const main=BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=dashboard'));
+        const popup=BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=tray'));
+        return main.isFocused()&&!popup.isVisible();
+      })).toBe(true);
       const cursor={x:display.bounds.x+Math.round(display.bounds.width*0.7),y:display.bounds.y+12};
       const icon={x:cursor.x-20,y:display.bounds.y,width:60,height:Math.max(24,display.workArea.y-display.bounds.y)};
       await instance.evaluate(({BrowserWindow,screen},{cursor,icon})=>{
-        BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=tray')).hide();
         const original=screen.getCursorScreenPoint;
         screen.getCursorScreenPoint=()=>({...cursor});
         try {
