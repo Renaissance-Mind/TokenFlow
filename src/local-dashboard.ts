@@ -25,16 +25,27 @@ function totals(buckets: DashboardCache["buckets"]) {
   value.unpriced_buckets = String(buckets.filter(b => b.pricingStatus === "unpriced").length);
   return value;
 }
+function dateStart(value: string): number {
+  const timestamp = Date.parse(value + "T00:00:00.000Z");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || !Number.isFinite(timestamp) || new Date(timestamp).toISOString().slice(0, 10) !== value) throw new Error("Invalid Dashboard date range");
+  return timestamp;
+}
+
 export function localDashboardApi(cache: DashboardCache | null, config: { deviceId?: string; deviceName?: string; lastSyncAt?: string } | null, request: string): unknown {
   const url = new URL(request, "https://tokenflow.local");
   const id = config?.deviceId || "local-device", name = config?.deviceName || "Computer";
   if (url.pathname === "/api/me") return { authenticated: true, user: { id: "local", name, email: null, persona_key: null } };
   if (url.pathname === "/api/devices") return { devices: [{ id, name, platform: process.platform, status: "active", last_sync_at: config?.lastSyncAt || null }] };
   const to = url.searchParams.get("to") || new Date().toISOString().slice(0, 10);
-  const days = Math.min(370, Math.max(1, Number(url.searchParams.get("days")) || 30));
-  const from = url.searchParams.get("from") || new Date(Date.parse(to + "T00:00:00.000Z") - (days - 1) * 86400000).toISOString().slice(0, 10);
-  const start = Date.parse(from + "T00:00:00.000Z"), end = Date.parse(to + "T23:59:59.999Z");
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || !Number.isFinite(start) || !Number.isFinite(end) || start > end || end - start >= 370 * 86400000) throw new Error("Invalid Dashboard date range");
+  const toStart = dateStart(to);
+  const days = Math.min(370, Math.max(1, Math.floor(Number(url.searchParams.get("days"))) || 30));
+  const from = url.searchParams.get("from") || new Date(toStart - (days - 1) * 86400000).toISOString().slice(0, 10);
+  const start = dateStart(from), end = toStart + 86400000 - 1;
+  if (start > end) throw new Error("Invalid Dashboard date range");
+  // Summary aggregates cached buckets, including the Dashboard's All range.
+  // Only chart endpoints that expand a date range need a size bound.
+  if (url.pathname === "/api/usage/heatmap" && end - start >= 370 * 86400000) throw new Error("Heatmap date range cannot exceed 370 days");
+  if (url.pathname === "/api/usage/hourly" && end - start >= 92 * 86400000) throw new Error("Hourly date range cannot exceed 92 days");
   const buckets = (cache?.buckets || []).filter(b => {
     const at = Date.parse(b.bucketStart);
     return at >= start && at <= end && (!url.searchParams.get("device_id") || url.searchParams.get("device_id") === id)
@@ -44,12 +55,15 @@ export function localDashboardApi(cache: DashboardCache | null, config: { device
   if (url.pathname === "/api/usage/summary") {
     const groups = new Map<string, DashboardCache["buckets"]>();
     for (const b of buckets) { const k = `${b.agent}|${b.model}`; const group = groups.get(k) || []; group.push(b); groups.set(k, group); }
-    return { from: new Date(start).toISOString(), to: new Date(end).toISOString(), totals: totals(buckets),
+    const firstDate = buckets.reduce<string | null>((first, bucket) => {
+      const day = bucket.bucketStart.slice(0, 10);
+      return first === null || day < first ? day : first;
+    }, null);
+    return { from: new Date(start).toISOString(), to: new Date(end).toISOString(), first_date: firstDate, totals: totals(buckets),
       devices: buckets.length ? [{ device_id: id, device_name: name, last_sync_at: config?.lastSyncAt || null, ...totals(buckets) }] : [],
       models: [...groups.values()].map(g => ({ agent: g[0].agent, model: g[0].model, ...totals(g) })) };
   }
   if (url.pathname === "/api/usage/hourly") {
-    if (end - start >= 92 * 86400000) throw new Error("Hourly date range cannot exceed 92 days");
     const groups = new Map<string, DashboardCache["buckets"]>();
     for (const b of buckets) { const k = b.bucketStart.slice(0, 13); const g = groups.get(k) || []; g.push(b); groups.set(k, g); }
     return { from, to, ...totals(buckets), hours: [...groups.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([hour, g]) => ({ hour, ...totals(g) })) };

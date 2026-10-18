@@ -20,6 +20,23 @@ describe("the local data adapter for the canonical Dashboard", () => {
     const hourly: any = localDashboardApi(cache, config, "/api/usage/hourly?from=2026-06-09&to=2026-06-09");
     expect(hourly.hours[0]).toMatchObject({ hour: "2026-06-09T01", total_tokens: "1100" });
   });
+  it("supports the Dashboard All range beyond one year without truncating usage", () => {
+    const history = { ...cache, buckets: [...cache.buckets, { ...cache.buckets[0], bucketStart: "2025-07-14T01:00:00.000Z" }] };
+    const summary: any = localDashboardApi(history, config, "/api/usage/summary?from=2025-07-13&to=2026-10-18");
+    expect(summary.totals.total_tokens).toBe("2200");
+    expect(summary.first_date).toBe("2025-07-14");
+    expect(summary.from).toBe("2025-07-13T00:00:00.000Z");
+    const empty: any = localDashboardApi(null, null, "/api/usage/summary?from=2025-07-13&to=2026-10-18");
+    expect(empty.totals.total_tokens).toBe("0");
+    expect(empty.first_date).toBeNull();
+  });
+  it("keeps bounded heatmap/hourly requests and rejects invalid calendar dates", () => {
+    expect(() => localDashboardApi(cache, config, "/api/usage/heatmap?from=2025-07-13&to=2026-10-18")).toThrow("Heatmap date range cannot exceed 370 days");
+    expect(() => localDashboardApi(cache, config, "/api/usage/hourly?from=2026-01-01&to=2026-06-09")).toThrow("Hourly date range cannot exceed 92 days");
+    for (const query of ["from=2026-02-30&to=2026-03-02", "to=invalid", "from=invalid&to=2026-06-09"]) {
+      expect(() => localDashboardApi(cache, config, "/api/usage/summary?" + query)).toThrow("Invalid Dashboard date range");
+    }
+  });
   it("filters by dates, device, agent and model, without exposing source records", () => {
     for (const filter of ["device_id=other", "agent=claude", "model=other"]) {
       const result: any = localDashboardApi(cache, config, "/api/usage/summary?from=2026-06-09&to=2026-06-09&" + filter);

@@ -362,7 +362,7 @@ async function pollLogin(flow: any, verifier: string, existing: string | undefin
       watchedAuthorization = JSON.stringify([state.settings.serverUrl, undefined, token]);
       await fs.rename(pendingSecretPath(), secretPath()); secret = nextSecret;
       await configureCliDashboard((await readCollector()).config);
-      state.hasCollector = true; state.notice = null;
+      state.hasCollector = true; state.notice = null; state.error = null;
       await marker(); configureLoginItem(); await configureScheduler();
       await showDashboard();
       return;

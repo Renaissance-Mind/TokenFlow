@@ -45,7 +45,10 @@ await withDesktopTestServer(async({url,approve,request,db,userId,sessionToken})=
   try{
     let dashboard=await instance.firstWindow();await dashboard.waitForURL(/mode=dashboard$/);
     await expect(dashboard.locator('#app')).toBeVisible();await expect(dashboard.locator('#loginSection')).toBeHidden();
-    await expect.poll(async()=>{const s=await dashboard.evaluate(()=>window.tokenflow.getState());if(s.error)throw new Error(s.error);return !!s.summary&&!s.busy;},{timeout:60_000}).toBe(true);
+    await expect.poll(async()=>{const s=await dashboard.evaluate(()=>window.tokenflow.getState());
+      if(s.error)throw new Error(s.error);
+      return s.summary&&!s.busy&&s.hasDashboard&&s.dashboardSource==='cloud' ? true : {hasCollector:s.hasCollector,hasDashboard:s.hasDashboard,source:s.dashboardSource,notice:s.notice};
+    },{timeout:60_000}).toBe(true);
     await dashboard.evaluate(()=>{window.dashboardIdentity=document.getElementById('app');});
     let state=await dashboard.evaluate(()=>window.tokenflow.getState());assert.equal(state.cli.source,'installed');assert.equal(state.hasCollector,true);assert.equal(state.hasDashboard,true);assert.equal(state.dashboardSource,'cloud');
     assert.equal(state.settings.deviceName,'Existing CLI');assert.equal(state.settings.serverUrl,url);assert.equal(state.settings.paused,false);
@@ -141,10 +144,16 @@ await withDesktopTestServer(async({url,approve,request,db,userId,sessionToken})=
     assertCliLoggedOut();
     await expect(dashboard.locator('#app')).toBeVisible();assert.equal((await request('/api/device/status',undefined,config.deviceToken)).status,200);
     // First-time browser sign-in still works when no CLI credential exists.
-    await dashboard.evaluate(()=>window.tokenflow.login('google'));
+    await dashboard.locator('#desktopSignIn').click();
+    await dashboard.locator('#desktopLoginGithub').click();
     await expect.poll(async()=>!!(await dashboard.evaluate(()=>window.tokenflow.getState())).login).toBe(true);
+    await expect(dashboard.locator('#desktopLoginWaiting')).toContainText('Connect this app');
+    assert.equal((await dashboard.evaluate(()=>window.tokenflow.getState())).hasDashboard,false);
+
     const code=(await dashboard.evaluate(()=>window.tokenflow.getState())).login.code;assert.equal((await approve(code)).status,200);
     await expect.poll(async()=>{const s=await dashboard.evaluate(()=>window.tokenflow.getState());return s.hasDashboard&&!s.loginBusy&&!s.busy;},{timeout:60_000}).toBe(true);
+    await expect(dashboard.locator('#desktopLoginDialog')).toBeHidden();
+    assert.equal((await dashboard.evaluate(()=>window.tokenflow.getState())).error,null);
     const encrypted=await fs.readFile(path.join(env.TOKENFLOW_DESKTOP_DATA,'desktop-auth.bin'));assert.ok(!encrypted.toString().includes('tu_desktop_'));
     const browserConfig=JSON.parse(await fs.readFile(path.join(env.TOKENFLOW_HOME,'config.json'),'utf8'));
     shared=cliConfig();assert.equal(shared.deviceToken,browserConfig.deviceToken);assert.equal(shared.deviceId,browserConfig.deviceId);assert.equal(shared.apiToken,undefined);
