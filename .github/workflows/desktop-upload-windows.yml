@@ -1,0 +1,69 @@
+name: Upload validated Windows release assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: Successful desktop build run ID
+        required: true
+      release_tag:
+        description: Existing draft desktop release tag
+        required: true
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      BUILD_RUN_ID: ${{ inputs.build_run_id }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+    steps:
+      - name: Require a successful build matching the draft release
+        run: |
+          node --input-type=module <<'JS'
+          import {execFileSync} from 'node:child_process';
+          import assert from 'node:assert/strict';
+          const {BUILD_RUN_ID,RELEASE_TAG,GH_REPO}=process.env;
+          assert.match(BUILD_RUN_ID,/^\d+$/);
+          assert.match(RELEASE_TAG,/^desktop-v\d+\.\d+\.\d+$/);
+          const gh=args=>JSON.parse(execFileSync('gh',args,{encoding:'utf8'}));
+          const run=gh(['api',`repos/${GH_REPO}/actions/runs/${BUILD_RUN_ID}`]);
+          const release=gh(['release','view',RELEASE_TAG,'--json','isDraft,targetCommitish']);
+          assert.equal(run.path,'.github/workflows/desktop-build.yml');
+          assert.equal(run.status,'completed');
+          assert.equal(run.conclusion,'success');
+          assert.equal(release.isDraft,true);
+          assert.equal(release.targetCommitish,run.head_sha);
+          JS
+      - uses: actions/download-artifact@v4
+        with:
+          name: tokenflow-desktop-win-x64
+          path: artifacts
+          run-id: ${{ inputs.build_run_id }}
+          github-token: ${{ github.token }}
+      - name: Verify installer metadata and upload
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import crypto from 'node:crypto';
+          import {execFileSync} from 'node:child_process';
+          import assert from 'node:assert/strict';
+          const tag=process.env.RELEASE_TAG,version=tag.slice('desktop-v'.length);
+          const name=`TokenFlow-${version}-win-x64.exe`;
+          const manifest=fs.readFileSync('artifacts/latest.yml','utf8');
+          assert.equal(manifest.match(/^version: (.+)$/m)?.[1],version);
+          assert.equal(manifest.match(/^path: (.+)$/m)?.[1],name);
+          assert.equal(manifest.match(/^  - url: (.+)$/m)?.[1],name);
+          const bytes=fs.readFileSync('artifacts/'+name);
+          assert.equal(Number(manifest.match(/^    size: (\d+)$/m)?.[1]),bytes.length);
+          const digest=crypto.createHash('sha512').update(bytes).digest('base64');
+          assert.equal(manifest.match(/^    sha512: (.+)$/m)?.[1],digest);
+          assert.equal(manifest.match(/^sha512: (.+)$/m)?.[1],digest);
+          assert.ok(fs.statSync('artifacts/'+name+'.blockmap').size>0);
+          execFileSync('gh',['release','upload',tag,'artifacts/'+name,'artifacts/'+name+'.blockmap','artifacts/latest.yml','--clobber'],{stdio:'inherit'});
+          JS
