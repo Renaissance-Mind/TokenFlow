@@ -89,6 +89,50 @@ try {
     assert.equal(await page.locator('.desktop-toolbar').evaluate(el=>getComputedStyle(el).paddingLeft),'104px');
   }
   assert.deepEqual(externalRequests,[]);assert.deepEqual(failedAssets,[]);
+  // Desktop sign-in stays within the dashboard and uses accessible icon controls.
+  await expect(page.locator('#desktopSignIn')).toBeVisible();
+  await expect(page.locator('#desktopDataSource')).toBeHidden();
+  const toolbarButtons=await page.locator('.desktop-toolbar button').evaluateAll(buttons=>buttons.map(button=>({text:button.textContent.trim(),icon:!!button.querySelector('svg'),label:button.getAttribute('aria-label')})));
+  assert.ok(toolbarButtons.every(button=>!button.text&&button.icon&&button.label));
+  await page.locator('#desktopSignIn').click();
+  await expect(page.locator('#desktopLoginDialog')).toBeVisible();
+  await expect(page.getByRole('button',{name:'Sign in with GitHub',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Sign in with Google',exact:true})).toBeVisible();
+  await expect(page.locator('#desktopLoginClose')).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(page.locator('#desktopLoginLocal')).toBeFocused();
+  await page.screenshot({path:path.join(output,'desktop-login-light.png')});
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#desktopLoginDialog')).toBeHidden();
+  await expect(page.locator('#desktopSignIn')).toBeFocused();
+  await page.locator('#themeToggle').click();
+  await page.locator('#desktopSignIn').click();
+  await page.screenshot({path:path.join(output,'desktop-login-dark.png')});
+  await page.locator('#desktopLoginLocal').click();
+  await page.locator('#themeToggle').click();
+  await page.evaluate(()=>window.tokenflow.saveSettings({language:'zh'}));
+  await page.locator('#desktopSignIn').click();
+  await expect(page.locator('#desktopLoginTitle')).toHaveText('登录 TokenFlow');
+  await expect(page.locator('#desktopLoginGithub')).toHaveAttribute('aria-label','通过 GitHub 登录');
+  await page.screenshot({path:path.join(output,'desktop-login-zh.png')});
+  await page.locator('#desktopLoginClose').click();
+  await page.evaluate(()=>window.tokenflow.saveSettings({language:'en'}));
+  // Observe real page startup without replacing any data or native API.
+  await page.addInitScript(()=>{
+    window.startupSamples=[];
+    const sampleStartup=()=>{
+      const loading=document.getElementById('desktopLoading'),main=document.querySelector('main'),spinner=document.getElementById('desktopLoadingSpinner');
+      if(loading && main && spinner && !loading.hidden) window.startupSamples.push({hidden:getComputedStyle(main).visibility==='hidden',animation:getComputedStyle(spinner).animationName});
+      if(!loading||!loading.hidden)requestAnimationFrame(sampleStartup);
+    };
+    requestAnimationFrame(sampleStartup);
+  });
+  await page.reload();
+  await expect(page.locator('#desktopLoading')).toBeHidden();
+  const startupSamples=await page.evaluate(()=>window.startupSamples);
+  assert.ok(startupSamples.length>0);assert.ok(startupSamples.every(sample=>sample.hidden&&sample.animation==='desktop-spin'));
+  await expect(page.locator('#totalCost')).toHaveText('$0.00');
+  await page.evaluate(()=>{window.dashboardIdentity=document.getElementById('app');});
   await page.screenshot({path:path.join(output,'desktop-dashboard-local.png')});
   // Verify the local reading animation, with the real native state event.
   assert.equal(await page.evaluate(async()=>{

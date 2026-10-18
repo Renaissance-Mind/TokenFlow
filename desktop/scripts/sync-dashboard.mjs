@@ -35,6 +35,8 @@ try {
   replaceOnce(chartUrl[0],'/vendor/'+chartFile);
   replaceOnce('<body>','<body>\n'+await fs.readFile(path.join(desktop,'dashboard/toolbar.html'),'utf8'));
   replaceOnce('async function api(path, options = {}) {','async function api(path, options = {}) {\n      if (window.tokenflow) return window.tokenflow.dashboardRequest(path, options);');
+  replaceOnce('const me = await api(endpoints.me).catch(error => {', 'const me = await api(endpoints.me).catch(error => {\n        if (window.tokenflow) throw error;');
+  replaceOnce('if (!me.authenticated) {', "if (!me.authenticated) {\n        if (window.tokenflow) throw new Error('Unable to load account data. Please try again.');");
   replaceOnce('if (!previewMode && !snapshotMode) await loadApiKeys();','if (!window.tokenflow && !previewMode && !snapshotMode) await loadApiKeys();');
   replaceOnce('function scheduleWidgetPreviewPrefetch() {','function scheduleWidgetPreviewPrefetch() {\n      if (window.tokenflow) return;');
   replaceOnce('const action = previewMode','const action = (previewMode || window.tokenflow)');

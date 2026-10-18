@@ -32,7 +32,7 @@ export function operationProgress(state) {
   if (state.busy) {
     if (state.collectionPhase && state.collectionPhase !== 'scan') return fetching(state, t[state.collectionPhase]);
     const progress = state.scanProgress;
-    if (!progress || progress.stage === 'discovery') return { label: (zh ? '正在查找文件 · 已找到 ' : 'Discovering files · found ') + (progress?.discoveredFiles || 0), shortLabel: (zh ? '已发现 ' : 'Found ') + (progress?.discoveredFiles || 0) + (zh ? ' 个文件' : ' files'), percent:0 };
+    if (!progress || progress.stage === 'discovery') return { label: (zh ? '正在查找文件 · 已找到 ' : 'Discovering files · found ') + (progress?.discoveredFiles || 0), shortLabel: (zh ? '已发现 ' : 'Found ') + (progress?.discoveredFiles || 0) + (zh ? ' 个文件' : ' files'), percent:null };
     const count = progress.processedFiles + '/' + progress.totalFiles;
     const phase = progress.stage === 'processing' ? (zh ? '汇总' : 'Summarizing') : (zh ? '读取' : 'Reading');
     return { label:phase + ' · ' + count + (zh ? ' 文件' : ' files') + ' · ' + bytes(progress.readBytes), shortLabel:phase + ' · ' + count + (zh ? ' 文件' : ' files'), percent:progress.percent };

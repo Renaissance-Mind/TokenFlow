@@ -6,7 +6,7 @@ test('local reading exposes measured file counts and percentage, including disco
   assert.equal(operationProgress(state),null);
   const scan=operationProgress({...state,busy:'scan',scanProgress:{stage:'reading',processedFiles:12,totalFiles:40,readBytes:1048576,percent:31.5}});
   assert.match(scan.label,/12\/40 files/);assert.match(scan.label,/1.0 MB/);assert.equal(scan.percent,31.5);
-  assert.equal(operationProgress({...state,busy:'scan',scanProgress:{stage:'discovery',discoveredFiles:26}}).percent,0);
+  assert.equal(operationProgress({...state,busy:'scan',scanProgress:{stage:'discovery',discoveredFiles:26}}).percent,null);
   assert.match(operationProgress({...state,busy:'scan',scanProgress:{stage:'processing',processedFiles:40,totalFiles:40,readBytes:1048576,percent:100}}).label,/Summarizing/);
 });
 test('fetching reports actual requests and received bytes; download uses updater measurement',()=>{

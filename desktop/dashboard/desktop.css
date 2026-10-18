@@ -15,3 +15,46 @@ body{--desktop-top:var(--desktop-toolbar-height)}
 @media(max-width:1100px){.has-operation-progress #desktopDataSource{display:none}.desktop-actions{gap:16px}.desktop-heading{gap:12px}}
 @media(max-width:960px){.tbti-sidebar{top:auto;height:auto}.filters{top:auto}}
 @media(max-width:850px){.desktop-actions{gap:12px}}
+/* Startup has no data yet. Keep the layout measurable for charts, but never
+   present its placeholder zeroes as a completed collection. */
+body:not(.mini-dashboard):has(#desktopLoading:not([hidden])) > main{visibility:hidden;pointer-events:none}
+.desktop-loading{position:fixed;inset:var(--desktop-toolbar-height) 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;text-align:center;background:var(--bg);z-index:105}
+.desktop-loading[hidden],.desktop-spinner[hidden],.mini-dashboard #desktopLoading{display:none}
+.desktop-spinner{display:inline-block;width:32px;height:32px;border:3px solid var(--line);border-top-color:#3d79f3;border-radius:50%;animation:desktop-spin .85s linear infinite;flex:none}
+.desktop-loading h1{font-size:17px;font-weight:550;margin:8px 0 0;color:var(--text)}
+.desktop-loading p{font-size:13px;color:var(--muted);max-width:420px;line-height:1.6;margin:0;overflow-wrap:anywhere}
+.desktop-loading button{margin-top:8px}
+.desktop-actions{gap:8px}
+.desktop-toolbar .desktop-icon-button{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:7px;border-radius:8px;transition:background .15s,color .15s}
+.desktop-toolbar .desktop-icon-button[hidden]{display:none}
+.desktop-icon-button svg{width:20px;height:20px}
+.desktop-toolbar .desktop-icon-button:hover:not(:disabled){background:var(--accent-soft);color:var(--accent-ink)}
+.desktop-toolbar .desktop-icon-button:focus-visible,.desktop-login-dialog button:focus-visible{outline:2px solid #3d79f3;outline-offset:3px}
+.desktop-login-dialog{box-sizing:border-box;width:420px;max-width:calc(100vw - 40px);max-height:calc(100dvh - 40px);padding:36px 40px 28px;border:1px solid var(--line);border-radius:20px;background:var(--surface-raised);color:var(--text);box-shadow:0 24px 90px #101b3030;text-align:center;font:14px var(--font);overflow:auto}
+.desktop-login-dialog::backdrop{background:rgba(19,29,45,.43);backdrop-filter:blur(3px)}
+.desktop-login-dialog button{cursor:pointer;font:inherit;color:inherit}
+.desktop-login-dialog .login-close{position:absolute;right:16px;top:16px;display:grid;place-items:center;width:30px;height:30px;padding:5px;background:transparent;border:0;border-radius:8px;color:var(--muted)}
+.login-close svg{width:20px;height:20px}
+.desktop-login-dialog .login-close:hover{background:var(--bg);color:var(--text)}
+.login-brand{width:64px;height:64px;margin:0 auto 14px;color:#3d79f3}
+.login-brand svg{width:100%;height:100%}
+.desktop-login-dialog h1{font-size:24px;line-height:1.25;letter-spacing:-.035em;font-weight:650;margin:0 0 10px}
+#desktopLoginDescription{color:var(--muted);line-height:1.5;margin:0}
+.login-choose{color:var(--muted);font-size:12px;margin:32px 0 16px}
+.login-providers{display:flex;justify-content:center;gap:16px}
+.login-providers button{display:grid;place-items:center;width:72px;height:72px;background:var(--surface-raised);border:1px solid var(--line-strong);border-radius:16px;transition:border-color .15s,background .15s,transform .15s}
+.login-providers svg{width:30px;height:30px}
+.login-providers button:hover:not(:disabled){border-color:#3d79f3;background:var(--bg);transform:translateY(-2px)}
+.login-providers button:disabled{opacity:.45;cursor:wait}
+.login-browser-note{border-top:1px solid var(--line);margin:32px 0 24px;padding-top:24px;display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--muted);font-size:12px;line-height:1.5}
+.login-browser-note svg{width:24px;height:24px}
+.desktop-login-dialog .login-local{background:none;border:0;color:#3d79f3;padding:8px 12px;border-radius:8px;font-size:13px}
+.desktop-login-dialog .login-local:hover{background:var(--bg)}
+.login-pending{margin-top:24px;color:var(--muted);font-size:13px;line-height:1.6}
+.login-pending .desktop-spinner{width:20px;height:20px;border-width:2px}
+.login-pending p{margin:8px 0}
+.login-pending strong{display:inline-block;font:600 20px var(--mono);letter-spacing:.15em;color:var(--text)}
+.login-pending [hidden],.login-pending[hidden],.login-error[hidden]{display:none}
+.login-error{color:var(--bad,#c53939);font-size:13px;line-height:1.6;overflow-wrap:anywhere;margin:20px 0 0}
+@keyframes desktop-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.desktop-spinner{animation-duration:2.5s}.login-providers button,.desktop-toolbar .desktop-icon-button{transition:none}.login-providers button:hover:not(:disabled){transform:none}}

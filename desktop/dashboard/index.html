@@ -1065,13 +1065,34 @@
 <link rel="stylesheet" href="/desktop.css"><link rel="stylesheet" href="/progress.css"><link rel="stylesheet" href="/window-chrome.css"><link rel="stylesheet" href="/tray.css"></head>
 <body>
 <header class="desktop-toolbar window-toolbar">
-  <div class="desktop-heading"><strong>Dashboard</strong><span id="desktopDataSource"></span></div>
+  <div class="desktop-heading"><strong>Dashboard</strong><span id="desktopDataSource" hidden></span><button id="desktopSignIn" class="desktop-icon-button" type="button" title="Sign in" aria-label="Sign in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h5v16h-5M3 12h12m-4-4 4 4-4 4"/></svg></button></div>
   <div class="desktop-status">
     <span id="desktopActivity" role="status" hidden></span>
     <section class="operation-progress compact-progress" id="operationProgress" hidden aria-live="polite"><span id="progressLabel"></span><div class="progress-track" id="progressTrack" role="progressbar" aria-valuemin="0" aria-valuemax="100"><span class="progress-fill" id="progressFill"></span></div><span id="progressPercent"></span></section>
   </div>
-  <nav class="desktop-actions" aria-label="Dashboard actions"><button id="desktopRefresh" type="button">Refresh</button><button id="desktopSync" type="button">Sync</button><button id="desktopSettings" type="button">Settings</button></nav>
+  <nav class="desktop-actions" aria-label="Dashboard actions"><button id="desktopRefresh" class="desktop-icon-button" type="button" title="Refresh" aria-label="Refresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6.1 6.1A8 8 0 0 1 20 12M4 12a8 8 0 0 0 13.9 5.9"/></svg></button><button id="desktopSync" class="desktop-icon-button" type="button" title="Sync" aria-label="Sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 17a4 4 0 0 1-1-7.9A7 7 0 0 1 18.5 8 4.5 4.5 0 0 1 19 17M12 12v9m-3-3 3 3 3-3"/></svg></button><button id="desktopSettings" class="desktop-icon-button" type="button" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 3-.6 2.2-2 .9-2-.6-2.5 4.3L4 11.4v2.2L2.4 15.2l2.5 4.3 2-.6 2 .9.6 2.2h5l.6-2.2 2-.9 2 .6 2.5-4.3-1.6-1.6v-2.2l1.6-1.6-2.5-4.3-2 .6-2-.9L14.5 3z" transform="translate(0 -1) scale(1 .96)"/><circle cx="12" cy="12" r="3"/></svg></button></nav>
 </header>
+<section id="desktopLoading" class="desktop-loading" role="status" aria-live="polite">
+  <span id="desktopLoadingSpinner" class="desktop-spinner" aria-hidden="true"></span>
+  <h1 id="desktopLoadingTitle">Preparing statistics…</h1>
+  <p id="desktopLoadingHint">Your statistics will appear as soon as reading finishes.</p>
+  <button id="desktopRetry" type="button" hidden>Retry</button>
+</section>
+<dialog id="desktopLoginDialog" class="desktop-login-dialog" aria-labelledby="desktopLoginTitle" aria-describedby="desktopLoginDescription">
+  <button id="desktopLoginClose" class="login-close" type="button" aria-label="Close" title="Close" autofocus><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+  <div class="login-brand"><svg viewBox="0 0 64 64" fill="none" aria-hidden="true"><path d="M32 17a15 15 0 1 0 15 15" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><path d="M32 25a7 7 0 1 0 7 7" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><circle cx="47" cy="17" r="4" fill="currentColor"/></svg></div>
+  <h1 id="desktopLoginTitle">Sign in to TokenFlow</h1>
+  <p id="desktopLoginDescription">Your usage, across every device.</p>
+  <p id="desktopLoginChoose" class="login-choose">Continue with</p>
+  <div class="login-providers">
+    <button id="desktopLoginGithub" type="button" aria-label="Sign in with GitHub" title="Sign in with GitHub"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .75a11.25 11.25 0 0 0-3.558 21.923c.563.104.769-.244.769-.542 0-.267-.01-.974-.015-1.913-3.13.68-3.791-1.508-3.791-1.508-.512-1.3-1.25-1.646-1.25-1.646-1.023-.699.077-.685.077-.685 1.13.08 1.725 1.16 1.725 1.16 1.006 1.724 2.64 1.226 3.283.937.102-.729.394-1.226.716-1.508-2.498-.284-5.124-1.25-5.124-5.563 0-1.23.44-2.234 1.16-3.022-.116-.284-.503-1.43.11-2.98 0 0 .945-.303 3.094 1.154A10.79 10.79 0 0 1 12 6.188c.956.005 1.918.129 2.816.379 2.148-1.457 3.09-1.154 3.09-1.154.615 1.55.228 2.696.112 2.98.723.788 1.159 1.793 1.159 3.022 0 4.325-2.63 5.276-5.136 5.554.404.35.766 1.043.766 2.1 0 1.515-.014 2.737-.014 3.11 0 .3.203.65.774.54A11.252 11.252 0 0 0 12 .75Z"/></svg></button>
+    <button id="desktopLoginGoogle" type="button" aria-label="Sign in with Google" title="Sign in with Google"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-1.99 3.02v2.51h3.23c1.89-1.74 2.98-4.3 2.98-7.36Z"/><path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.41l-3.23-2.51c-.89.6-2.03.96-3.39.96-2.6 0-4.8-1.76-5.59-4.12H3.07v2.59A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.41 13.92a6 6 0 0 1 0-3.84V7.49H3.07a10 10 0 0 0 0 9.02l3.34-2.59Z"/><path fill="#EA4335" d="M12 5.96c1.47 0 2.79.5 3.83 1.5l2.87-2.87A9.61 9.61 0 0 0 12 2a10 10 0 0 0-8.93 5.49l3.34 2.59C7.2 7.72 9.4 5.96 12 5.96Z"/></svg></button>
+  </div>
+  <div id="desktopLoginPending" class="login-pending" role="status" hidden><span class="desktop-spinner" aria-hidden="true"></span><p id="desktopLoginWaiting"></p><strong id="desktopLoginCode" hidden></strong></div>
+  <p id="desktopLoginError" class="login-error" role="alert" hidden></p>
+  <p class="login-browser-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18M7 6.5h.01M10 6.5h.01"/></svg><span id="desktopLoginBrowser">Secure sign-in opens in your browser.</span></p>
+  <button id="desktopLoginLocal" class="login-local" type="button">Continue locally</button>
+</dialog>
 
   <main>
     <div id="previewNotice" class="notice info hidden"></div>
@@ -4147,10 +4168,12 @@
     async function boot() {
       applyPreviewMode();
       const me = await api(endpoints.me).catch(error => {
+        if (window.tokenflow) throw error;
         if (previewMode) showPreviewNotice(t('state.previewUnavailable', { message: error.message }));
         return { authenticated: false };
       });
       if (!me.authenticated) {
+        if (window.tokenflow) throw new Error('Unable to load account data. Please try again.');
         if (!previewMode) document.getElementById('login').classList.remove('hidden');
         return;
       }
