@@ -1,7 +1,32 @@
 import { describe, expect, it } from "vitest";
 import { parseClaudeJsonl } from "../src/sources/claude.js";
+import { aggregateEvents } from "../src/usage-buckets.js";
+import { toUsageSnapshotPayload } from "../src/ingest-payload.js";
 
 describe("Claude Code parser", () => {
+  it("keeps a native cost-only record for an unknown model", () => {
+    const events = parseClaudeJsonl(JSON.stringify({ timestamp: "2026-09-15T12:00:00Z", costUSD: 0.5,
+      message: { model: "private-model", usage: { input_tokens: 0, output_tokens: 0 } } }), { sourcePath: "/fixture/claude.jsonl" });
+    expect(events).toHaveLength(1);
+    expect(aggregateEvents(events)[0]).toMatchObject({ totalTokens: 0, pricingStatus: "priced", cost: { totalUsd: "0.500000" } });
+  });
+  it("retains upstream costUSD and prices only the unrecorded token subset", () => {
+    // ccusage ea28984 claude_cli.rs auto_mode_breakdowns_report_the_stored_part_of_cost.
+    const rows = [
+      { timestamp: "2026-09-15T12:00:00Z", sessionId: "session-a", requestId: "request-a", message: { id: "message-a", model: "claude-sonnet-4-20250514", usage: { input_tokens: 1000, output_tokens: 100 } } },
+      { timestamp: "2026-09-15T12:01:00Z", sessionId: "session-a", requestId: "request-b", costUSD: 0.5, message: { id: "message-b", model: "claude-sonnet-4-20250514", usage: { input_tokens: 500, output_tokens: 10 } } },
+    ];
+    const events = parseClaudeJsonl(rows.map(row => JSON.stringify(row)).join("\n"), { sourcePath: "/fixture/claude.jsonl" });
+    expect(events[1].recordedCostUsd).toBe("0.5");
+    const payload = toUsageSnapshotPayload(aggregateEvents(events));
+    expect(payload.daily[0].total_cost_usd).toBe("0.504500");
+    expect(payload.daily[0].slots[0]).toMatchObject({ recorded_cost_usd: "0.500000", recorded_usage: { input_tokens: 500, output_tokens: 10 } });
+  });
+  it.each([0, 0.5, -1, null, false, "0.5"])("validates recorded Claude cost %s without losing token usage", costUSD => {
+    const events = parseClaudeJsonl(JSON.stringify({ timestamp: "2026-09-15T12:00:00Z", costUSD, message: { model: "private-model", usage: { input_tokens: 10, output_tokens: 1 } } }), { sourcePath: "/fixture/claude.jsonl" });
+    expect(events[0].recordedCostUsd).toBe(typeof costUSD === "number" && costUSD >= 0 ? String(costUSD) : undefined);
+    expect(events[0].totalTokens).toBe(11);
+  });
   it("deduplicates repeated assistant usage rows by upstream message id", () => {
     const repeated = {
       timestamp: "2026-06-09T02:12:00.000Z",
