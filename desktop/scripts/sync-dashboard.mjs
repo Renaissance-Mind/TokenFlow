@@ -53,10 +53,11 @@ try {
   html=html.replace('</body>','<script type="module" src="/desktop.js"></script></body>');
   const destination=path.join(desktop,'dashboard');await fs.mkdir(destination,{recursive:true});
   await fs.writeFile(path.join(destination,'index.html'),html);
-  for(const name of ['personas','identity-share']) {
+  for(const name of ['personas','identity-share','brand']) {
     await fs.rm(path.join(destination,name),{recursive:true,force:true});
     await fs.cp(path.join(server,'public',name),path.join(destination,name),{recursive:true});
   }
+  for(const name of ['favicon.svg','favicon.ico','apple-touch-icon.png']) await fs.copyFile(path.join(server,'public',name),path.join(destination,name));
   const vendor=path.join(destination,'vendor');
   await fs.rm(vendor,{recursive:true,force:true});await fs.mkdir(vendor,{recursive:true});
   await fs.writeFile(path.join(vendor,chartFile),chart);

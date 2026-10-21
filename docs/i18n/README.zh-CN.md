@@ -1,3 +1,5 @@
+<p align="center"><img src="../assets/tokenflow.svg" alt="TokenFlow" width="112" height="112"></p>
+
 [![TokenFlow teaser](../assets/teaser_zh.png)](https://tokenflow.renaissancemind.ai/)
 
 [TokenFlow Desktop](../../desktop/README.md) 提供 Dashboard、设置和菜单栏／系统托盘，与终端使用同一份 CLI。已有安装和登录会直接复用；没有 CLI 时自动安装独立 CLI。未登录也能查看本地统计，设置中支持 GitHub／Google 登录和 API token。安装包的构建与发布说明见桌面版文档。

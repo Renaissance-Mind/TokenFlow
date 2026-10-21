@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import sharp from 'sharp';
+import './prepare-brand.mjs';
 
 const desktop = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const root = path.resolve(desktop, '..');
@@ -32,12 +32,4 @@ for (const name of Object.keys(pkg.dependencies)) await copyDependency(name);
 await fs.cp(path.join(root, 'THIRD_PARTY_NOTICES.md'), path.join(collector, 'THIRD_PARTY_NOTICES.md'));
 await fs.copyFile(path.join(root, 'LICENSE'), path.join(collector, 'LICENSE'));
 await fs.copyFile(path.join(root, 'LICENSE'), path.join(desktop, 'LICENSE'));
-const assets = path.join(desktop, 'assets');
-await fs.mkdir(assets, { recursive: true });
-const symbol = `<path d="M32 17a15 15 0 1 0 15 15" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><path d="M32 25a7 7 0 1 0 7 7" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><circle cx="47" cy="17" r="4" fill="currentColor"/>`;
-const svg = (size, color, background = '') => `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 64 64" color="${color}">${background}${symbol}</svg>`;
-await sharp(Buffer.from(svg(1024, '#8bd8cd', '<rect width="64" height="64" rx="14" fill="#0b0e15"/>'))).png().toFile(path.join(assets, 'icon.png'));
-await sharp(Buffer.from(svg(32, '#8bd8cd'))).png().toFile(path.join(assets, 'tray.png'));
-await sharp(Buffer.from(svg(22, '#000000'))).png().toFile(path.join(assets, 'trayTemplate.png'));
-await sharp(Buffer.from(svg(44, '#000000'))).png().toFile(path.join(assets, 'trayTemplate@2x.png'));
 console.log(`Bundled collector ${pkg.version} with ${copied.size} runtime dependencies.`);

@@ -1,3 +1,5 @@
+<p align="center"><img src="../assets/tokenflow.svg" alt="TokenFlow" width="112" height="112"></p>
+
 [![TokenFlow teaser](../assets/teaser_en.png)](https://tokenflow.renaissancemind.ai/)
 
 **Idioma:** [English](../../README.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | Español | [Türkçe](README.tr.md) | [Русский](README.ru.md)

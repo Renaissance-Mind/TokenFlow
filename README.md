@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/assets/tokenflow.svg" alt="TokenFlow" width="112" height="112"></p>
+
 [![TokenFlow teaser](docs/assets/teaser_en.png)](https://tokenflow.renaissancemind.ai/)
 
 ```bash

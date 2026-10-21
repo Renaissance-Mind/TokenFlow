@@ -1,3 +1,5 @@
+<p align="center"><img src="../docs/assets/tokenflow.svg" alt="TokenFlow" width="112" height="112"></p>
+
 # TokenFlow Desktop
 
 TokenFlow Desktop is a Dashboard, Settings page, and menu bar/system tray popup backed by the same CLI used in the terminal.
@@ -69,6 +71,8 @@ The canonical page snapshot is refreshed explicitly from the server checkout:
 ```sh
 node desktop/scripts/sync-dashboard.mjs /absolute/path/TokenFlow_Server
 ```
+
+The approved logo lives in `docs/assets/tokenflow.svg`. Desktop builds derive the application icon, transparent color tray icon and monochrome macOS template icons from that SVG. To refresh the web logo, SVG/ICO favicons and Apple touch icon in a server checkout, run `node desktop/scripts/prepare-brand.mjs /absolute/path/TokenFlow_Server/public` from the repository root. Keep the server's committed assets and the offline Dashboard snapshot in sync after changing the logo.
 
 The snapshot includes the web Dashboard's ECharts version, Inter fonts, animal personas, and identity poster exporter. Refreshing it checks the CLI adapter integration points and fails if the web page has changed them. Normal builds use these checked-in offline assets; the server checkout is not required to run or package App.
 

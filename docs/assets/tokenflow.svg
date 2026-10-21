@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1254" height="1254" viewBox="0 0 1254 1254" role="img" aria-labelledby="title desc">
+  <title id="title">TokenFlow</title>
+  <desc id="desc">Three flowing folded petals in Gemini-inspired blue, Claude-inspired orange and GPT-inspired green on white. All petals share identical geometry, rotated 120 degrees around the center.</desc>
+  <defs>
+    <linearGradient id="blue" x1="468" y1="602" x2="971" y2="1030" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#78b7ff"/>
+      <stop offset="0.47" stop-color="#5684d1"/>
+      <stop offset="1" stop-color="#3978e2"/>
+    </linearGradient>
+    <linearGradient id="orange" x1="468" y1="602" x2="971" y2="1030" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f8a17a"/>
+      <stop offset="0.47" stop-color="#e48a64"/>
+      <stop offset="1" stop-color="#d97757"/>
+    </linearGradient>
+    <linearGradient id="green" x1="468" y1="602" x2="971" y2="1030" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#47d6b1"/>
+      <stop offset="0.53" stop-color="#10a37f"/>
+      <stop offset="1" stop-color="#06b496"/>
+    </linearGradient>
+    <linearGradient id="fold" x1="579" y1="615" x2="769" y2="893" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#082b36" stop-opacity="0.02"/>
+      <stop offset="0.5" stop-color="#082b36" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#082b36" stop-opacity="0.2"/>
+    </linearGradient>
+    <linearGradient id="turn" x1="978" y1="735" x2="803" y2="937" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffffff" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.03"/>
+    </linearGradient>
+    <g id="petal" transform="translate(43.8 48) scale(0.94)">
+      <path d="M552 548C489 611 509 701 588 750C710 830 877 766 1038 699C1061 690 1051 754 1033 820C981 939 859 1014 717 1011C559 1016 426 921 409 793C392 686 447 585 552 548Z"/>
+      <path fill="url(#fold)" d="M552 548C489 611 509 701 588 750C710 830 877 766 1038 699C976 773 895 913 787 913C680 921 587 873 535 799C483 727 496 614 552 548Z"/>
+      <path fill="url(#turn)" d="M1038 699C1061 690 1051 754 1033 820C970 916 881 947 787 913C895 913 976 773 1038 699Z"/>
+    </g>
+  </defs>
+  <rect id="background" width="1254" height="1254" fill="#ffffff"/>
+  <g id="flow-mark">
+    <use id="petal-blue" href="#petal" fill="url(#blue)" transform="rotate(240 627 627)"/>
+    <use id="petal-orange" href="#petal" fill="url(#orange)" transform="rotate(120 627 627)"/>
+    <use id="petal-green" href="#petal" fill="url(#green)"/>
+  </g>
+</svg>

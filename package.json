@@ -32,6 +32,7 @@
     "THIRD_PARTY_NOTICES.md",
     "docs/assets/teaser_en.png",
     "docs/assets/teaser_zh.png",
+    "docs/assets/tokenflow.svg",
     "docs/i18n"
   ],
   "publishConfig": {

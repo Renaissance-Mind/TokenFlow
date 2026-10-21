@@ -176,7 +176,7 @@ async function openDashboard(): Promise<void> {
   popup?.hide();
   if (!dashboardWindow || dashboardWindow.isDestroyed()) {
     dashboardWindow = new BrowserWindow({ width: 1440, height: 960, minWidth: 800, minHeight: 640,
-      title: "TokenFlow Dashboard", titleBarStyle: "hidden",
+      title: "TokenFlow Dashboard", titleBarStyle: "hidden", icon: path.join(here, "../assets/icon.png"),
       ...(process.platform === "darwin" ? { trafficLightPosition: { x: 18, y: 21 } } : { titleBarOverlay: { height: 56, color: "#00000000", symbolColor: "#808080" } }),
       backgroundColor: "#ffffff", show: false, autoHideMenuBar: true, webPreferences: localPreferences() });
     protectLocalContents(dashboardWindow.webContents);
@@ -594,6 +594,7 @@ app.on("activate", () => { if (ready && !openingPopup && !popup?.isVisible()) vo
 app.on("second-instance", () => { if (ready) void showDashboard(); });
 
 async function initialize(): Promise<void> {
+  if (process.platform === "darwin") app.dock?.setIcon(path.join(here, "../assets/icon.png"));
   protocol.handle("tokenflow", (request) => {
     const url = new URL(request.url);
     const root = path.resolve(here, "../dashboard"), file = path.resolve(root, "." + decodeURIComponent(url.pathname));
