@@ -1,6 +1,7 @@
 import { normalizeAgentModelForUsage, type UsageModelNormalization } from "../pricing.js";
 import { toUtcHalfHourStart } from "../time.js";
 import type { UsageEvent, UsageTotals } from "../types.js";
+import { optionalDecimalString } from "./ccusage-common.js";
 
 interface ParseOptions {
   sourcePath: string;
@@ -50,12 +51,13 @@ export function createClaudeJsonlParser(options: ParseOptions, saved?: unknown):
       const sessionId = stringField(row, "sessionId") || stringField(row, "session_id");
       const dedupeId = messageId || requestId ? JSON.stringify([
         messageId, requestId,
-        ...(requestId ? [] : [sessionId || options.sourcePath, ...(messageId?.startsWith("msg_") ? [] : [timestamp])]),
+        ...(requestId ? [] : [sessionId || options.sourcePath, ...(/^(msg_|resp_)/.test(messageId || "") ? [] : [timestamp])]),
       ]) : null;
       if (dedupeId && seen.has(dedupeId)) return;
 
       const totals = normalizeClaudeUsage(usage);
-      if (isZero(totals)) return;
+      const recordedCostUsd = typeof row.costUSD === "number" ? optionalDecimalString(row.costUSD) : undefined;
+      if (isZero(totals) && !(Number(recordedCostUsd) > 0)) return;
 
       if (dedupeId) seen.add(dedupeId);
       const speed = speedField(usage, "speed");
@@ -75,6 +77,7 @@ export function createClaudeJsonlParser(options: ParseOptions, saved?: unknown):
         timestamp,
         bucketStart,
         ...totals,
+        ...(recordedCostUsd !== undefined ? { recordedCostUsd } : {}),
       });
     },
 

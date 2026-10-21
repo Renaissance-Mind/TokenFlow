@@ -50,23 +50,29 @@ const jsonl = (...rows: object[]) =>
   rows.map((row) => JSON.stringify(row)).join("\n");
 
 describe("local harness compatibility", () => {
-  it.each([undefined, "model_placeholder_m417", "Gemini 4 Argon"])("attributes Antigravity Argon from numeric ID and label %s", async (label) => {
+  it.each([
+    [1417, undefined, "gemini-4-argon"],
+    [1418, "model_placeholder_m418", "gemini-4-argon"],
+    [1419, "Gemini 4 Argon", "gemini-4-argon"],
+    [1050, "model_placeholder_m50", "gemini-3.1-flash-lite"],
+    [1050, "Gemini 3.1 Flash Lite", "gemini-3.1-flash-lite"],
+  ] as const)("attributes Antigravity model %s from native metadata", async (modelId, label, model) => {
     // Native model ID and labels from ccusage c2db695 Antigravity parser cases.
     const home = await root();
     const dir = path.join(home, ".gemini/antigravity/conversations");
     await fs.mkdir(dir, { recursive: true });
-    const usage = proto([1, 1417], [2, 100], [3, 20], [11, "argon-response"]);
-    const fields: Array<[number, number | string | Buffer]> = [[3, 1417], [4, usage], [9, proto([4, proto([1, 1792224000])])]];
+    const usage = proto([1, modelId], [2, 100], [3, 20], [11, "argon-response"]);
+    const fields: Array<[number, number | string | Buffer]> = [[3, modelId], [4, usage], [9, proto([4, proto([1, 1792224000])])]];
     if (label) fields.push([19, label]);
     const generation = proto([1, proto(...fields)]);
-    expect(parseAntigravityMetadata(generation.toString("hex"), false).model).toBe("gemini-4-argon");
-    const step = proto([8, proto([1, 1792224000])], [9, usage], [24, proto([1, 1417], ...(label ? [[12, label] as [number, string]] : []))]);
-    expect(parseAntigravityMetadata(step.toString("hex"), true).model).toBe("gemini-4-argon");
+    expect(parseAntigravityMetadata(generation.toString("hex"), false).model).toBe(model);
+    const step = proto([8, proto([1, 1792224000])], [9, usage], [24, proto([1, modelId], ...(label ? [[12, label] as [number, string]] : []))]);
+    expect(parseAntigravityMetadata(step.toString("hex"), true).model).toBe(model);
     sqlite(path.join(dir, "session.db"), `CREATE TABLE gen_metadata(idx INTEGER PRIMARY KEY,data BLOB); INSERT INTO gen_metadata VALUES(1,X'${generation.toString("hex")}');`);
     delete process.env.ANTIGRAVITY_DATA_DIR;
     const { events } = await collectAntigravity(home);
     expect(events).toHaveLength(1);
-    expect(events[0]).toMatchObject({ model: "gemini-4-argon", inputTokens: 100, outputTokens: 20, totalTokens: 120 });
+    expect(events[0]).toMatchObject({ model, inputTokens: 100, outputTokens: 20, totalTokens: 120 });
   });
   it("ignores fresh Antigravity summary databases without a conversations directory", async () => {
     const home = await root();
