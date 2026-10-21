@@ -35,6 +35,8 @@ let openingPopup = false;
 let popupAnchor: { bounds: Rectangle; displayId: number } | null = null;
 let popupHeight = 640;
 let tray: Tray;
+let trayIcon: Electron.NativeImage;
+let trayIconVisible = true;
 let cli: CliClient;
 let installation: CliInstallation | null = null;
 let dataHome = "";
@@ -60,7 +62,7 @@ const runtime = app.isPackaged ? path.join(realpathSync.native(process.resources
 const standaloneNode = () => process.env.TOKENFLOW_NODE_PATH || (app.isPackaged ? path.join(realpathSync.native(process.resourcesPath), `node-${process.arch}`, process.platform === "win32" ? "node.exe" : "node") : "");
 const defaultSettings: Settings = {
   serverUrl: process.env.TOKENFLOW_SERVER_URL || "https://tokenflow.renaissancemind.ai", deviceName: os.hostname(), launchAtLogin: true,
-  paused: false, trayMetric: "cost", trayRange: 7, trayTheme: "system", trayWidgets: ["overview", "trend", "models"], language: app.getLocale().startsWith("zh") ? "zh" : "en",
+  paused: false, showTrayIcon: true, trayMetric: "cost", trayRange: 7, trayTheme: "system", trayWidgets: ["overview", "trend", "models"], language: app.getLocale().startsWith("zh") ? "zh" : "en",
 };
 const state: DesktopState = {
   version: app.getVersion(), windowChrome: { platform: process.platform, fullScreen: false }, collectorVersion: "", cli: { source: "managed", version: "", path: "", compatible: true, updateStatus: "idle" }, dashboardSource: "local", dashboardRevision: 0, settings: { ...defaultSettings },
@@ -91,7 +93,15 @@ function emit(): void {
   const tokens = currentDay && today ? compactTokens(today.tokens) : "—";
   const cost = currentDay && today ? `$${today.costUsd.toFixed(2)}` : "—";
   const text = state.settings.trayMetric === "tokens" ? tokens : cost;
-  if (process.platform === "darwin") tray.setTitle(state.settings.trayMetric === "icon" ? "" : text, { fontType: "monospacedDigit" });
+  if (process.platform === "darwin") {
+    // Icon-only mode must always leave a visible, clickable menu bar item.
+    const showIcon = state.settings.showTrayIcon || state.settings.trayMetric === "icon";
+    if (showIcon !== trayIconVisible) {
+      tray.setImage(showIcon ? trayIcon : nativeImage.createEmpty());
+      trayIconVisible = showIcon;
+    }
+    tray.setTitle(state.settings.trayMetric === "icon" ? "" : text, { fontType: "monospacedDigit" });
+  }
   tray.setToolTip(`TokenFlow · ${cost} · ${tokens} tokens${state.settings.paused ? " · paused" : ""}${state.error ? `\n${state.error}` : ""}`);
   const panel = Menu.getApplicationMenu()?.getMenuItemById("status-panel");
   if (panel) panel.label = `Status panel${process.platform === "darwin" && tray.getTitle() ? ` · ${tray.getTitle()}` : ""}`;
@@ -492,7 +502,7 @@ async function saveSettings(value: unknown): Promise<void> {
     next.deviceName = String(patch.deviceName).trim();
     if (!next.deviceName || next.deviceName.length > 120) throw new Error("Device name must be 1–120 characters");
   }
-  for (const key of ["launchAtLogin", "paused"] as const) {
+  for (const key of ["launchAtLogin", "paused", "showTrayIcon"] as const) {
     if (patch[key] !== undefined) { if (typeof patch[key] !== "boolean") throw new Error("Invalid setting"); next[key] = patch[key]!; }
   }
   if (patch.trayMetric !== undefined) { if (!["cost", "tokens", "icon"].includes(patch.trayMetric)) throw new Error("Invalid menu bar metric"); next.trayMetric = patch.trayMetric; }
@@ -643,6 +653,7 @@ async function initialize(): Promise<void> {
   const icon = nativeImage.createFromPath(path.join(here, "../assets", process.platform === "darwin" ? "trayTemplate.png" : "tray.png"));
   if (icon.isEmpty()) throw new Error("Tray icon is missing");
   if (process.platform === "darwin") icon.setTemplateImage(true);
+  trayIcon = icon;
   tray = new Tray(icon);
   tray.on("click", trayClickHandler(() => screen.getCursorScreenPoint(), togglePopup));
   tray.on("right-click", () => tray.popUpContextMenu(Menu.buildFromTemplate([

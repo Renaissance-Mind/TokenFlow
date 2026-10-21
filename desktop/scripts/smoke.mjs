@@ -20,8 +20,10 @@ const bootstrap=path.join(temp,'tray-test.cjs');
 if(positionTest) await fs.writeFile(bootstrap,`const {Tray}=require('electron');
 const on=Tray.prototype.on;
 Tray.prototype.on=function(event,...listeners){if(event==='click')globalThis.trayPositionTest=this;return on.call(this,event,...listeners);};
+const setImage=Tray.prototype.setImage;
+Tray.prototype.setImage=function(image){globalThis.trayImageEmpty=image.isEmpty();return setImage.call(this,image);};
 `);
-const instance = await electron.launch({ args:executablePath ? [] : [...(positionTest?['-r',bootstrap]:[]),desktop], ...(executablePath ? {executablePath} : {}),env,timeout:60_000 });
+let instance = await electron.launch({ args:executablePath ? [] : [...(positionTest?['-r',bootstrap]:[]),desktop], ...(executablePath ? {executablePath} : {}),env,timeout:60_000 });
 instance.process().stderr?.on('data',(data)=>process.stderr.write(data));
 try {
   const page = await instance.firstWindow(); await page.waitForURL(/mode=dashboard$/);
@@ -364,6 +366,34 @@ try {
   const editorErrors=[];settings.on('pageerror',error=>editorErrors.push(error.message));
   await expect(preview.locator('body')).toHaveAttribute('data-editor-ready','true',{timeout:30_000});
   await expect(preview.locator('body')).toHaveAttribute('data-mini-loaded','true',{timeout:30_000});
+  if(positionTest) {
+    await expect(settings.locator('#showTrayIcon')).toBeChecked();
+    await expect(settings.locator('#trayMetric')).toHaveValue('cost');
+    assert.equal(await instance.evaluate(()=>globalThis.trayPositionTest.getTitle()),'$0.00');
+    await settings.locator('#showTrayIcon').uncheck();await settings.locator('#trayMetric').selectOption('tokens');
+    assert.equal((await settings.evaluate(()=>window.tokenflow.getState())).settings.trayMetric,'cost');
+    await settings.locator('#saveTray').click();
+    await expect(settings.locator('#traySavedStatus')).toHaveText('小窗设置已保存。');
+    await expect.poll(()=>instance.evaluate(()=>({title:globalThis.trayPositionTest.getTitle(),empty:globalThis.trayImageEmpty}))).toEqual({title:'0',empty:true});
+    assert.ok((await instance.evaluate(()=>globalThis.trayPositionTest.getBounds())).width>0);
+    const saved=JSON.parse(await fs.readFile(path.join(env.TOKENFLOW_DESKTOP_DATA,'settings.json'),'utf8'));
+    assert.equal(saved.showTrayIcon,false);assert.equal(saved.trayMetric,'tokens');
+    await settings.reload();await settings.locator('[data-section="traySection"]').click();
+    await expect(settings.locator('#showTrayIcon')).not.toBeChecked();await expect(settings.locator('#trayMetric')).toHaveValue('tokens');
+    await settings.locator('#trayMetric').selectOption('icon');
+    await expect(settings.locator('#showTrayIcon')).toBeChecked();await expect(settings.locator('#showTrayIcon')).toBeDisabled();
+    await settings.locator('#saveTray').click();
+    await expect.poll(()=>instance.evaluate(()=>({title:globalThis.trayPositionTest.getTitle(),empty:globalThis.trayImageEmpty}))).toEqual({title:'',empty:false});
+    await settings.locator('#trayMetric').selectOption('cost');await settings.locator('#saveTray').click();
+    await expect.poll(()=>instance.evaluate(()=>globalThis.trayPositionTest.getTitle())).toBe('$0.00');
+    for(const width of [1440,1000,760]) {
+      await settings.setViewportSize({width,height:960});
+      assert.equal(await settings.locator('#menuBarPreferences').evaluate(node=>{const box=node.getBoundingClientRect();return box.right<=innerWidth&&[...node.querySelectorAll('label')].every(label=>{const r=label.getBoundingClientRect();return r.left>=box.left&&r.right<=box.right;});}),true);
+      await settings.screenshot({path:path.join(output,'desktop-menu-bar-'+width+'.png')});
+    }
+    await settings.setViewportSize({width:1440,height:960});
+    console.log('Menu bar display passed: native cost/token titles, real icon hide/restore, visible text-only item, saved settings, reload, icon-only guard and responsive controls.');
+  }
   const previewOrder=()=>preview.locator('#miniWidgets>[data-mini-widget]').evaluateAll(nodes=>nodes.map(node=>node.dataset.miniWidget));
   assert.deepEqual(await previewOrder(),['overview','trend','models']);
   // Add every new canonical widget, persist it, and verify the real popup.
@@ -465,6 +495,18 @@ try {
   try{await settings.evaluate(()=>window.tokenflow.checkUpdate());}catch(error){if(!executablePath)throw error;assert.equal((await settings.evaluate(()=>window.tokenflow.getState())).update.status,'error');}
   await expect.poll(async()=>(await page.evaluate(()=>window.tokenflow.getState())).pendingRequests,{timeout:30_000}).toBe(0);
   assert.deepEqual(errors,[]);
+  if(positionTest) {
+    await page.evaluate(()=>window.tokenflow.saveSettings({showTrayIcon:false,trayMetric:'tokens'}));
+    await instance.close();
+    instance=await electron.launch({args:['-r',bootstrap,desktop],env,timeout:60_000});
+    const restarted=await instance.firstWindow();await restarted.waitForURL(/mode=dashboard$/);
+    await expect.poll(async()=>{const state=await restarted.evaluate(()=>window.tokenflow.getState());return !!state.summary&&!state.busy;}).toBe(true);
+    const restored=await restarted.evaluate(()=>window.tokenflow.getState());
+    assert.equal(restored.settings.showTrayIcon,false);assert.equal(restored.settings.trayMetric,'tokens');
+    assert.equal(await instance.evaluate(()=>globalThis.trayImageEmpty),true);
+    assert.equal(await instance.evaluate(()=>globalThis.trayPositionTest.getTitle()),'0');
+    console.log('Menu bar preferences restored after a real App restart.');
+  }
   console.log('Desktop smoke passed: standalone CLI installation, canonical Dashboard with local data, Settings with token/login, tray, shared configuration, localization, visual widget add/remove/drag/keyboard order/save/reload, and window close.');
 } finally {
   if(process.env.TOKENFLOW_SYSTEM_TEST==='1')await instance.evaluate(({app})=>app.setLoginItemSettings({openAtLogin:false,args:['--background']})).catch(()=>{});

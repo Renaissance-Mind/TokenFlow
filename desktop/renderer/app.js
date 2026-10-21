@@ -84,7 +84,7 @@ function render(state) {
   $('saveToken').disabled = state.loginBusy || !state.cli.compatible;
   $('logout').disabled = state.loginBusy;
   if (!dirty) {
-    for (const key of ['deviceName','serverUrl','trayMetric']) $(key).value = state.settings[key];
+    for (const key of ['deviceName','serverUrl']) $(key).value = state.settings[key];
     for (const key of ['launchAtLogin','paused']) $(key).checked = state.settings[key];
   }
   if(!languageSaving)$('language').value=state.settings.language;
@@ -134,7 +134,7 @@ if (!window.tokenflow) {
   }));
   $('preferences').addEventListener('submit', (event) => {
     event.preventDefault(); run(async () => {
-      await window.tokenflow.saveSettings({deviceName:$('deviceName').value,serverUrl:$('serverUrl').value,trayMetric:$('trayMetric').value,language:$('language').value,launchAtLogin:$('launchAtLogin').checked,paused:$('paused').checked});
+      await window.tokenflow.saveSettings({deviceName:$('deviceName').value,serverUrl:$('serverUrl').value,language:$('language').value,launchAtLogin:$('launchAtLogin').checked,paused:$('paused').checked});
       dirty = false; render(await window.tokenflow.getState()); $('savedStatus').textContent = texts[current.settings.language].saved;
     });
   });

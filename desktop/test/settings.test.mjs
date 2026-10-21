@@ -16,3 +16,10 @@ test('popup preferences preserve a usable, independent layout',()=>{
 test('widget migration keeps the visual order and all catalog widgets',()=>{
   assert.deepEqual(appSettings({trayWidgets:['output','composition','devices','cache','activity','models','trend','overview','output','unknown']}),{trayWidgets:['output','composition','devices','cache','activity','models','trend','overview']});
 });
+
+test('menu bar icon visibility persists independently of the displayed metric',()=>{
+  assert.deepEqual(appSettings({showTrayIcon:false,trayMetric:'tokens'}),{showTrayIcon:false,trayMetric:'tokens'});
+  assert.deepEqual(appSettings({showTrayIcon:true,trayMetric:'cost'}),{showTrayIcon:true,trayMetric:'cost'});
+  assert.deepEqual(appSettings({showTrayIcon:'false',trayMetric:'invalid'}),{});
+  assert.deepEqual(appSettings({trayMetric:'icon'}),{trayMetric:'icon'});
+});

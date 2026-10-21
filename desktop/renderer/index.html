@@ -35,7 +35,6 @@
   <form id="preferences"><div class="setting-grid">
     <label><span data-text="device">Device name</span><input id="deviceName" maxlength="120" required autocomplete="off"></label>
     <label><span data-text="server">Server</span><input id="serverUrl" type="url" required spellcheck="false"></label>
-    <label><span data-text="menuMetric">Menu bar display</span><select id="trayMetric"><option value="cost" data-text="costMetric">Today’s cost</option><option value="tokens" data-text="tokenMetric">Today’s tokens</option><option value="icon" data-text="iconMetric">Icon only</option></select></label>
     <label><span data-text="language">Language</span><select id="language"><option value="en">English</option><option value="zh">简体中文</option></select></label>
   </div><div class="toggle-row">
     <label class="toggle"><span class="toggle-copy"><span data-text="launch">Start at login</span><small data-text="launchHint">Open TokenFlow when you sign in to your computer</small></span><input id="launchAtLogin" type="checkbox" role="switch"></label>
@@ -53,6 +52,10 @@
         <button id="addWidget" type="button" class="editor-outline-button" aria-controls="widgetLibrary" aria-expanded="true"><img src="icons/plus.svg" alt=""><span id="addWidgetText">Add widgets</span></button>
         <button id="saveTray" type="submit" class="editor-primary-button">Done</button>
       </div>
+    </div>
+    <div class="menu-bar-preferences" id="menuBarPreferences">
+      <label class="menu-bar-icon-toggle"><input id="showTrayIcon" type="checkbox" role="switch"><span id="showTrayIconText">Show menu bar icon</span></label>
+      <label class="menu-bar-metric"><span data-text="menuMetric">Menu bar display</span><select id="trayMetric"><option value="cost" data-text="costMetric">Today’s cost</option><option value="tokens" data-text="tokenMetric">Today’s tokens</option><option value="icon" data-text="iconMetric">Icon only</option></select></label>
     </div>
     <div class="widget-workspace library-open" id="widgetWorkspace">
       <div class="widget-canvas" id="widgetCanvas">

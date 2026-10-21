@@ -7,6 +7,7 @@ import { normalizeDesktopServer } from "./auth.js";
 export function appSettings(settings: Partial<Settings>): Partial<Settings> {
   const result: Partial<Settings> = {};
   if (typeof settings.launchAtLogin === "boolean") result.launchAtLogin = settings.launchAtLogin;
+  if (typeof settings.showTrayIcon === "boolean") result.showTrayIcon = settings.showTrayIcon;
   if (settings.trayMetric && ["cost", "tokens", "icon"].includes(settings.trayMetric)) result.trayMetric = settings.trayMetric;
   if (settings.language === "en" || settings.language === "zh") result.language = settings.language;
   if (settings.trayRange && [1, 7, 30].includes(settings.trayRange)) result.trayRange = settings.trayRange;

@@ -2,8 +2,8 @@ import {widgetCatalog,widgetCopy,defaultWidgets} from './widget-catalog.js';
 const $=id=>document.getElementById(id);
 const channel='tokenflow-widget-editor';
 const words={
-  zh:{title:'编辑小窗',subtitle:'拖动组件，排成最顺手的样子。',add:'添加组件',done:'完成',saving:'保存中…',library:'小组件',hint:'点击添加，或拖入左侧',search:'搜索组件…',close:'关闭组件库',reset:'恢复默认',range:'默认时间范围',theme:'外观',count:n=>`${n} 个组件 · 拖动调整顺序`,added:'已添加',addOne:'添加',empty:'没有找到匹配的组件',unsaved:'有未保存的修改',saved:'小窗设置已保存。',failed:'保存失败，请重试。',loading:'正在读取小窗预览…',retry:'重试',required:'至少保留一个组件',restored:'已恢复默认排列，点击完成保存。',preview:'小窗预览',noData:'暂无用量',local:'本机数据',cloud:'同步数据'},
-  en:{title:'Edit popup',subtitle:'Drag widgets into a layout that works for you.',add:'Add widgets',done:'Done',saving:'Saving…',library:'Widgets',hint:'Click to add, or drag into the preview',search:'Search widgets…',close:'Close widget library',reset:'Restore defaults',range:'Default time range',theme:'Appearance',count:n=>`${n} widgets · Drag to reorder`,added:'Added',addOne:'Add',empty:'No matching widgets',unsaved:'Unsaved changes',saved:'Popup saved.',failed:'Could not save. Try again.',loading:'Loading popup preview…',retry:'Retry',required:'Keep at least one widget',restored:'Default layout restored. Click Done to save.',preview:'Popup preview',noData:'No usage yet',local:'This device',cloud:'Synced data'},
+  zh:{showIcon:'显示菜单栏图标',iconOnlyHint:'仅图标模式需要显示图标',title:'编辑小窗',subtitle:'拖动组件，排成最顺手的样子。',add:'添加组件',done:'完成',saving:'保存中…',library:'小组件',hint:'点击添加，或拖入左侧',search:'搜索组件…',close:'关闭组件库',reset:'恢复默认',range:'默认时间范围',theme:'外观',count:n=>`${n} 个组件 · 拖动调整顺序`,added:'已添加',addOne:'添加',empty:'没有找到匹配的组件',unsaved:'有未保存的修改',saved:'小窗设置已保存。',failed:'保存失败，请重试。',loading:'正在读取小窗预览…',retry:'重试',required:'至少保留一个组件',restored:'已恢复默认排列，点击完成保存。',preview:'小窗预览',noData:'暂无用量',local:'本机数据',cloud:'同步数据'},
+  en:{showIcon:'Show menu bar icon',iconOnlyHint:'Icon-only mode requires the icon',title:'Edit popup',subtitle:'Drag widgets into a layout that works for you.',add:'Add widgets',done:'Done',saving:'Saving…',library:'Widgets',hint:'Click to add, or drag into the preview',search:'Search widgets…',close:'Close widget library',reset:'Restore defaults',range:'Default time range',theme:'Appearance',count:n=>`${n} widgets · Drag to reorder`,added:'Added',addOne:'Add',empty:'No matching widgets',unsaved:'Unsaved changes',saved:'Popup saved.',failed:'Could not save. Try again.',loading:'Loading popup preview…',retry:'Retry',required:'Keep at least one widget',restored:'Default layout restored. Click Done to save.',preview:'Popup preview',noData:'No usage yet',local:'This device',cloud:'Synced data'},
 };
 const icon=(name)=>{const img=document.createElement('img');img.src='icons/'+name+'.svg';img.alt='';img.draggable=false;return img;};
 export function createWidgetEditor(){
@@ -79,6 +79,7 @@ export function createWidgetEditor(){
     }
   }
   const t=()=>words[latest?.settings.language]||words.en;
+  const preferences=settings=>({showTrayIcon:settings.showTrayIcon,trayMetric:settings.trayMetric,trayRange:settings.trayRange,trayTheme:settings.trayTheme,trayWidgets:[...settings.trayWidgets]});
   function post(type,value){if(ready)frame.contentWindow.postMessage({channel,type,value},'*');}
   function previewState(){return {...latest,settingsOpen:false,settings:{...latest.settings,...draft}};}
   function changed(){dirty=true;$('traySavedStatus').textContent=t().unsaved;render();post('state',previewState());}
@@ -101,7 +102,13 @@ export function createWidgetEditor(){
     if(!draft)return;
     for(const [id,key] of [['widgetEditorTitle','title'],['widgetEditorSubtitle','subtitle'],['widgetLibraryTitle','library'],['widgetLibraryHint','hint'],['resetWidgetsText','reset'],['addWidgetText','add']])$(id).textContent=t()[key];
     $('saveTray').textContent=t()[saving?'saving':'done'];$('saveTray').disabled=saving;
-    for(const id of ['trayRange','trayTheme','resetWidgets'])$(id).disabled=saving;
+    for(const id of ['trayMetric','trayRange','trayTheme','resetWidgets'])$(id).disabled=saving;
+    $('menuBarPreferences').hidden=latest.windowChrome.platform!=='darwin';
+    $('showTrayIconText').textContent=t().showIcon;
+    $('showTrayIcon').checked=draft.showTrayIcon||draft.trayMetric==='icon';
+    $('showTrayIcon').disabled=saving||draft.trayMetric==='icon';
+    $('showTrayIcon').title=draft.trayMetric==='icon'?t().iconOnlyHint:'';
+    $('trayMetric').value=draft.trayMetric;
     $('widgetCount').textContent=t().count(draft.trayWidgets.length);
     $('widgetSearch').placeholder=t().search;$('widgetSearch').setAttribute('aria-label',t().search);
     $('closeWidgetLibrary').title=t().close;$('closeWidgetLibrary').setAttribute('aria-label',t().close);
@@ -214,12 +221,14 @@ export function createWidgetEditor(){
   $('closeWidgetLibrary').onclick=()=>{open=false;markDrawer();$('addWidget').focus();};
   $('widgetSearch').oninput=()=>{query=$('widgetSearch').value.trim().toLocaleLowerCase();render();};
   $('resetWidgets').onclick=()=>{draft.trayWidgets=[...defaultWidgets];changed();$('traySavedStatus').textContent=t().restored;};
+  $('showTrayIcon').onchange=()=>{draft.showTrayIcon=$('showTrayIcon').checked;changed();};
+  $('trayMetric').onchange=()=>{draft.trayMetric=$('trayMetric').value;if(draft.trayMetric==='icon')draft.showTrayIcon=true;changed();};
   for(const id of ['trayRange','trayTheme'])$(id).onchange=()=>{draft[id]=id==='trayRange'?Number($(id).value):$(id).value;changed();};
   $('retryWidgetPreview').onclick=()=>{ready=false;requests.clear();frame.src='tokenflow://dashboard/index.html?mode=tray&editor=1';};
   $('trayPreferences').onsubmit=async event=>{
     event.preventDefault();if(saving||!draft)return;saving=true;render();
     const saved=structuredClone(draft);
-    try{await window.tokenflow.saveSettings(saved);dirty=false;latest=await window.tokenflow.getState();draft={trayRange:latest.settings.trayRange,trayTheme:latest.settings.trayTheme,trayWidgets:[...latest.settings.trayWidgets]};$('traySavedStatus').textContent=t().saved;post('state',previewState());}
+    try{await window.tokenflow.saveSettings(saved);dirty=false;latest=await window.tokenflow.getState();draft=preferences(latest.settings);$('traySavedStatus').textContent=t().saved;post('state',previewState());}
     catch(error){$('traySavedStatus').textContent=t().failed+' '+error.message;}
     finally{saving=false;render();}
   };
@@ -230,7 +239,7 @@ export function createWidgetEditor(){
       latest=state;if(languageChanged&&dirty)$('traySavedStatus').textContent=t().unsaved;
       const key=JSON.stringify([state.dashboardSource,state.account?.id,state.summary?.scannedAt,state.lastSyncAt,state.settings.serverUrl]);
       if(key!==revision){revision=key;requests.clear();summary=null;heatmap=null;delete $('widgetWorkspace').dataset.cacheValue;delete $('widgetWorkspace').dataset.outputValue;}
-      if(!dirty&&!saving)draft={trayRange:state.settings.trayRange,trayTheme:state.settings.trayTheme,trayWidgets:[...state.settings.trayWidgets]};
+      if(!dirty&&!saving)draft=preferences(state.settings);
       render();if(active)post('state',previewState());
     },
     setActive(value){active=value;document.body.classList.toggle('editing-tray',active);if(!active)return;
