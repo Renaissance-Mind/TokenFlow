@@ -6,7 +6,9 @@ import sharp from 'sharp';
 const desktop = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const root = path.resolve(desktop, '..');
 const artwork = await fs.readFile(path.join(root, 'docs/assets/tokenflow.svg'), 'utf8');
-const transparent = artwork.replace(/\s*<rect id="background"[^>]*\/>/, '');
+// The rounded white frame and fine outline use the same Apple Icon Composer
+// mask as ShowAI. Neither belongs in transparent or macOS template tray art.
+const transparent = artwork.replace(/\s*<(?:rect|path) id="(?:background|icon-outline)"[^>]*\/>/g, '');
 if (transparent === artwork) throw new Error('The brand SVG must contain its white background.');
 const monochrome = transparent.replace(/fill="url\(#[^)]+\)"/g, 'fill="#000000"');
 const assets = path.join(desktop, 'assets');

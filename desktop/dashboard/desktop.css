@@ -37,7 +37,7 @@ body:not(.mini-dashboard):has(#desktopLoading:not([hidden])) > main{visibility:h
 .login-close svg{width:20px;height:20px}
 .desktop-login-dialog .login-close:hover{background:var(--bg);color:var(--text)}
 .login-brand{width:64px;height:64px;margin:0 auto 14px;color:#3d79f3}
-.login-brand img{display:block;width:100%;height:100%;border-radius:50%}
+.login-brand img{display:block;width:100%;height:100%}
 .desktop-login-dialog h1{font-size:24px;line-height:1.25;letter-spacing:-.035em;font-weight:650;margin:0 0 10px}
 #desktopLoginDescription{color:var(--muted);line-height:1.5;margin:0}
 .login-choose{color:var(--muted);font-size:12px;margin:32px 0 16px}
