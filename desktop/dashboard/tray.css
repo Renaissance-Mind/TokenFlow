@@ -25,3 +25,5 @@
 .mini-dashboard [data-mini-widget="cache"] .label,.mini-dashboard [data-mini-widget="output"] .label{font-size:12px;margin:0 0 10px}
 .mini-dashboard [data-mini-widget="cache"] .exact,.mini-dashboard [data-mini-widget="output"] .exact{font-size:10px;margin-top:8px}
 .mini-dashboard [data-mini-widget="cache"] .ring{width:32px;height:32px}
+
+.mini-mark{object-fit:contain;clip-path:circle(50%)}
