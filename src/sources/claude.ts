@@ -51,7 +51,7 @@ export function createClaudeJsonlParser(options: ParseOptions, saved?: unknown):
       const sessionId = stringField(row, "sessionId") || stringField(row, "session_id");
       const dedupeId = messageId || requestId ? JSON.stringify([
         messageId, requestId,
-        ...(requestId ? [] : [sessionId || options.sourcePath, ...(messageId?.startsWith("msg_") ? [] : [timestamp])]),
+        ...(requestId ? [] : [sessionId || options.sourcePath, ...(/^(msg_|resp_)/.test(messageId || "") ? [] : [timestamp])]),
       ]) : null;
       if (dedupeId && seen.has(dedupeId)) return;
 

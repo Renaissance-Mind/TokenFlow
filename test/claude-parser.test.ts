@@ -4,6 +4,18 @@ import { aggregateEvents } from "../src/usage-buckets.js";
 import { toUsageSnapshotPayload } from "../src/ingest-payload.js";
 
 describe("Claude Code parser", () => {
+  it("deduplicates requestless Responses IDs across content-block timestamps within a session", () => {
+    // Official ccusage f49593c requestless_response_message_id_content_blocks fixture.
+    const row = (timestamp: string, sessionId = "session-a", requestId?: string) => ({ timestamp, sessionId, requestId,
+      message: { id: "resp_0123456789abcdef", model: "gpt-5.5", usage: { input_tokens: 100, output_tokens: 25 } } });
+    const first = "2026-05-22T02:34:40.000Z", later = "2026-05-22T02:34:40.500Z";
+    const parse = (rows: object[]) => parseClaudeJsonl(rows.map(row => JSON.stringify(row)).join("\n"), { sourcePath: "/fixture/claude.jsonl" });
+    expect(parse([row(first), row(later)])).toHaveLength(1);
+    expect(parse([row(first), row(later), row(first, "session-b")])).toHaveLength(2);
+    expect(parse([row(first, "session-a", "request-a"), row(later, "session-a", "request-b")])).toHaveLength(2);
+    const gateway = (timestamp: string) => ({ ...row(timestamp), message: { ...row(timestamp).message, id: "gateway-placeholder" } });
+    expect(parse([gateway(first), gateway(later)])).toHaveLength(2);
+  });
   it("keeps a native cost-only record for an unknown model", () => {
     const events = parseClaudeJsonl(JSON.stringify({ timestamp: "2026-09-15T12:00:00Z", costUSD: 0.5,
       message: { model: "private-model", usage: { input_tokens: 0, output_tokens: 0 } } }), { sourcePath: "/fixture/claude.jsonl" });

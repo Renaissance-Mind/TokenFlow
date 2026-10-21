@@ -1,6 +1,6 @@
 {
   "name": "@renaissancemind/tokenflow",
-  "version": "0.2.80",
+  "version": "0.2.81",
   "description": "Local token usage collector for multi-device AI agent accounting.",
   "license": "Apache-2.0",
   "repository": {
