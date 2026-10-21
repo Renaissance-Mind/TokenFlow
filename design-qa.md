@@ -1,3 +1,60 @@
+# TokenFlow Settings redesign QA — 2026-10-22
+
+final result: passed
+
+The user approved the complete six-screen ImageGen design set in this chat. This pass implements that set in the existing Electron Settings view: overview, signed-out account, connected account, preferences, menu bar editor, and CLI & updates.
+
+## Evidence and normalization
+
+- Reference set: `desktop/test-results/settings-redesign-20261022/generated/01-settings-overview.png` through `06-cli-updates.png` (1487 × 1058 pixels). References are normalized proportionally to a 1440 × 1024 comparison canvas.
+- Actual renderer captures: matching files in `desktop/test-results/settings-redesign-20261022/implementation/`. They use fictional account/usage data through an isolated preview harness and render the production HTML/CSS/JS. The native host constrains the main CSS viewport to 1440 × 998; captures are at density 2. The 26px height difference and native window controls are expected frame differences, not claimed as pixel-perfect matches. Functional acceptance uses the real App separately.
+- Full source/implementation pairs: `desktop/test-results/settings-redesign-20261022/comparison/01-settings-overview.png` through `06-cli-updates.png`, reference left, implementation right. All six were opened as combined image inputs.
+- Focused pairs: `comparison/04-preferences-detail.png` and `comparison/05-menu-bar-editor-detail.png`, containing real crops of labels, controls, popup content and library, inspected together.
+- Responsive captures: `implementation/preferences-800.png`, `editor-800.png`, corresponding 1000px captures, and `editor-en.png`. Narrow settings scroll vertically; the component library becomes a dismissible drawer.
+- Actual App interaction evidence: `desktop/test-results/desktop-menu-bar-1440.png`, `desktop-widget-editor.png`, `desktop-widget-editor-drag.png`, and compact captures from the final native smoke run.
+
+## Findings and repairs
+
+No remaining actionable P0/P1/P2 findings.
+
+1. **P1, preferences alignment:** the first implementation inherited a column direction for switch rows. The combined preferences comparison exposed switches below their labels. Added an explicit row direction, recaptured, and confirmed labels and switches align with the selected design.
+2. **P1, initial chart visibility:** first nonempty rendering could skip ECharts initialization because the loading state hid its containers. After boot the popup now repaints cached data once the containers become visible. Added a real backend/nonempty-data assertion for the native model chart; authorization smoke passes it.
+3. **P1, editor exception:** removed a leftover thumbnail-render call after replacing thumbnail cards with the selected compact library. The final renderer captures have an empty error/status field; full desktop regression has no renderer errors.
+4. **P2, hierarchy and fit:** increased the desktop title/sidebar/body hierarchy, separated menu-bar display from range/theme controls, and reduced preview chart/panel gaps so the default three-widget layout fits the desktop canvas. The focused editor comparison shows the repaired layout.
+5. **P2, page behavior:** navigation now shows one settings pane at a time, maintains the active page through renderer reload, and preserves both preference and popup drafts across page switches. The native regression explicitly verifies these cases, alongside language changes during real collection.
+
+## Required fidelity surfaces
+
+- **Fonts and typography:** system macOS/PingFang fallbacks, 36px regular-page titles, 28px editor title, readable 14–18px principal labels, clear secondary copy and aligned values. Actual native controls are somewhat more compact than the generated raster; no text is warped to match it.
+- **Spacing/layout:** pale sidebar, blue selected row, white main surface, flat row dividers, separate page headings, right-aligned form controls, and two-column popup canvas/library reproduce the selected hierarchy. The App retains its native 56px toolbar and control safe area.
+- **Colors/tokens:** white, `#f7f8fa` sidebar/canvas, `#182230` text, `#667085` secondary text, `#eaecf0` dividers and `#2563eb` selection/actions. Connection and update success remain green; sign-out is a subdued red action.
+- **Image/asset quality:** existing owned TokenFlow vector artwork is preserved. Feather icons use the existing MIT asset family; the Google provider mark is bundled from its official asset URL. No rasterized interface, generated logo replacement, or decorative placeholder imagery is used in production.
+- **Copy/content:** English and Chinese cover all new headings, labels, account facts and directory values. Account/device/version/sync values come from real state. The actual popup retains the canonical Dashboard's model-aware calculations, cost bars and date window instead of reproducing illustrative ImageGen percentages.
+- **Accessibility/states:** labelled inputs and switches, native buttons, pressed state for segmented choices, current-page navigation, visible focus styles, heading focus on navigation, live save/error feedback and reduced motion. Existing keyboard reorder, disabled final-widget removal, pending sign-in, loading, error, empty, theme and saved states remain covered by acceptance.
+
+## Validation
+
+- Desktop build and TypeScript checks passed; 20 desktop unit tests passed.
+- Final native desktop smoke passed: single native Dashboard/Settings window, independent settings pages, retained Dashboard DOM, preference and popup drafts across page switches, immediate language changes, all eight widgets, real pointer drag and keyboard reorder, search/reset/save/reload, range/theme preview, actual native icon/title modes, two-display popup placement, and restart persistence.
+- Settings design check passed against the real Worker/D1 test backend: connected account, actual collection progress in the shared toolbar, compact layout, navigation, and no renderer errors.
+- Authorization smoke passed against the matching `TokenFlow_Server_AutoConnect` checkout: shared App/CLI login/logout, account switching, API tokens, settings propagation, encrypted browser credentials, account data across restart and cached-data recovery. The provider identity is a fixture; this is not a claim of completing GitHub/Google's external provider UI.
+- Updated stale test expectations for persisted `showTrayIcon`, cached cloud-data behavior, and the new independent pages; no production auth or cache policy changed.
+
+## Scope and remaining polish
+
+The generated mock's precise glyph shapes and oversized control scale are not copied literally; production uses the owned brand and consistent Feather/system controls. Canonical Dashboard charts and their data definitions remain authoritative. No new package, installed-App replacement, or release is included in this pass.
+
+- [x] Implement all approved settings screens in the existing App.
+- [x] Preserve production data, authentication, settings persistence and popup interactions.
+- [x] Compare full views and focused regions, repair important findings, and recapture.
+- [x] Complete build, unit, native UI, responsive and authorization validation.
+
+---
+
+# Historical QA record
+
+The following record describes earlier versions and installations, not acceptance of this redesign.
+
 # TokenFlow popup widget editor design QA
 
 final result: passed

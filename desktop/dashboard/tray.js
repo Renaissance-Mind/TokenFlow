@@ -16,7 +16,7 @@ const modelLimit=document.createElement('span');modelLimit.className='mini-model
 main.append(content);
 const loading=document.createElement('p');loading.id='miniLoading';loading.setAttribute('role','status');main.insertBefore(loading,content);
 document.querySelector('.desktop-toolbar').outerHTML=`<header class="mini-header">
-  <div class="mini-title"><img class="mini-mark" src="/brand/tokenflow.svg" alt="" width="24" height="24"><strong>Dashboard</strong>
+  <div class="mini-title"><img class="mini-mark" src="/brand/tokenflow.svg" alt="" width="24" height="24"><strong>TokenFlow</strong>
     <nav class="mini-actions" aria-label="Dashboard actions">
       <button id="miniRefresh" class="mini-icon" type="button" aria-label="Refresh" title="Refresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10a8 8 0 0 0-14-4L3 9m0-5v5h5M4 14a8 8 0 0 0 14 4l3-3m0 5v-5h-5"/></svg><span id="miniRefreshProgress" class="mini-icon-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" hidden><svg viewBox="0 0 32 32" aria-hidden="true"><circle class="mini-progress-track" cx="16" cy="16" r="14"/><circle class="mini-progress-fill" cx="16" cy="16" r="14"/></svg></span></button>
       <button id="trayDashboard" class="mini-icon" type="button" aria-label="Open Dashboard" title="Open Dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6m0-6L11 13M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5"/></svg></button>
@@ -60,9 +60,14 @@ function theme(){
 }
 async function refresh(){
   if(running){pending=true;return;}running=true;
+  const firstPaint=document.body.dataset.miniLoaded!=='true';
   if(!document.body.dataset.miniLoaded)document.body.dataset.miniLoaded='false';actions();
   try{if(!started){started=true;await window.tokenflowDashboard.boot();}else await window.tokenflowDashboard.refresh();
-    document.body.dataset.miniLoaded='true';lastError='';
+    document.body.dataset.miniLoaded='true';
+    // Chart containers have no dimensions while the initial loading state hides
+    // the widgets. Repaint the cached data once those containers are visible.
+    if(firstPaint)window.tokenflowDashboard.repaint();
+    lastError='';
   }catch(error){lastError=error.message;}
   finally{running=false;actions();resize();if(pending){pending=false;void refresh();}}
 }

@@ -18,7 +18,14 @@ Object.assign(texts.en,{popupTitle:'Menu bar popup',popupDescription:'Choose the
 Object.assign(texts.zh,{popupTitle:'菜单栏小窗',popupDescription:'点击菜单栏图标时，展示你选择的 Dashboard 模块。',popupRange:'默认时间范围',popup7:'最近 7 天',popup30:'最近 30 天',popupTheme:'外观',popupSystem:'跟随系统',popupLight:'浅色',popupDark:'深色',popupSections:'显示模块',popupOverview:'用量总览',popupOverviewHint:'Token、费用与迷你走势',popupTrend:'每日趋势',popupTrendHint:'与 Dashboard 相同的用量曲线',popupModels:'模型分布',popupModelsHint:'查看主要模型的费用占比',popupActivity:'Token 活跃度',popupActivityHint:'查看一整年的使用节奏',savePopup:'保存小窗设置',popupSaved:'小窗设置已保存。',popupRequired:'请至少选择一个 Dashboard 模块。'});
 Object.assign(texts.en,{languageSaved:'Language updated.',languageSavedDraft:'Language updated. Save your other changes separately.'});
 Object.assign(texts.zh,{languageSaved:'语言已更新。',languageSavedDraft:'语言已更新，其他修改需点击保存。'});
+Object.assign(texts.en,{
+  overviewSubtitle:'Manage your TokenFlow account, preferences and menu bar.',accountSummaryHint:'Connect your account across App and CLI',preferencesSummaryHint:'Device, language and startup options',popupSummaryHint:'Menu bar display and popup layout',updatesSummaryHint:'Installation information and version updates',sharedAccountHint:'App and CLI share account and sync settings.',connectDescription:'App and CLI are using the same account and sync settings.',accountSubtitle:'Use the same account and sync settings in App and CLI.',accountStateLabel:'Account status',currentDevice:'Current device',signOutTitle:'Sign out of this account',signOutHint:'Signing out disconnects this account from both App and CLI.',connectAccount:'Connect your account',connectAccountHint:'Sign in to view synced usage in Dashboard.',orToken:'Or use an API token',preferencesSubtitle:'Set up this device, language and startup behavior.',deviceConnection:'Device and connection',deviceHint:'The name used to identify this computer.',serverHint:'Sign out to change the server.',interfaceLanguage:'Interface language',languageHint:'Choose the language used by the App.',startupSync:'Startup and sync',updatesSubtitle:'View local installations and manage App and CLI updates separately.',appDescription:'Desktop Dashboard, Settings and menu bar popup.',cliInstalled:'Installed',installLocation:'Installation location',independentUpdates:'App and CLI can be checked for updates separately.',displayMode:'Display mode',menuBarPreview:'Menu bar preview'
+});
+Object.assign(texts.zh,{
+  overviewSubtitle:'管理 TokenFlow 的账号、偏好与菜单栏。',accountSummaryHint:'登录账号，连接 App 与 CLI',preferencesSummaryHint:'设备、语言与启动选项',popupSummaryHint:'设置菜单栏显示与小窗布局',updatesSummaryHint:'查看安装信息与版本更新',sharedAccountHint:'App 与 CLI 共用账号与同步配置。',connectDescription:'App 与 CLI 正在使用同一份账号和同步配置。',accountSubtitle:'在 App 与 CLI 之间共用账号和同步配置。',accountStateLabel:'账号状态',currentDevice:'当前设备',signOutTitle:'退出当前账号',signOutHint:'退出后，App 与 CLI 将同时断开账号连接。',connectAccount:'连接你的账号',connectAccountHint:'登录后，在 Dashboard 查看已同步的用量。',orToken:'或使用 API token',preferencesSubtitle:'设置本机设备、语言与启动方式。',deviceConnection:'设备与连接',deviceHint:'设置本机设备名称，用于标识当前设备。',serverHint:'退出账号后可修改服务器。',interfaceLanguage:'界面语言',languageHint:'设置应用的界面显示语言。',startupSync:'启动与同步',updatesSubtitle:'查看本机安装信息，分别管理 App 与 CLI 的更新。',appDescription:'桌面 Dashboard、设置与菜单栏小窗。',cliInstalled:'已安装',installLocation:'安装位置',independentUpdates:'App 与 CLI 可分别检查更新。',displayMode:'显示模式',menuBarPreview:'菜单栏预览',tokenMetric:'今日 Token'
+});
 let current, dirty = false, switchingAccount = false, languageSaving=false;
+let activeSection=sessionStorage.getItem('tokenflow-settings-section')||'pageTitle';
 const trayEditor=createWidgetEditor();
 const number = (n) => Number(n || 0).toLocaleString();
 const time = (value) => value ? new Date(value).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '—';
@@ -40,13 +47,28 @@ function render(state) {
   const t = texts[lang]; document.documentElement.lang = lang;
   document.querySelectorAll('[data-text]').forEach((node) => { node.textContent = t[node.dataset.text]; });
   $('version').textContent = 'v' + state.version;
+  $('sidebarVersion').textContent = 'TokenFlow  v' + state.version;
   $('collectorVersion').textContent = 'v' + state.collectorVersion;
   $('account').textContent = state.account?.name || state.account?.email || '';
   $('connection').textContent = state.hasCollector ? t.connected : t.local;
-  $('authStatus').classList.toggle('connected',state.hasDashboard);
+  $('authStatus').classList.toggle('connected',state.hasCollector||state.hasDashboard);
   $('authStatus').textContent = state.hasDashboard ? t.connectedCLI : state.hasCollector ? t.cliLogin : t.local;
-  $('accountDetails').textContent = state.account?.email || state.account?.name || t.connected;
+  $('accountDetails').textContent = state.account?.email || (state.account?.name ? '' : t.cliLogin);
+  $('accountName').textContent = state.account?.name || state.account?.email || t.connected;
+  const identity=state.account?.name||state.account?.email||'CLI';
+  $('accountAvatar').textContent=identity.split(/\s+/).map(part=>part[0]).join('').slice(0,2).toUpperCase();
+  $('accountState').textContent=state.hasCollector||state.hasDashboard?t.connected:t.local;
+  $('accountDevice').textContent=state.settings.deviceName;
+  $('accountLastSync').textContent=state.lastSyncAt?new Intl.DateTimeFormat(lang==='zh'?'zh-CN':'en',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(state.lastSyncAt)):'—';
+  $('overviewConnection').textContent=state.hasDashboard?t.connectedCLI:state.hasCollector?t.cliLogin:t.local;
+  $('overviewConnection').classList.toggle('connected',state.hasCollector||state.hasDashboard);
+  $('overviewAccount').textContent=state.account?(state.account.email||state.account.name||t.connected)+' · '+(state.hasCollector||state.hasDashboard?t.connected:t.local):(state.hasCollector?t.cliLogin:t.local);
+  $('overviewPreferences').textContent=state.settings.deviceName+' · '+(lang==='zh'?'简体中文':'English');
+  const widgetCount=state.settings.trayWidgets.length;
+  $('overviewPopup').textContent=t[{cost:'costMetric',tokens:'tokenMetric',icon:'iconMetric'}[state.settings.trayMetric]]+' · '+widgetCount+(lang==='zh'?' 个组件':widgetCount===1?' widget':' widgets');
+  $('overviewUpdates').textContent='App '+state.version+' · CLI '+state.collectorVersion;
   $('connectedSection').hidden = !state.hasCollector && !state.hasDashboard;
+  $('accountLogin').hidden=state.hasDashboard&&!switchingAccount;
   $('loginSection').hidden = state.hasDashboard && !switchingAccount;
   $('tokenForm').hidden = state.hasDashboard && !switchingAccount;
   $('switchAccount').textContent = switchingAccount ? t.cancelSwitch : t.switchAccount;
@@ -90,6 +112,9 @@ function render(state) {
   if(!languageSaving)$('language').value=state.settings.language;
   trayEditor.update(state);
   $('serverUrl').disabled = state.hasCollector || state.hasDashboard || !!state.busy || state.loginBusy;
+  $('serverHint').hidden=!(state.hasCollector||state.hasDashboard);
+  $('cliInstallationStatus').textContent=state.cli.compatible?t.cliInstalled:t.required;
+  $('cliInstallationStatus').classList.toggle('status-current',state.cli.compatible);
   $('cliSource').textContent = t[state.cli.source]; $('cliPath').textContent = state.cli.path.replace(/^(\/Users\/[^/]+|\/home\/[^/]+)\//,'~/'); $('cliPath').title = state.cli.path;
   const updating = ['checking','installing'].includes(state.cli.updateStatus);
   $('checkCliUpdate').disabled = updating;
@@ -109,6 +134,7 @@ function render(state) {
   $('downloadUpdate').hidden = state.update.status !== 'available';
   $('installUpdate').hidden = state.update.status !== 'downloaded';
   $('update').disabled = ['checking','downloading'].includes(state.update.status);
+  $('updateStatus').classList.toggle('status-current',state.update.status==='current');
   $('updateStatus').textContent = state.update.message || ({current:t.current,checking:t.checking,available:t.available,downloading:t.downloading + ' ' + Math.round(state.update.percent || 0) + '%',downloaded:t.downloaded,error:t.error})[state.update.status] || '';
 }
 async function run(action) {
@@ -118,7 +144,7 @@ if (!window.tokenflow) {
   $('error').hidden = false; $('error').textContent = 'Open this screen in TokenFlow Desktop.';
 } else {
   window.tokenflow.onState(render);
-  run(async () => render(await window.tokenflow.getState()));
+  run(async () => {render(await window.tokenflow.getState());selectSection(document.querySelector('[data-section="'+activeSection+'"]')?activeSection:'pageTitle',false);});
   $('preferences').addEventListener('input', event => { if(event.target.id!=='language'){dirty = true; $('savedStatus').textContent='';} });
   $('language').addEventListener('change',()=>run(async()=>{
     const language=$('language').value;
@@ -148,8 +174,17 @@ if (!window.tokenflow) {
   $('sync').onclick = () => run(() => window.tokenflow.sync());
   const dashboard = () => run(() => window.tokenflow.dashboard());
   $('breadcrumbDashboard').onclick = dashboard;
-  const selectSection=section=>{const button=document.querySelector('[data-section="'+section+'"]');if(!button)return;trayEditor.setActive(section==='traySection');document.getElementById(section).scrollIntoView({behavior:'smooth',block:'start'});document.querySelectorAll('[data-section]').forEach(item=>{item.classList.toggle('active',item===button);if(item===button)item.setAttribute('aria-current','page');else item.removeAttribute('aria-current');});};
+  function selectSection(section,focus=true){
+    const button=document.querySelector('[data-section="'+section+'"]');if(!button)return;
+    activeSection=section;sessionStorage.setItem('tokenflow-settings-section',section);
+    document.querySelectorAll('[data-settings-page]').forEach(page=>page.hidden=page.dataset.settingsPage!==section);
+    trayEditor.setActive(section==='traySection');
+    document.querySelector('.content').scrollTop=0;
+    document.querySelectorAll('[data-section]').forEach(item=>{item.classList.toggle('active',item===button);if(item===button)item.setAttribute('aria-current','page');else item.removeAttribute('aria-current');});
+    if(focus)document.querySelector('[data-settings-page="'+section+'"] h1').focus({preventScroll:true});
+  }
   document.querySelectorAll('[data-section]').forEach(button=>button.onclick=()=>selectSection(button.dataset.section));
+  document.querySelectorAll('[data-open-section]').forEach(button=>button.onclick=()=>selectSection(button.dataset.openSection));
   window.tokenflow.onSettingsSection(selectSection);
   $('dashboardShortcut').onclick = dashboard; $('trayDashboard').onclick = dashboard;
   $('switchAccount').onclick = () => { switchingAccount = !switchingAccount; render(current); };

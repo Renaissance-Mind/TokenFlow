@@ -1,29 +1,186 @@
-.settings-page{color-scheme:light;--bg:#fff;--text:#111c2e;--muted:#6a7a91;--line:#e0e6ed;--accent:#075be7;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif;font-size:15px}
-.settings-page header{position:sticky;top:0;z-index:105;height:52px;padding:0 34px;background:#fff;justify-content:flex-start;gap:24px}.settings-page.has-operation-progress header{top:38px}.settings-page .brand{font-size:20px;letter-spacing:-.025em;min-width:140px}.settings-page .breadcrumbs{display:flex;align-items:center;gap:17px;font-size:14px}.settings-page .breadcrumbs button,.settings-page .breadcrumbs>span:first-of-type{color:#65758c}.settings-page .header-actions{margin-left:auto}.settings-page .header-actions button{font-size:14px}.settings-page button{font-size:14px;color:var(--accent);padding:5px 0}.settings-page button:hover{color:#003fac}.settings-page button:disabled{opacity:.45;cursor:default}.settings-page button#logout{color:var(--accent)}
-.settings-page .settings-shell{display:grid;grid-template-columns:252px minmax(0,1fr);min-height:calc(100vh - 52px)}.settings-page.has-operation-progress .settings-shell{min-height:calc(100vh - 90px)}.settings-page .settings-nav{background:#f6f8fa;border-right:1px solid var(--line);padding:20px 34px;display:flex;flex-direction:column;align-items:stretch;gap:8px}.settings-page .settings-nav button{position:relative;color:#45556c;text-align:left;padding:9px 18px;font-size:16px}.settings-page .settings-nav button.active{color:var(--accent);font-weight:500}.settings-page .settings-nav button.active:before{content:'';position:absolute;left:0;top:10px;bottom:10px;width:3px;background:#3d79f3}.settings-page .content{width:100%;max-width:none;margin:0;padding:23px 56px 28px 58px}.settings-page .page-intro{margin-bottom:30px}.settings-page .page-intro h1{font-size:36px;line-height:1.2;font-weight:650;letter-spacing:-.035em;margin:0 0 2px}.settings-page .page-intro p{font-size:19px;line-height:1.4;margin:0;color:#64748b}.settings-page .section-label{font-size:22px;letter-spacing:-.018em;color:var(--text);justify-content:flex-start;gap:30px}.settings-page .section-label h2{font-size:22px;font-weight:600;line-height:1.3;margin:0}.settings-page #authStatus{font-size:14px;color:#65758c;letter-spacing:0;display:inline-flex;gap:10px;align-items:center}.settings-page #authStatus.connected:before{content:'';width:10px;height:10px;border-radius:50%;background:#1cba68}.settings-page .auth{margin-bottom:0;padding-bottom:18px;scroll-margin-top:112px}.settings-page .auth .section-label{margin-bottom:14px}.settings-page #connectedSection{margin:0;display:flex;align-items:center;gap:24px;justify-content:space-between;color:var(--text)}.settings-page .account-identity{display:flex;flex-direction:column;gap:3px;font-size:15px}.settings-page #accountDetails{font-size:19px;line-height:1.4;font-weight:400;overflow-wrap:anywhere}.settings-page .account-actions{display:flex;gap:25px;align-items:center}.settings-page .account-actions button+button{border-left:1px solid var(--line);padding-left:25px}.settings-page #connectDescription{font-size:14px;line-height:1.5;margin:8px 0 0}.settings-page .login-options{margin:18px 0 8px;gap:28px}.settings-page .login-options button{font-size:14px}.settings-page #tokenForm{margin:18px 0 0;gap:24px;max-width:730px}.settings-page #tokenForm button{padding-bottom:10px}.settings-page #loginPending{margin-top:15px}.settings-page #loginPending p{font-size:14px}
-.settings-page .settings{padding-top:18px;scroll-margin-top:112px}.settings-page .setting-grid{grid-template-columns:1fr 1fr;gap:12px 30px;margin-top:12px}.settings-page label{font-size:15px;color:var(--text);gap:6px}.settings-page input:not([type=checkbox]),.settings-page select{font-family:inherit;font-size:16px;line-height:1.4;padding:3px 12px 8px;border-bottom:1px solid #c6d0dd;color:var(--text);height:33px}.settings-page input:disabled{color:#26374e;opacity:1}.settings-page select{padding-left:12px;padding-right:12px;background:transparent}.settings-page .toggle-row{display:block;margin:17px 0 0}.settings-page .toggle{display:flex;flex-direction:row;justify-content:space-between;align-items:center;gap:24px;padding:14px 0;border-bottom:1px solid var(--line)}.settings-page .toggle:last-of-type{border-bottom:none}.settings-page .toggle-copy{display:flex;flex-direction:column;gap:4px;font-size:16px}.settings-page .toggle-copy small{font-size:14px;line-height:1.4;color:var(--muted)}.settings-page input[role=switch]{appearance:none;flex-shrink:0;position:relative;width:50px;height:27px;border-radius:999px;background:#d4dce5;cursor:pointer;transition:background .15s;margin:0}.settings-page input[role=switch]:before{content:'';position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #26374e30;transition:transform .15s}.settings-page input[role=switch]:checked{background:#3d79f3}.settings-page input[role=switch]:checked:before{transform:translateX(23px)}.settings-page .save-row{display:flex;align-items:center;justify-content:flex-end;gap:20px;min-height:38px;padding:0 0 11px}.settings-page #savedStatus{font-size:13px;color:#587066}.settings-page .save-row button{font-size:15px}
-.settings-page .cli-settings{padding-top:18px;scroll-margin-top:112px}.settings-page .update-row{display:flex;align-items:center;justify-content:space-between;gap:30px;padding:15px 0}.settings-page .version-line{display:flex;align-items:center;gap:18px;font-size:16px}.settings-page .version-line>span:first-child{min-width:96px}.settings-page #cliPath{font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.5;margin:5px 0 0 30px;color:var(--muted)}.settings-page #cliSource{font-size:14px;line-height:1.5;margin:3px 0 0 30px}.settings-page .cli-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:10px 22px;margin:0}.settings-page .cli-actions span{flex-basis:100%;text-align:right;font-size:12px}.settings-page .app-update-row{border-top:1px solid var(--line);padding-top:19px}.settings-page #updateStatus{display:block;font-size:13px;color:var(--muted);margin-top:4px}.settings-page #updateStatus:empty{display:none}.settings-page #pageTitle{scroll-margin-top:112px}.settings-page .error{color:#b34535;font-size:14px;margin-bottom:18px}
-.tray .settings-shell{display:block}.tray .brand{font-size:17px}.tray .operation-progress{--progress-bg:#101722;--progress-text:#d0d9e7;--progress-border:#263144;--progress-track:#263144;height:35px;padding:0 20px;gap:10px;font-size:10px}.tray .operation-progress>span:first-child{min-width:0}.tray .progress-track{height:4px}
-.settings-page header.window-toolbar{height:56px;top:0;padding:0 24px;gap:16px;margin:0;border-bottom:1px solid var(--line)}
-.settings-page header.window-toolbar .brand{display:none}
-.settings-page header.window-toolbar .breadcrumbs{flex:0 0 auto}
-.settings-page header.window-toolbar .compact-progress{margin-left:auto}
-.settings-page header.window-toolbar .header-actions{margin-left:0;flex:0 0 auto}
-.settings-page header.window-toolbar:has(.compact-progress[hidden]) .header-actions{margin-left:auto}
-.settings-page .settings-shell,.settings-page.has-operation-progress .settings-shell{min-height:calc(100vh - 56px)}
-@media(max-width:1050px){.settings-page header.window-toolbar .header-actions{display:none}}
-@media(max-width:1000px){.settings-page .settings-shell{grid-template-columns:190px minmax(0,1fr)}.settings-page .settings-nav{padding:20px 20px}.settings-page .content{padding:25px 30px}.settings-page .account-actions{gap:15px}.settings-page .account-actions button+button{padding-left:15px}.settings-page .section-label{gap:18px}.settings-page .update-row{gap:18px}}
-@media(max-width:760px){.settings-page header{padding:0 20px;gap:14px}.settings-page .brand{min-width:0;font-size:18px}.settings-page .breadcrumbs{display:none}.settings-page .settings-shell{display:block}.settings-page .settings-nav{flex-direction:row;gap:15px;padding:9px 20px;border-right:none;border-bottom:1px solid var(--line);overflow-x:auto}.settings-page .settings-nav button{font-size:13px;padding:6px 0}.settings-page .settings-nav button.active:before{display:none}.settings-page .content{padding:25px 24px}.settings-page .page-intro h1{font-size:30px}.settings-page .page-intro p{font-size:16px}.settings-page .section-label{flex-wrap:wrap;gap:8px 20px}.settings-page .section-label h2{font-size:20px}.settings-page #connectedSection{align-items:flex-start;flex-direction:column;gap:12px}.settings-page .setting-grid{grid-template-columns:1fr;gap:15px}.settings-page .update-row{align-items:flex-start;flex-direction:column;gap:12px}.settings-page .cli-actions{justify-content:flex-start}.settings-page .cli-actions span{text-align:left}.settings-page #cliPath,.settings-page #cliSource{margin-left:0}.settings-page .account-identity{font-size:14px}.settings-page .account-actions button{font-size:13px}}
-
-@media(max-height:920px) and (min-width:761px){.settings-page .content{padding-top:18px;padding-bottom:20px}.settings-page .page-intro{margin-bottom:24px}.settings-page .toggle{padding:12px 0}.settings-page .update-row{padding:12px 0}.settings-page .app-update-row{padding-top:16px}}
-.settings-page .tray-preferences{padding:20px 0 8px;border-top:1px solid var(--line);scroll-margin-top:84px}
-.settings-page .tray-preferences>.muted{font-size:14px;margin:8px 0 15px;line-height:1.5}
-.settings-page .tray-widget-options{border:0;padding:0;margin:22px 0 8px;display:grid;grid-template-columns:1fr 1fr;gap:0 28px;min-width:0}
-.settings-page .tray-widget-options legend{padding:0;margin-bottom:10px;font-size:14px;color:var(--muted)}
-.settings-page .tray-widget-options label{display:flex;flex-direction:row;gap:12px;align-items:flex-start;padding:13px 0;cursor:pointer}
-.settings-page .tray-widget-options input{accent-color:var(--accent);width:16px;height:16px;margin:3px 0 0;flex:0 0 auto}
-.settings-page .tray-widget-options label>span{display:flex;flex-direction:column;gap:4px}.settings-page .tray-widget-options strong{font-size:15px;font-weight:500}.settings-page .tray-widget-options small{font-size:13px;color:var(--muted);line-height:1.4}
-.settings-page #traySavedStatus{font-size:13px;color:#587066}
-.settings-page .settings-nav{position:sticky;top:56px;height:calc(100vh - 56px);align-self:start}
-@media(max-width:760px){.settings-page .tray-widget-options{grid-template-columns:1fr}}
-@media(max-width:760px){.settings-page .settings-nav{height:auto}}
+.settings-page {
+  color-scheme: light;
+  --bg: #fff; --text: #182230; --muted: #667085; --line: #eaecf0; --accent: #2563eb;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
+  font-size: 15px; overflow: hidden;
+}
+.settings-page button { font-size: 14px; color: var(--accent); padding: 0; }
+.settings-page button:hover { color: #174fc4; }
+.settings-page button:disabled { opacity: .5; cursor: default; }
+.settings-page :is(button, input, select):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.settings-page header.window-toolbar { height: 56px; top: 0; padding: 0 24px; gap: 20px; margin: 0; background: #fff; border-bottom: 1px solid var(--line); }
+.settings-page header .brand { display: flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 650; letter-spacing: -.025em; color: var(--text); flex-shrink: 0; }
+.settings-page header .brand img { width: 28px; height: 28px; }
+.settings-page header .compact-progress { margin-left: auto; }
+.settings-page header .header-actions { flex: 0 0 auto; margin-left: 0; }
+.settings-page header:has(.compact-progress[hidden]) .header-actions { margin-left: auto; }
+.settings-page .back-dashboard { display: flex; gap: 9px; align-items: center; }
+.back-dashboard img { width: 18px; height: 18px; }
+.settings-page .settings-shell { display: grid; grid-template-columns: 264px minmax(0, 1fr); height: calc(100vh - 56px); min-height: 0; }
+.settings-page .settings-nav { background: #f7f8fa; border-right: 1px solid var(--line); padding: 24px 12px 22px; display: flex; flex-direction: column; min-height: 0; }
+.settings-nav nav { display: flex; flex-direction: column; gap: 8px; }
+.settings-page .settings-nav button { display: flex; align-items: center; gap: 18px; text-align: left; min-height: 48px; padding: 10px 20px; color: var(--text); border-radius: 10px; font-size: 16px; }
+.settings-nav button img { width: 23px; height: 23px; flex-shrink: 0; }
+.settings-page .settings-nav button:hover { background: #edf1f7; }
+.settings-page .settings-nav button.active { background: #e7effe; color: var(--accent); font-weight: 600; }
+.settings-nav button.active img, .back-dashboard img { filter: invert(32%) sepia(91%) saturate(2888%) hue-rotate(214deg); }
+.sidebar-version { margin-top: auto; padding: 24px 14px 0; font-size: 12px; color: var(--muted); }
+.settings-page .content { padding: 0; margin: 0; width: 100%; max-width: none; overflow: auto; min-width: 0; height: 100%; }
+.settings-page .settings-pane { padding: 44px 60px; margin: 0; min-height: 100%; }
+.page-heading { margin-bottom: 30px; }
+.settings-page h1 { font-size: 32px; font-weight: 650; letter-spacing: -.035em; line-height: 1.25; margin: 0 0 8px; }
+.settings-page h1:focus { outline: none; }
+.page-heading p { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.6; }
+.settings-page h2 { margin: 0; font-size: 20px; font-weight: 600; line-height: 1.4; letter-spacing: -.018em; }
+.settings-page .page-footnote { margin: 25px 0 0; font-size: 14px; line-height: 1.6; color: var(--muted); }
+.connection-line { font-size: 14px; line-height: 1.5; margin: 0 0 34px; color: var(--muted); display: flex; gap: 10px; align-items: center; }
+.connection-line.connected:before, .status-current:before { content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #17b26a; flex-shrink: 0; }
+.settings-directory { border-top: 1px solid var(--line); }
+.settings-page .settings-directory-row { display: flex; align-items: center; gap: 24px; width: 100%; padding: 25px 8px; border-bottom: 1px solid var(--line); text-align: left; color: var(--text); white-space: normal; }
+.settings-page .settings-directory-row:hover { background: #f9fafb; color: var(--text); }
+.settings-directory-row>img { width: 28px; height: 28px; flex-shrink: 0; }
+.directory-copy { display: flex; flex-direction: column; gap: 5px; }
+.directory-copy strong { font-size: 18px; font-weight: 600; }
+.directory-copy>span, .directory-value { font-size: 14px; line-height: 1.5; color: var(--muted); }
+.directory-value { margin-left: auto; text-align: right; max-width: 42%; overflow-wrap: anywhere; }
+.settings-directory-row .directory-chevron { width: 18px; height: 18px; opacity: .55; }
+.settings-page .outline-button, .settings-page .primary-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 8px 18px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; line-height: 1.4; background: #fff; }
+.settings-page .outline-button { color: var(--accent); border-color: #9ebcf8; }
+.settings-page .outline-button:hover { background: #f5f8ff; }
+.settings-page .primary-button { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 500; }
+.settings-page .primary-button:hover { background: #1d55d4; color: #fff; }
+.settings-page :is(input:not([type=checkbox]), select) { font: inherit; font-size: 15px; height: 40px; border: 1px solid #cfd7e3; border-radius: 7px; padding: 8px 14px; background: #fff; color: var(--text); width: 100%; min-width: 0; }
+.settings-page input:disabled { background: #f3f4f6; color: var(--muted); opacity: 1; }
+.settings-page label { color: var(--text); font-size: 15px; }
+.settings-page .auth { padding-bottom: 40px; }
+.settings-page #authStatus { font-size: 14px; color: var(--muted); letter-spacing: 0; }
+.settings-page #connectedSection { display: block; color: var(--text); margin: 0; }
+.account-profile { display: flex; align-items: center; gap: 22px; padding: 24px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.account-avatar { display: grid; place-items: center; flex-shrink: 0; width: 64px; height: 64px; border-radius: 50%; color: var(--accent); background: #e7effe; font-size: 23px; font-weight: 500; }
+.account-identity { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.account-identity strong { font-size: 20px; font-weight: 600; }
+.settings-page #accountDetails { font-size: 16px; color: var(--muted); overflow-wrap: anywhere; }
+.account-profile #switchAccount { margin-left: auto; }
+.account-facts { margin: 0; }
+.account-facts>div { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 23px 0; border-bottom: 1px solid var(--line); }
+.account-facts dt { font-size: 15px; }
+.account-facts dd { margin: 0; font-size: 15px; color: var(--muted); text-align: right; overflow-wrap: anywhere; }
+.settings-page #connectDescription { margin-top: 24px; font-size: 14px; }
+.sign-out-row { display: flex; justify-content: space-between; gap: 32px; align-items: flex-start; padding-top: 26px; border-top: 1px solid var(--line); margin-top: 150px; }
+.sign-out-row h2 { font-size: 17px; }
+.sign-out-row p { margin: 8px 0 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.settings-page button#logout { color: #c83232; padding-top: 2px; }
+#accountLogin { border-top: 1px solid var(--line); padding-top: 28px; }
+#connectedSection:not([hidden])+#accountLogin:not([hidden]) { margin-top: 32px; }
+.login-intro h2 { font-size: 23px; }
+.login-intro p { margin: 10px 0 0; color: var(--muted); line-height: 1.6; }
+.settings-page .login-options { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 24px 0 30px; }
+.settings-page .provider-button { display: flex; justify-content: center; align-items: center; gap: 14px; height: 56px; border: 1px solid #d0d8e5; border-radius: 8px; color: var(--text); font-size: 16px; font-weight: 500; }
+.settings-page .provider-button:hover { background: #f9fafb; color: var(--text); }
+.provider-button img { width: 27px; height: 27px; }
+.login-divider { display: flex; align-items: center; gap: 16px; color: var(--muted); font-size: 14px; }
+.login-divider:before, .login-divider:after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.settings-page #tokenForm { display: flex; align-items: end; max-width: none; gap: 12px; margin: 28px 0 34px; }
+#tokenForm label { gap: 8px; min-width: 0; }
+.settings-page #tokenForm button { min-height: 42px; padding: 9px 18px; font-size: 15px; }
+.settings-page #tokenForm input { height: 42px; }
+.settings-page #loginPending { background: #f6f8fc; border: 1px solid var(--line); border-radius: 8px; padding: 14px 18px; margin: 20px 0; }
+.settings-page #loginPending p { font-size: 14px; line-height: 1.6; }
+.preference-group { padding-top: 22px; border-top: 1px solid var(--line); }
+.preference-group h2 { margin-bottom: 4px; }
+.settings-page .setting-row { display: grid; grid-template-columns: minmax(200px, 1fr) minmax(240px, 1.1fr); gap: 36px; align-items: center; padding: 23px 0; border-bottom: 1px solid var(--line); }
+.setting-row:last-child { border-bottom: 0; }
+.setting-copy { display: flex; flex-direction: column; gap: 7px; font-size: 15px; line-height: 1.4; }
+.setting-copy small { font-size: 14px; color: var(--muted); line-height: 1.5; }
+.settings-page .setting-row:has(input[role=switch]) { display: flex; flex-direction: row; justify-content: space-between; }
+.settings-page input[role=switch] { appearance: none; position: relative; flex-shrink: 0; width: 44px; height: 24px; margin: 0; border: 0; border-radius: 20px; background: #d2dae5; cursor: pointer; transition: background .15s; }
+.settings-page input[role=switch]:before { content: ''; position: absolute; width: 18px; height: 18px; top: 3px; left: 3px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px #18223020; transition: transform .15s; }
+.settings-page input[role=switch]:checked { background: var(--accent); }
+.settings-page input[role=switch]:checked:before { transform: translateX(20px); }
+.settings-page input[role=switch]:disabled { opacity: .5; cursor: default; }
+.save-row { display: flex; align-items: center; justify-content: flex-end; gap: 20px; padding-top: 20px; border-top: 1px solid var(--line); }
+#savedStatus { font-size: 13px; color: #527366; }
+.settings-page .cli-settings { border: 0; }
+.update-row { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 28px; align-items: start; padding: 34px 0; border-top: 1px solid var(--line); }
+.update-icon { width: 48px; height: 48px; }
+.update-details h2 { font-size: 23px; margin: 0 0 12px; }
+.version-line { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; font-size: 17px; line-height: 1.5; }
+.version-line>span:first-child { font-variant-numeric: tabular-nums; }
+.version-line>span+span { display: inline-flex; align-items: center; gap: 9px; color: var(--muted); font-size: 14px; }
+.update-details p, .settings-page #cliSource { margin: 18px 0 0; font-size: 14px; color: var(--muted); line-height: 1.6; }
+.settings-page .cli-actions { margin: 0; display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
+.installation-path { margin-top: 26px; color: var(--muted); font-size: 13px; }
+.settings-page #cliPath { display: block; margin: 9px 0 0; padding: 12px 16px; border: 1px solid var(--line); background: #f7f8fa; border-radius: 7px; color: #526176; font: 12px/1.7 ui-monospace, SFMono-Regular, Consolas, monospace; overflow-wrap: anywhere; }
+#cliUpdateStatus { display: block; margin-top: 12px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.settings-page #updateStatus { flex-basis: auto; }
+#cliUpdateStatus:empty, #updateStatus:empty { display: none; }
+.cli-settings>.page-footnote { border-top: 1px solid var(--line); padding-top: 25px; margin-top: 0; }
+.settings-page :is(.error, .notice):not([hidden]) { position: fixed; z-index: 120; left: 288px; right: 24px; bottom: 16px; margin: 0; padding: 12px 16px; border: 1px solid #f8c7c3; background: #fff3f1; border-radius: 8px; color: #a3372b; font-size: 14px; line-height: 1.5; box-shadow: 0 3px 15px #1822300a; }
+.settings-page .notice:not([hidden]) { border-color: #cbdcf7; background: #f4f8ff; color: #34588a; }
+@media (max-width: 1200px) {
+  .settings-page .settings-shell { grid-template-columns: 224px minmax(0, 1fr); }
+  .settings-page .settings-pane { padding: 36px 36px; }
+  .settings-page .settings-nav button { font-size: 15px; gap: 14px; padding-left: 16px; }
+  .settings-page :is(.error, .notice):not([hidden]) { left: 248px; }
+  .settings-page .setting-row { gap: 24px; grid-template-columns: minmax(160px, 1fr) minmax(220px, 1.1fr); }
+  .directory-value { max-width: 36%; }
+}
+@media (max-width: 950px) {
+  .settings-page .settings-shell { grid-template-columns: 190px minmax(0, 1fr); }
+  .settings-page .settings-pane { padding: 30px 26px; }
+  .settings-page .settings-nav button { gap: 11px; padding: 10px 12px; font-size: 14px; }
+  .settings-page .settings-nav button img { width: 20px; height: 20px; }
+  .settings-page header.window-toolbar { gap: 14px; }
+  .settings-page .back-dashboard span { display: none; }
+  .directory-value { font-size: 12px; }
+  .settings-page .settings-directory-row { gap: 16px; }
+  .directory-copy strong { font-size: 16px; }
+  .directory-copy>span { font-size: 13px; }
+  .settings-page .setting-row { grid-template-columns: 1fr; gap: 14px; }
+  .update-row { grid-template-columns: 42px minmax(0, 1fr); gap: 20px; }
+  .update-icon { width: 38px; height: 38px; }
+  .settings-page .cli-actions { grid-column: 2; flex-direction: row; flex-wrap: wrap; }
+  .settings-page .provider-button { font-size: 14px; gap: 10px; }
+  .settings-page :is(.error, .notice):not([hidden]) { left: 210px; }
+}
+@media (max-width: 760px) {
+  .settings-page .settings-shell { display: flex; flex-direction: column; }
+  .settings-page .settings-nav { flex: 0 0 auto; padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .settings-nav nav { flex-direction: row; overflow-x: auto; gap: 6px; }
+  .settings-page .settings-nav button { font-size: 13px; min-height: 38px; padding: 8px 12px; gap: 7px; }
+  .settings-page .settings-nav button img { width: 17px; height: 17px; }
+  .sidebar-version { display: none; }
+  .settings-page .content { flex: 1; min-height: 0; }
+  .settings-page .settings-pane { padding: 28px 22px; }
+  .settings-page h1 { font-size: 28px; }
+  .page-heading p { font-size: 14px; }
+  .settings-page .settings-directory-row { flex-wrap: wrap; gap: 12px; padding: 20px 4px; }
+  .directory-copy { flex: 1; }
+  .directory-value { width: calc(100% - 42px); max-width: none; margin-left: 40px; order: 2; text-align: left; }
+  .settings-directory-row .directory-chevron { margin-left: auto; }
+  .account-profile { gap: 16px; flex-wrap: wrap; }
+  .account-profile #switchAccount { margin-left: 80px; }
+  .account-identity { max-width: calc(100% - 80px); }
+  .sign-out-row { margin-top: 80px; flex-wrap: wrap; gap: 20px; }
+  .settings-page .login-options { grid-template-columns: 1fr; gap: 12px; }
+  .settings-page :is(.error, .notice):not([hidden]) { left: 16px; right: 16px; }
+  .settings-page header .brand { font-size: 17px; gap: 7px; }
+  .settings-page header .brand img { width: 25px; height: 25px; }
+}
+/* Match the selected desktop design while retaining the native 56px toolbar. */
+@media (min-width: 1201px) {
+  .settings-page .settings-nav button { min-height: 56px; font-size: 18px; }
+  .settings-page .settings-nav nav { gap: 10px; }
+  .settings-page .settings-pane { padding-top: 46px; }
+  .settings-page h1 { font-size: 36px; }
+  .page-heading p { font-size: 18px; }
+  .settings-page h2 { font-size: 22px; }
+  .connection-line, .settings-page #authStatus { font-size: 16px; }
+  .directory-copy strong { font-size: 20px; }
+  .directory-copy>span, .directory-value { font-size: 16px; }
+  .account-identity strong { font-size: 22px; }
+  .settings-page #accountDetails { font-size: 18px; }
+  .account-facts dt, .account-facts dd, .setting-copy { font-size: 17px; }
+  .setting-copy small { font-size: 15px; }
+  .settings-page .setting-row { padding: 25px 0; }
+}

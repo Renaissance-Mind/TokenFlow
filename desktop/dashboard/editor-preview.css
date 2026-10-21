@@ -21,3 +21,7 @@ html:has(.widget-preview){background:transparent!important;overflow:hidden}
 .widget-preview.mini-dashboard .chart-block{height:126px}
 .widget-preview #editorEndZone{height:0;margin:0;border:0;opacity:0;font-size:0}
 .widget-preview.is-editing-drag #editorEndZone{height:42px;margin-top:14px;border:1px dashed var(--line);opacity:1;font-size:11px}
+.widget-preview #miniWidgets{gap:12px}
+.widget-preview.mini-dashboard [data-mini-widget]{padding:12px}
+.widget-preview.mini-dashboard .section-head{margin-bottom:8px}
+.widget-preview.mini-dashboard .chart-block,.widget-preview.mini-dashboard .trend-chart{height:110px;min-height:0}

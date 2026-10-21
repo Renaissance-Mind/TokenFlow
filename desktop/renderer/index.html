@@ -4,10 +4,71 @@
 <title>TokenFlow Settings</title><link rel="icon" type="image/svg+xml" href="brand/tokenflow.svg"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="progress.css"><link rel="stylesheet" href="settings.css"><link rel="stylesheet" href="window-chrome.css"><link rel="stylesheet" href="widget-editor.css"></head>
 <body><main>
 <section class="operation-progress" id="operationProgress" hidden aria-live="polite"><span id="progressLabel"></span><div class="progress-track" id="progressTrack" role="progressbar" aria-valuemin="0" aria-valuemax="100"><span class="progress-fill" id="progressFill"></span></div><span id="progressPercent"></span></section>
-<header><div class="brand"><span>TokenFlow</span></div><nav class="breadcrumbs settings-only" aria-label="Navigation"><button id="breadcrumbDashboard" data-text="dashboardTitle">Dashboard</button><span aria-hidden="true">/</span><span data-text="settings">Settings</span></nav><div class="header-actions"><span id="account" class="tray-only"></span><button id="settingsShortcut" class="tray-only" data-text="settings">Settings</button><button id="dashboardShortcut" class="settings-only" data-text="backDashboard">Back to Dashboard</button></div></header>
-<div class="settings-shell"><aside class="settings-nav settings-only" aria-label="Settings sections"><button class="active" data-section="pageTitle" data-text="settings" aria-current="page">Settings</button><button data-section="authentication" data-text="accountNav">Account</button><button data-section="preferencesSection" data-text="preferences">Preferences</button><button data-section="traySection" data-text="popupTitle">Menu bar popup</button><button data-section="cliSection" data-text="cliUpdates">CLI & updates</button></aside>
+<header><button id="breadcrumbDashboard" class="brand" title="Dashboard"><img src="brand/tokenflow.svg" alt="" width="28" height="28"><span>TokenFlow</span></button><div class="header-actions"><span id="account" class="tray-only"></span><button id="settingsShortcut" class="tray-only" data-text="settings">Settings</button><button id="dashboardShortcut" class="settings-only back-dashboard"><img src="icons/arrow-left.svg" alt=""><span data-text="backDashboard">Back to Dashboard</span></button></div></header>
+<div class="settings-shell"><aside class="settings-nav settings-only" aria-label="Settings sections"><nav><button data-section="pageTitle" class="active" aria-current="page"><img src="icons/settings.svg" alt=""><span data-text="settings"></span></button><button data-section="authentication"><img src="icons/user.svg" alt=""><span data-text="accountNav"></span></button><button data-section="preferencesSection"><img src="icons/sliders.svg" alt=""><span data-text="preferences"></span></button><button data-section="traySection"><img src="icons/monitor.svg" alt=""><span data-text="popupTitle"></span></button><button data-section="cliSection"><img src="icons/terminal.svg" alt=""><span data-text="cliUpdates"></span></button></nav><span class="sidebar-version" id="sidebarVersion"></span></aside>
 <div class="content">
-<div class="page-intro settings-only"><h1 id="pageTitle" data-text="settings">Settings</h1><p data-text="settingsSubtitle">Your App and CLI, connected.</p></div>
+<p id="error" class="error" role="alert" hidden></p><p id="notice" class="notice" role="status" hidden></p>
+<section class="settings-only settings-pane settings-overview" data-settings-page="pageTitle" aria-labelledby="pageTitle">
+  <div class="page-heading"><h1 id="pageTitle" tabindex="-1" data-text="settings">Settings</h1><p data-text="overviewSubtitle"></p></div>
+  <p class="connection-line" id="overviewConnection"></p>
+  <div class="settings-directory"><button class="settings-directory-row" data-open-section="authentication"><img src="icons/user.svg" alt=""><span class="directory-copy"><strong data-text="accountTitle"></strong><span data-text="accountSummaryHint"></span></span><span class="directory-value" id="overviewAccount"></span><img class="directory-chevron" src="icons/chevron-right.svg" alt=""></button><button class="settings-directory-row" data-open-section="preferencesSection"><img src="icons/sliders.svg" alt=""><span class="directory-copy"><strong data-text="preferences"></strong><span data-text="preferencesSummaryHint"></span></span><span class="directory-value" id="overviewPreferences"></span><img class="directory-chevron" src="icons/chevron-right.svg" alt=""></button><button class="settings-directory-row" data-open-section="traySection"><img src="icons/monitor.svg" alt=""><span class="directory-copy"><strong data-text="popupTitle"></strong><span data-text="popupSummaryHint"></span></span><span class="directory-value" id="overviewPopup"></span><img class="directory-chevron" src="icons/chevron-right.svg" alt=""></button><button class="settings-directory-row" data-open-section="cliSection"><img src="icons/terminal.svg" alt=""><span class="directory-copy"><strong data-text="cliUpdates"></strong><span data-text="updatesSummaryHint"></span></span><span class="directory-value" id="overviewUpdates"></span><img class="directory-chevron" src="icons/chevron-right.svg" alt=""></button></div>
+  <p class="page-footnote" data-text="sharedAccountHint"></p>
+</section>
+<section class="settings-only settings-pane auth" id="authentication" data-settings-page="authentication" aria-labelledby="connectTitle" hidden>
+  <div class="page-heading"><h1 id="connectTitle" tabindex="-1" data-text="accountTitle">Account & sync</h1><p data-text="accountSubtitle"></p></div>
+  <p class="connection-line" id="authStatus"></p>
+  <div id="connectedSection" hidden>
+    <div class="account-profile"><div class="account-avatar" id="accountAvatar" aria-hidden="true"></div><div class="account-identity"><strong id="accountName"></strong><span id="accountDetails"></span></div><button id="switchAccount" class="outline-button" data-text="switchAccount">Switch account</button></div>
+    <dl class="account-facts"><div><dt data-text="accountStateLabel"></dt><dd id="accountState"></dd></div><div><dt data-text="currentDevice"></dt><dd id="accountDevice"></dd></div><div><dt data-text="lastSync"></dt><dd id="accountLastSync"></dd></div></dl>
+    <p class="page-footnote" id="connectDescription" data-text="connectDescription"></p>
+    <div class="sign-out-row"><div><h2 data-text="signOutTitle"></h2><p data-text="signOutHint"></p></div><button id="logout" data-text="logout">Sign out App & CLI</button></div>
+  </div>
+  <div id="accountLogin">
+    <div class="login-intro"><h2 data-text="connectAccount"></h2><p data-text="connectAccountHint"></p></div>
+    <nav class="login-options" id="loginSection"><button id="github" class="provider-button"><img src="icons/github.svg" alt=""><span data-text="github">Sign in with GitHub</span></button><button id="google" class="provider-button"><img src="icons/google.svg" alt=""><span data-text="google">Sign in with Google</span></button></nav>
+    <div id="loginPending" class="login-pending" hidden><p id="loginStatus" data-text="loginStarting">Starting browser sign-in…</p><p id="loginInstructions"><span data-text="waiting">Finish signing in in your browser. TokenFlow will connect automatically.</span> <strong id="loginCode"></strong></p><button id="cancel" data-text="cancel">Cancel login</button></div>
+    <div class="login-divider"><span data-text="orToken"></span></div>
+    <form id="tokenForm"><label><span data-text="apiToken">Read-write API token</span><input id="apiToken" type="password" placeholder="tu_api_…" autocomplete="off" spellcheck="false" required></label><button type="submit" class="primary-button" id="saveToken" data-text="saveToken">Connect token</button></form>
+    <p class="page-footnote" data-text="sharedAccountHint"></p>
+  </div>
+</section>
+<section class="settings-only settings-pane" id="preferencesSection" data-settings-page="preferencesSection" aria-labelledby="settingsTitle" hidden>
+  <div class="page-heading"><h1 id="settingsTitle" tabindex="-1" data-text="preferences">Preferences</h1><p data-text="preferencesSubtitle"></p></div>
+  <form id="preferences">
+    <div class="preference-group"><h2 data-text="deviceConnection"></h2>
+      <label class="setting-row"><span class="setting-copy"><span data-text="device">Device name</span><small data-text="deviceHint"></small></span><input id="deviceName" maxlength="120" required autocomplete="off"></label>
+      <label class="setting-row"><span class="setting-copy"><span data-text="server">Server</span><small id="serverHint" data-text="serverHint"></small></span><input id="serverUrl" type="url" required spellcheck="false" aria-describedby="serverHint"></label>
+    </div>
+    <div class="preference-group"><h2 data-text="language">Language</h2><label class="setting-row"><span class="setting-copy"><span data-text="interfaceLanguage"></span><small data-text="languageHint"></small></span><select id="language"><option value="en">English</option><option value="zh">简体中文</option></select></label></div>
+    <div class="preference-group"><h2 data-text="startupSync"></h2>
+      <label class="setting-row"><span class="setting-copy"><span data-text="launch">Start at login</span><small data-text="launchHint">Open TokenFlow when you sign in to your computer</small></span><input id="launchAtLogin" type="checkbox" role="switch"></label>
+      <label class="setting-row"><span class="setting-copy"><span data-text="pause">Pause automatic sync</span><small data-text="pauseHint">Manual sync is always available</small></span><input id="paused" type="checkbox" role="switch"></label>
+    </div>
+    <div class="save-row"><span id="savedStatus" role="status" aria-live="polite"></span><button type="submit" id="save" class="primary-button" data-text="save">Save preferences</button></div>
+  </form>
+</section>
+<section class="settings-only settings-pane tray-preferences" id="traySection" data-settings-page="traySection" aria-labelledby="widgetEditorTitle" hidden>
+  <form id="trayPreferences" class="widget-editor">
+    <div class="widget-editor-toolbar"><div class="widget-editor-intro"><h1 id="widgetEditorTitle" tabindex="-1">Menu bar popup</h1><p id="widgetEditorSubtitle"></p></div><button id="saveTray" type="submit" class="primary-button">Done</button></div>
+    <div class="menu-bar-preferences" id="menuBarPreferences">
+      <label class="menu-bar-icon-toggle"><input id="showTrayIcon" type="checkbox" role="switch"><span id="showTrayIconText">Show menu bar icon</span></label>
+      <div class="menu-bar-metric"><span id="trayMetricLabel" data-text="displayMode"></span><div id="trayMetric" class="segmented-control" role="group" aria-labelledby="trayMetricLabel"><button type="button" data-tray-metric="cost" aria-pressed="true" data-text="costMetric">Today’s cost</button><button type="button" data-tray-metric="tokens" aria-pressed="false" data-text="tokenMetric">Today’s tokens</button><button type="button" data-tray-metric="icon" aria-pressed="false" data-text="iconMetric">Icon only</button></div></div>
+      <div class="menu-bar-sample"><span data-text="menuBarPreview"></span><output id="menuBarSample"><img id="previewTrayIcon" src="brand/tokenflow.svg" alt="" width="24" height="24"><span id="previewTrayValue">—</span></output></div>
+    </div>
+    <div class="widget-layout-toolbar"><label><span data-text="popupRange"></span><select id="trayRange"><option value="1" data-text="todayShort">Today</option><option value="7" data-text="popup7">Last 7 days</option><option value="30" data-text="popup30">Last 30 days</option></select></label><label><span data-text="popupTheme"></span><select id="trayTheme"><option value="system" data-text="popupSystem">Follow system</option><option value="light" data-text="popupLight">Light</option><option value="dark" data-text="popupDark">Dark</option></select></label><button id="addWidget" type="button" class="outline-button" aria-controls="widgetLibrary" aria-expanded="true"><img src="icons/plus.svg" alt=""><span id="addWidgetText">Add widgets</span></button><button id="resetWidgets" type="button"><span id="resetWidgetsText">Restore defaults</span></button></div>
+    <div class="widget-workspace library-open" id="widgetWorkspace">
+      <div class="widget-canvas" id="widgetCanvas"><div id="widgetPreviewLoading" class="widget-preview-loading" role="status"><p id="widgetPreviewLoadingText">Loading popup preview…</p><button id="retryWidgetPreview" type="button">Retry</button></div><iframe id="widgetPreview" title="Popup preview" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer"></iframe></div>
+      <aside class="widget-library" id="widgetLibrary" aria-labelledby="widgetLibraryTitle"><div class="widget-library-heading"><div><h2 id="widgetLibraryTitle">Widgets</h2><p id="widgetLibraryHint">Click to add, or drag into the preview</p></div><button id="closeWidgetLibrary" type="button" class="editor-icon-button" aria-label="Close widget library"><img src="icons/x.svg" alt=""></button></div><label class="widget-search"><img src="icons/search.svg" alt=""><input id="widgetSearch" type="search" placeholder="Search widgets…" autocomplete="off"></label><div class="widget-catalog" id="widgetCatalog"></div><p id="widgetNoResults" hidden></p></aside>
+    </div>
+    <div class="widget-editor-footer"><span id="widgetCount" class="widget-count"></span><span id="traySavedStatus" role="status" aria-live="polite"></span></div>
+  </form>
+</section>
+<section class="settings-only settings-pane cli-settings" id="cliSection" data-settings-page="cliSection" aria-labelledby="cliTitle" hidden>
+  <div class="page-heading"><h1 id="cliTitle" tabindex="-1" data-text="cliUpdates">CLI & updates</h1><p data-text="updatesSubtitle"></p></div>
+  <div class="update-row app-update-row"><img class="update-icon app-icon" src="brand/tokenflow.svg" alt=""><div class="update-details"><h2 data-text="appTitle">TokenFlow App</h2><div class="version-line"><span id="version"></span><span id="updateStatus" role="status"></span></div><p data-text="appDescription"></p></div><div class="cli-actions"><button id="update" class="outline-button" data-text="update">Check App updates</button><button id="downloadUpdate" class="primary-button" hidden data-text="download">Download update</button><button id="installUpdate" class="primary-button" hidden data-text="install">Install and restart</button></div></div>
+  <div class="update-row"><img class="update-icon" src="icons/terminal.svg" alt=""><div class="update-details"><h2>TokenFlow CLI</h2><div class="version-line"><span id="collectorVersion"></span><span id="cliInstallationStatus" data-text="cliInstalled"></span></div><div class="installation-path"><span data-text="installLocation"></span><code id="cliPath"></code></div><p class="muted" id="cliSource"></p><span id="cliUpdateStatus" role="status"></span></div><div class="cli-actions"><button id="checkCliUpdate" class="outline-button" data-text="checkCliUpdate">Check CLI updates</button><button id="upgradeCli" class="primary-button" hidden data-text="upgradeCli">Upgrade CLI</button></div></div>
+  <p class="page-footnote" data-text="independentUpdates"></p>
+</section>
   <section class="tray-only usage" aria-labelledby="todayTitle">
     <div class="section-label full-only"><h1 data-text="dashboardTitle">Dashboard</h1><span id="connection"></span></div>
     <section class="overview">
@@ -21,60 +82,5 @@
     <details class="sources full-only"><summary><span data-text="sources">Local sources</span><span id="sourceCount"></span></summary><ul id="sourceList"></ul></details>
   </section>
 
-<p id="error" class="error" role="alert" hidden></p><p id="notice" class="muted" hidden></p>
-<section class="settings-only auth" id="authentication" aria-labelledby="connectTitle">
-  <div class="section-label"><h2 id="connectTitle" data-text="accountTitle">Account & sync</h2><span id="authStatus"></span></div>
-  <div id="connectedSection" hidden><div class="account-identity"><span data-text="yourAccount">Your account</span><strong id="accountDetails"></strong></div><div class="account-actions"><button id="switchAccount" data-text="switchAccount">Switch account</button><button id="logout" data-text="logout">Sign out App & CLI</button></div></div>
-  <p id="connectDescription" class="muted" data-text="connectDescription">Account and sync settings are shared with the terminal.</p>
-  <nav class="login-options" id="loginSection"><button id="github" data-text="github">Sign in with GitHub</button><button id="google" data-text="google">Sign in with Google</button></nav>
-  <div id="loginPending" hidden><p id="loginStatus" data-text="loginStarting">Starting browser sign-in…</p><p id="loginInstructions"><span data-text="waiting">Finish signing in in your browser. TokenFlow will connect automatically.</span> <strong id="loginCode"></strong></p><button id="cancel" data-text="cancel">Cancel login</button></div>
-  <form id="tokenForm"><label><span data-text="apiToken">Read-write API token</span><input id="apiToken" type="password" placeholder="tu_api_…" autocomplete="off" spellcheck="false" required></label><button type="submit" id="saveToken" data-text="saveToken">Connect token</button></form>
-</section>
-<section class="settings settings-only" id="preferencesSection" aria-labelledby="settingsTitle">
-  <div class="section-label"><h2 id="settingsTitle" data-text="preferences">Preferences</h2></div>
-  <form id="preferences"><div class="setting-grid">
-    <label><span data-text="device">Device name</span><input id="deviceName" maxlength="120" required autocomplete="off"></label>
-    <label><span data-text="server">Server</span><input id="serverUrl" type="url" required spellcheck="false"></label>
-    <label><span data-text="language">Language</span><select id="language"><option value="en">English</option><option value="zh">简体中文</option></select></label>
-  </div><div class="toggle-row">
-    <label class="toggle"><span class="toggle-copy"><span data-text="launch">Start at login</span><small data-text="launchHint">Open TokenFlow when you sign in to your computer</small></span><input id="launchAtLogin" type="checkbox" role="switch"></label>
-    <label class="toggle"><span class="toggle-copy"><span data-text="pause">Pause automatic sync</span><small data-text="pauseHint">Manual sync is always available</small></span><input id="paused" type="checkbox" role="switch"></label>
-    <div class="save-row"><span id="savedStatus" role="status"></span><button type="submit" id="save" data-text="save">Save preferences</button></div>
-  </div></form>
-</section>
-<section class="settings-only tray-preferences" id="traySection" aria-labelledby="widgetEditorTitle">
-  <form id="trayPreferences" class="widget-editor">
-    <div class="widget-editor-toolbar">
-      <div class="widget-editor-intro"><h2 id="widgetEditorTitle">Edit popup</h2><p id="widgetEditorSubtitle">Drag widgets into a layout that works for you.</p></div>
-      <div class="widget-editor-actions">
-        <select id="trayRange"><option value="1" data-text="todayShort">Today</option><option value="7" data-text="popup7">Last 7 days</option><option value="30" data-text="popup30">Last 30 days</option></select>
-        <select id="trayTheme"><option value="system" data-text="popupSystem">Follow system</option><option value="light" data-text="popupLight">Light</option><option value="dark" data-text="popupDark">Dark</option></select>
-        <button id="addWidget" type="button" class="editor-outline-button" aria-controls="widgetLibrary" aria-expanded="true"><img src="icons/plus.svg" alt=""><span id="addWidgetText">Add widgets</span></button>
-        <button id="saveTray" type="submit" class="editor-primary-button">Done</button>
-      </div>
-    </div>
-    <div class="menu-bar-preferences" id="menuBarPreferences">
-      <label class="menu-bar-icon-toggle"><input id="showTrayIcon" type="checkbox" role="switch"><span id="showTrayIconText">Show menu bar icon</span></label>
-      <label class="menu-bar-metric"><span data-text="menuMetric">Menu bar display</span><select id="trayMetric"><option value="cost" data-text="costMetric">Today’s cost</option><option value="tokens" data-text="tokenMetric">Today’s tokens</option><option value="icon" data-text="iconMetric">Icon only</option></select></label>
-    </div>
-    <div class="widget-workspace library-open" id="widgetWorkspace">
-      <div class="widget-canvas" id="widgetCanvas">
-        <div id="widgetPreviewLoading" class="widget-preview-loading" role="status"><p id="widgetPreviewLoadingText">Loading popup preview…</p><button id="retryWidgetPreview" type="button">Retry</button></div>
-        <iframe id="widgetPreview" title="Popup preview" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer"></iframe>
-        <p id="widgetCount" class="widget-count"></p>
-      </div>
-      <aside class="widget-library" id="widgetLibrary" aria-labelledby="widgetLibraryTitle">
-        <div class="widget-library-heading"><div><h3 id="widgetLibraryTitle">Widgets</h3><p id="widgetLibraryHint">Click to add, or drag into the preview</p></div><button id="closeWidgetLibrary" type="button" class="editor-icon-button" aria-label="Close widget library"><img src="icons/x.svg" alt=""></button></div>
-        <label class="widget-search"><img src="icons/search.svg" alt=""><input id="widgetSearch" type="search" placeholder="Search widgets…" autocomplete="off"></label>
-        <div class="widget-catalog" id="widgetCatalog"></div><p id="widgetNoResults" hidden></p>
-      </aside>
-    </div>
-    <div class="widget-editor-footer"><span id="traySavedStatus" role="status" aria-live="polite"></span><button id="resetWidgets" type="button"><img src="icons/rotate-ccw.svg" alt=""><span id="resetWidgetsText">Restore defaults</span></button></div>
-  </form>
-</section>
-<section class="settings-only cli-settings" id="cliSection" aria-labelledby="cliTitle"><div class="section-label"><h2 id="cliTitle" data-text="cliUpdates">CLI & updates</h2></div>
-  <div class="update-row"><div class="update-details"><div class="version-line"><span data-text="cliTitle">CLI</span><span id="collectorVersion"></span></div><code id="cliPath"></code><p class="muted" id="cliSource"></p></div><div class="cli-actions"><button id="checkCliUpdate" data-text="checkCliUpdate">Check CLI updates</button><button id="upgradeCli" hidden data-text="upgradeCli">Upgrade CLI</button><span id="cliUpdateStatus" role="status"></span></div></div>
-  <div class="update-row app-update-row"><div class="update-details"><div class="version-line"><span data-text="appTitle">TokenFlow App</span><span id="version"></span></div><span id="updateStatus" role="status"></span></div><div class="cli-actions"><button id="update" data-text="update">Check App updates</button><button id="downloadUpdate" hidden data-text="download">Download update</button><button id="installUpdate" hidden data-text="install">Install and restart</button></div></div>
-</section>
 <footer class="tray-only"><span id="scanned"></span><span class="full-only" data-text="metadata">Only usage counts are uploaded.</span><button id="trayDashboard" data-text="dashboard">Dashboard</button></footer>
-</div></div></main><script src="vendor/echarts.js"></script><script type="module" src="app.js"></script></body></html>
+</div></div></main><script type="module" src="app.js"></script></body></html>

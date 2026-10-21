@@ -52,7 +52,7 @@ await withDesktopTestServer(async({url,approve,completeSignIn,request,db,userId,
     await dashboard.evaluate(()=>{window.dashboardIdentity=document.getElementById('app');});
     let state=await dashboard.evaluate(()=>window.tokenflow.getState());assert.equal(state.cli.source,'installed');assert.equal(state.hasCollector,true);assert.equal(state.hasDashboard,true);assert.equal(state.dashboardSource,'cloud');
     assert.equal(state.settings.deviceName,'Existing CLI');assert.equal(state.settings.serverUrl,url);assert.equal(state.settings.paused,false);
-    assert.deepEqual(JSON.parse(await fs.readFile(path.join(env.TOKENFLOW_DESKTOP_DATA,'settings.json'),'utf8')),{launchAtLogin:true,trayMetric:'cost',language:'en',trayRange:7,trayTheme:'system',trayWidgets:['overview','trend','models']});
+    assert.deepEqual(JSON.parse(await fs.readFile(path.join(env.TOKENFLOW_DESKTOP_DATA,'settings.json'),'utf8')),{launchAtLogin:true,showTrayIcon:true,trayMetric:'cost',language:'en',trayRange:7,trayTheme:'system',trayWidgets:['overview','trend','models']});
     assert.equal(JSON.parse(await fs.readFile(path.join(env.TOKENFLOW_HOME,'config.json'),'utf8')).deviceToken,linked.token);
     const nativeMain=await instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().map(w=>({id:w.id,bounds:w.getBounds()})));
     await dashboard.evaluate(()=>window.tokenflow.openSettings());
@@ -60,6 +60,7 @@ await withDesktopTestServer(async({url,approve,completeSignIn,request,db,userId,
     let settings=instance.windows().find(p=>p.url().includes('mode=settings'));await settings.waitForLoadState('domcontentloaded');
     assert.deepEqual(await instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().map(w=>({id:w.id,bounds:w.getBounds()}))),nativeMain);
     assert.equal(await settings.evaluate(()=>getComputedStyle(document.body).colorScheme),'light');
+    await settings.locator('[data-section=authentication]').click();
     await expect(settings.locator('#loginSection')).toBeHidden();
     await expect(settings.locator('#tokenForm')).toBeHidden();
     await settings.setViewportSize({width:1440,height:960});
@@ -85,13 +86,14 @@ await withDesktopTestServer(async({url,approve,completeSignIn,request,db,userId,
     await expect(mini.locator('body')).toHaveAttribute('data-mini-loaded','true');
     await expect(mini.locator('#miniSource')).toHaveText('Synced data');
     await expect(mini.locator('#totalTokens')).toHaveAttribute('title','1,100');
+    await expect(mini.locator('#modelShare canvas')).toBeVisible();
     assert.equal(await dashboard.evaluate(()=>location.href), 'tokenflow://dashboard/index.html?mode=dashboard');
     assert.equal(await dashboard.evaluate(()=>window.dashboardIdentity===document.getElementById('app')),true);
     assert.equal(await instance.evaluate(({webContents})=>webContents.getAllWebContents().some(c=>/^https?:/.test(c.getURL()))),false);
     await dashboard.screenshot({path:path.join(desktop,'test-results','desktop-dashboard-cloud.png')});
     await settings.evaluate(()=>window.tokenflow.saveSettings({deviceName:'App shared settings',paused:true,trayMetric:'tokens'}));
     let shared=cliConfig();assert.equal(shared.deviceName,'App shared settings');assert.equal(shared.autoSyncPaused,true);assert.equal(shared.deviceToken,linked.token);
-    assert.deepEqual(JSON.parse(await fs.readFile(path.join(env.TOKENFLOW_DESKTOP_DATA,'settings.json'),'utf8')),{launchAtLogin:true,trayMetric:'tokens',language:'en',trayRange:7,trayTheme:'system',trayWidgets:['overview','trend','models']});
+    assert.deepEqual(JSON.parse(await fs.readFile(path.join(env.TOKENFLOW_DESKTOP_DATA,'settings.json'),'utf8')),{launchAtLogin:true,showTrayIcon:true,trayMetric:'tokens',language:'en',trayRange:7,trayTheme:'system',trayWidgets:['overview','trend','models']});
     cliCommand(['device-name','CLI renamed device','--local']);cliAction('configure',{paused:false});
     await expect.poll(async()=>{const s=await settings.evaluate(()=>window.tokenflow.getState());return s.settings.deviceName==='CLI renamed device'&&!s.settings.paused;},{timeout:30_000}).toBe(true);
     await expect(settings.locator('#deviceName')).toHaveValue('CLI renamed device');await expect(settings.locator('#paused')).not.toBeChecked();
@@ -127,16 +129,17 @@ await withDesktopTestServer(async({url,approve,completeSignIn,request,db,userId,
     await saveCliConfig({...config,autoSyncPaused:true});
     await expect.poll(async()=>(await dashboard.evaluate(()=>window.tokenflow.getState())).account?.id,{timeout:30_000}).toBe(userId);
     await expect(dashboard.locator('#totalTokens')).toHaveAttribute('title','1,100');
-    // A failed cloud data request keeps the exact same page and chart elements.
+    // A failed refresh retains the cached account data and the same chart nodes.
     await dashboard.evaluate(()=>{window.dashboardIdentity=document.getElementById('app');});
     await instance.evaluate(({session},server)=>{
       session.fromPartition('persist:tokenflow-dashboard').webRequest.onBeforeRequest({urls:[server+'/api/usage/summary*']},(_details,callback)=>callback({cancel:true}));
     },url);
     await dashboard.evaluate(()=>window.tokenflowDashboard.refresh());
-    await expect.poll(async()=>(await dashboard.evaluate(()=>window.tokenflow.getState())).dashboardSource).toBe('local');
+    await expect.poll(async()=>(await dashboard.evaluate(()=>window.tokenflow.getState())).notice).toBe('Synced data is unavailable. Showing saved statistics.');
+    assert.equal((await dashboard.evaluate(()=>window.tokenflow.getState())).dashboardSource,'cloud');
     assert.equal(await dashboard.evaluate(()=>window.dashboardIdentity===document.getElementById('app')),true);
     await expect(dashboard.locator('#app')).toBeVisible();
-    await expect(dashboard.locator('#totalTokens')).toHaveAttribute('title','0');
+    await expect(dashboard.locator('#totalTokens')).toHaveAttribute('title','1,100');
     await instance.evaluate(({session})=>session.fromPartition('persist:tokenflow-dashboard').webRequest.onBeforeRequest(null));
     await dashboard.evaluate(()=>window.tokenflow.dashboard());
     await expect.poll(async()=>(await dashboard.evaluate(()=>window.tokenflow.getState())).dashboardSource).toBe('cloud');
@@ -161,6 +164,7 @@ await withDesktopTestServer(async({url,approve,completeSignIn,request,db,userId,
     await dashboard.evaluate(()=>window.tokenflow.openSettings());
     await expect.poll(()=>instance.windows().some(p=>p.url().includes('mode=settings'))).toBe(true);
     settings=instance.windows().find(p=>p.url().includes('mode=settings'));await settings.waitForLoadState('domcontentloaded');
+    await settings.locator('[data-section=authentication]').click();
     await settings.locator('#switchAccount').click();await expect(settings.locator('#google')).toBeVisible();await expect(settings.locator('#tokenForm')).toBeVisible();
     assert.equal(cliConfig().deviceToken,browserConfig.deviceToken);
     await settings.locator('#switchAccount').click();await expect(settings.locator('#loginSection')).toBeHidden();assert.equal(cliConfig().deviceToken,browserConfig.deviceToken);
@@ -168,7 +172,7 @@ await withDesktopTestServer(async({url,approve,completeSignIn,request,db,userId,
     await expect.poll(async()=>!!(await settings.evaluate(()=>window.tokenflow.getState())).login).toBe(true);
     const switchCode=(await settings.evaluate(()=>window.tokenflow.getState())).login.code;
     assert.equal(cliConfig().deviceToken,browserConfig.deviceToken);
-    assert.equal((await request('/api/desktop/approve',{user_code:switchCode},undefined,{Cookie:'tu_session='+otherSession,Origin:url})).status,200);
+    await completeSignIn(switchCode,'usr_other_cli');
     await expect.poll(async()=>{const s=await settings.evaluate(()=>window.tokenflow.getState());return s.account?.id==='usr_other_cli'&&!s.loginBusy&&!s.busy;},{timeout:60_000}).toBe(true);
     shared=cliConfig();assert.notEqual(shared.deviceToken,browserConfig.deviceToken);assert.notEqual(shared.deviceId,browserConfig.deviceId);assert.equal(shared.lastSyncAt,undefined);
     assert.equal((await(await request('/api/me',undefined,shared.deviceToken)).json()).user.id,'usr_other_cli');

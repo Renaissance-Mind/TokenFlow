@@ -30,6 +30,7 @@ await withDesktopTestServer(async({url,request,db,userId,sessionToken})=>{
     const settings=instance.windows().find(p=>p.url().includes('mode=settings'));await settings.waitForLoadState('domcontentloaded');
     await expect.poll(()=>dashboard.evaluate(()=>document.body.inert)).toBe(true);
     const errors=[];settings.on('pageerror',e=>errors.push(e.message));
+    await settings.locator('[data-section=authentication]').click();
     await expect(settings.locator('#accountDetails')).toHaveText('alex@example.test');
     await settings.setViewportSize({width:1440,height:960});
     await expect(settings.locator('#operationProgress')).toBeHidden();
@@ -40,6 +41,7 @@ await withDesktopTestServer(async({url,request,db,userId,sessionToken})=>{
     await settings.screenshot({path:path.join(desktop,'test-results','settings-light-reading.png')});
     await reading;await expect(settings.locator('#operationProgress')).toBeHidden();
     await settings.setViewportSize({width:1440,height:916});
+    await settings.locator('[data-section=cliSection]').click();
     assert.equal(await settings.locator('#update').evaluate(el=>el.getBoundingClientRect().bottom<=innerHeight),true);
     await settings.screenshot({path:path.join(desktop,'test-results','settings-light-native-height.png')});
     await settings.locator('[data-section="cliSection"]').click();await expect(settings.locator('#update')).toBeInViewport();

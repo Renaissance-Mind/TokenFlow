@@ -299,14 +299,26 @@ try {
   assert.equal(await settings.locator('header').evaluate(el=>el.getBoundingClientRect().height),56);
   assert.equal(await settings.locator('#operationProgress').evaluate(el=>el.closest('header')!==null),true);
   settings.on('pageerror',e=>errors.push(e.message));
-  await expect(settings.locator('.overview')).toBeHidden(); await expect(settings.locator('#preferences')).toBeVisible();
+  await expect(settings.locator('.overview')).toBeHidden();
+  await expect(settings.locator('[data-settings-page=pageTitle]')).toBeVisible();
+  await expect(settings.locator('.settings-directory-row')).toHaveCount(4);
+  await expect(settings.locator('#preferences')).toBeHidden();
+  await settings.locator('[data-open-section=authentication]').click();
+  await expect(settings.locator('[data-settings-page=pageTitle]')).toBeHidden();
   await expect(settings.locator('#loginSection')).toBeVisible(); await expect(settings.locator('#apiToken')).toBeVisible();
   await expect(settings.locator('#cliPath')).toHaveText(state.cli.path);
+  await settings.locator('[data-section=preferencesSection]').click();
+  await expect(settings.locator('#loginSection')).toBeHidden();
+  await expect(settings.locator('#preferences')).toBeVisible();
   // A language selection saves immediately, even while Save preferences is
   // disabled by a real scan, without submitting unrelated draft fields.
   const languageConfigBefore=await fs.readFile(path.join(env.TOKENFLOW_HOME,'config.json'),'utf8');
   const originalDevice=(await settings.evaluate(()=>window.tokenflow.getState())).settings.deviceName;
   await settings.locator('#deviceName').fill('Unsaved device name');
+  await settings.locator('[data-section=authentication]').click();
+  await expect(settings.locator('#preferences')).toBeHidden();
+  await settings.locator('[data-section=preferencesSection]').click();
+  await expect(settings.locator('#deviceName')).toHaveValue('Unsaved device name');
   assert.equal(await settings.evaluate(async()=>{
     let changed=false,saveDisabled=false;
     const off=window.tokenflow.onState(state=>{if(state.busy&&!changed){
@@ -368,9 +380,11 @@ try {
   await expect(preview.locator('body')).toHaveAttribute('data-mini-loaded','true',{timeout:30_000});
   if(positionTest) {
     await expect(settings.locator('#showTrayIcon')).toBeChecked();
-    await expect(settings.locator('#trayMetric')).toHaveValue('cost');
+    await expect(settings.locator('[data-tray-metric=cost]')).toHaveAttribute('aria-pressed','true');
     assert.equal(await instance.evaluate(()=>globalThis.trayPositionTest.getTitle()),'$0.00');
-    await settings.locator('#showTrayIcon').uncheck();await settings.locator('#trayMetric').selectOption('tokens');
+    await settings.locator('#showTrayIcon').uncheck();await settings.locator('[data-tray-metric=tokens]').click();
+    await expect(settings.locator('#previewTrayValue')).toHaveText('0');
+    await expect(settings.locator('#previewTrayIcon')).toBeHidden();
     assert.equal((await settings.evaluate(()=>window.tokenflow.getState())).settings.trayMetric,'cost');
     await settings.locator('#saveTray').click();
     await expect(settings.locator('#traySavedStatus')).toHaveText('小窗设置已保存。');
@@ -379,12 +393,12 @@ try {
     const saved=JSON.parse(await fs.readFile(path.join(env.TOKENFLOW_DESKTOP_DATA,'settings.json'),'utf8'));
     assert.equal(saved.showTrayIcon,false);assert.equal(saved.trayMetric,'tokens');
     await settings.reload();await settings.locator('[data-section="traySection"]').click();
-    await expect(settings.locator('#showTrayIcon')).not.toBeChecked();await expect(settings.locator('#trayMetric')).toHaveValue('tokens');
-    await settings.locator('#trayMetric').selectOption('icon');
+    await expect(settings.locator('#showTrayIcon')).not.toBeChecked();await expect(settings.locator('[data-tray-metric=tokens]')).toHaveAttribute('aria-pressed','true');
+    await settings.locator('[data-tray-metric=icon]').click();
     await expect(settings.locator('#showTrayIcon')).toBeChecked();await expect(settings.locator('#showTrayIcon')).toBeDisabled();
     await settings.locator('#saveTray').click();
     await expect.poll(()=>instance.evaluate(()=>({title:globalThis.trayPositionTest.getTitle(),empty:globalThis.trayImageEmpty}))).toEqual({title:'',empty:false});
-    await settings.locator('#trayMetric').selectOption('cost');await settings.locator('#saveTray').click();
+    await settings.locator('[data-tray-metric=cost]').click();await settings.locator('#saveTray').click();
     await expect.poll(()=>instance.evaluate(()=>globalThis.trayPositionTest.getTitle())).toBe('$0.00');
     for(const width of [1440,1000,760]) {
       await settings.setViewportSize({width,height:960});
@@ -402,6 +416,10 @@ try {
   for(const name of ['activity','composition','devices','cache','output'])await settings.locator('[data-widget="'+name+'"] .widget-add').click();
   await expect.poll(previewOrder).toEqual(['overview','trend','models','activity','composition','devices','cache','output']);
   assert.deepEqual((await settings.evaluate(()=>window.tokenflow.getState())).settings.trayWidgets,['overview','trend','models']);
+  await settings.locator('[data-section=preferencesSection]').click();
+  await expect(settings.locator('#trayPreferences')).toBeHidden();
+  await settings.locator('[data-section=traySection]').click();
+  await expect.poll(previewOrder).toEqual(['overview','trend','models','activity','composition','devices','cache','output']);
   await settings.locator('#saveTray').click();
   await expect(settings.locator('#traySavedStatus')).toHaveText('小窗设置已保存。');
   await expect.poll(()=>panel.locator('#miniWidgets>[data-mini-widget]').evaluateAll(nodes=>nodes.map(node=>node.dataset.miniWidget))).toEqual(['overview','trend','models','activity','composition','devices','cache','output']);
@@ -421,7 +439,8 @@ try {
     await settings.mouse.move(start.x+start.width/2+8,start.y+start.height/2+8,{steps:5});
     await settings.mouse.move(end.x+end.width/2,end.y+Math.max(3,offsetY),{steps:25});await settings.mouse.move(end.x+end.width/2+1,end.y+Math.max(3,offsetY)+1);await settings.mouse.up();
   }
-  await dragBetween(settings.locator('[data-widget="activity"]'),settings.locator('#widgetCount'),3);
+  const overviewCard=preview.locator('[data-mini-widget="overview"]');
+  await dragBetween(settings.locator('[data-widget="activity"]'),overviewCard,(await overviewCard.boundingBox()).height-5);
   await expect.poll(previewOrder).toEqual(['overview','activity']);
   await settings.locator('#widgetSearch').fill('');
   await dragBetween(settings.locator('[data-drag-widget="activity"]'),preview.locator('[data-mini-widget="overview"]'),5);
@@ -432,9 +451,9 @@ try {
   await settings.locator('[data-drag-widget="activity"]').press('ArrowUp',{timeout:15000});
   await expect.poll(previewOrder).toEqual(['activity','overview']);
   await settings.evaluate(()=>window.tokenflow.saveSettings({language:'en'}));
-  await expect(settings.locator('#widgetEditorTitle')).toHaveText('Edit popup');await expect(preview.locator('html')).toHaveAttribute('lang','en');
+  await expect(settings.locator('#widgetEditorTitle')).toHaveText('Menu bar popup');await expect(preview.locator('html')).toHaveAttribute('lang','en');
   assert.deepEqual(await previewOrder(),['activity','overview']);
-  await settings.evaluate(()=>window.tokenflow.saveSettings({language:'zh'}));await expect(settings.locator('#widgetEditorTitle')).toHaveText('编辑小窗');
+  await settings.evaluate(()=>window.tokenflow.saveSettings({language:'zh'}));await expect(settings.locator('#widgetEditorTitle')).toHaveText('菜单栏小窗');
   await settings.locator('#trayRange').selectOption('30');await settings.locator('#trayTheme').selectOption('dark');
   await expect(preview.locator('html')).toHaveAttribute('data-theme','dark');
   await settings.locator('#trayTheme').selectOption('light');

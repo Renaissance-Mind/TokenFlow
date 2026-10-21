@@ -67,6 +67,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING N
 OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
+## Desktop interface assets
+
+- Feather icons 4.29.2: https://github.com/feathericons/feather, MIT, Copyright (c) 2013-2023 Cole Bemis. Bundled copies and the license are in `desktop/renderer/icons/` and `desktop/dashboard/editor-icons/`.
+- Google sign-in mark: https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg, used to identify the Google sign-in provider. Google and its logo are trademarks of Google LLC.
+
 ## MIT License Text
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
