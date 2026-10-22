@@ -21,7 +21,8 @@ try {
   const env = {...process.env, TOKENFLOW_HOME:data, TOKENUSAGE_HOME:data, TOKENFLOW_DESKTOP_DATA:path.join(temp,'app'), TOKENFLOW_SCAN_HOME:path.join(temp,'empty'), TOKENFLOW_CLI_PATH:entry, TOKENFLOW_NODE_PATH:process.execPath};
   delete env.ELECTRON_RUN_AS_NODE;
   await fs.mkdir(env.TOKENFLOW_SCAN_HOME);
-  const executablePath = process.env.TOKENFLOW_EXECUTABLE;
+  const executablePath = process.env.TOKENFLOW_EXECUTABLE || (process.argv.includes('--packaged')
+    ? path.join(desktop,'release',process.platform==='win32'?'win-unpacked':process.arch==='arm64'?'mac-arm64':'mac',process.platform==='win32'?'TokenFlow.exe':'TokenFlow.app/Contents/MacOS/TokenFlow') : undefined);
   if (executablePath) delete env.TOKENFLOW_NODE_PATH;
   instance = await electron.launch({args:executablePath?[]:[desktop], ...(executablePath?{executablePath}:{}), env, timeout:60_000});
   const page = await instance.firstWindow();

@@ -15,6 +15,11 @@ extraResources:
     to: npm
     filter:
       - '**/*'
+      - '!node_modules/**'
+  - from: node_modules/npm/node_modules
+    to: npm/node_modules
+    filter:
+      - '**/*'
   - from: node-${arch}
     to: node-${arch}
     filter:

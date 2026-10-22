@@ -67,6 +67,8 @@ jobs:
         run: npx electron-builder --mac --${{ matrix.arch }} --dir -c.mac.forceCodeSigning=false -c.mac.identity=null --publish never
       - name: Test packaged desktop process
         run: node desktop/scripts/packaged-smoke.mjs
+      - name: Upgrade the CLI using only packaged Node and npm
+        run: node desktop/scripts/cli-update-smoke.mjs --packaged
       - name: Install and test the Windows EXE
         if: matrix.platform == 'win'
         run: node desktop/scripts/installer-smoke.mjs
