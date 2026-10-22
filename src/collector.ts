@@ -1,4 +1,4 @@
-import { ACCOUNTING_REVISION, collectCoverage, coverageKey, readCoverageState, writeCoverageState } from "./sync-coverage.js";
+import { ACCOUNTING_REVISION, collectCoverage, coverageFingerprint, coverageKey, readCoverageState, writeCoverageState } from "./sync-coverage.js";
 import { publishLocalCache } from "./local-cache.js";
 import type { ScanProgress } from "./scan-progress.js";
 import os from "node:os";
@@ -82,8 +82,8 @@ export async function syncLocalUsageWithHeldLock(options: SyncOptions = {}): Pro
   const coverage = await collectCoverage(collection.events, collection.scannedFiles || [], coverageState, [...pricing.catalog?.profiles || [], ...collection.pricingProfiles], options.home);
   const plan = planIncrementalSync(buckets, state, { maxBuckets: Number.MAX_SAFE_INTEGER });
   const changedScopes = new Set(plan.buckets.map(bucket => coverageKey({ agent: bucket.agent, day: bucket.bucketStart.slice(0, 10) })));
-  const previousProofs = new Map(coverageState.scopes.map(proof => [coverageKey(proof), JSON.stringify(proof)]));
-  for (const proof of coverage) if (JSON.stringify(proof) !== previousProofs.get(coverageKey(proof))) changedScopes.add(coverageKey(proof));
+  const previousProofs = new Map(coverageState.scopes.map(proof => [coverageKey(proof), coverageFingerprint(proof)]));
+  for (const proof of coverage) if (coverageFingerprint(proof) !== previousProofs.get(coverageKey(proof))) changedScopes.add(coverageKey(proof));
   if (coverageState.revision !== ACCOUNTING_REVISION) for (const bucket of buckets) changedScopes.add(coverageKey({ agent: bucket.agent, day: bucket.bucketStart.slice(0, 10) }));
   // Send complete agent/day scopes for changed data, never the entire history.
   const delta = buckets.filter(bucket => changedScopes.has(coverageKey({ agent: bucket.agent, day: bucket.bucketStart.slice(0, 10) })));

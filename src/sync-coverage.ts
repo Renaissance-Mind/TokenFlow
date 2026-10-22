@@ -16,6 +16,9 @@ export interface SourceProof { id: string; bytes: number; digest: string; prefix
 export interface Coverage { agent: string; day: string; revision: number; sources: Array<SourceProof> }
 export interface CoverageState { revision: number; scopes: Coverage[] }
 export const coverageKey = (row: { agent: string; day: string }): string => `${row.agent}\0${row.day}`;
+// Prefix proofs describe transport continuity, not changed accounting data.
+export const coverageFingerprint = (proof: Coverage): string => JSON.stringify({ ...proof,
+  sources: proof.sources.map(({ prefix_bytes, prefix_digest, ...source }) => source) });
 const canonicalPath = (file: string): string => file.replace(/\.jsonl\.zst$/, ".jsonl").replace(/\/(?:archived_sessions|sessions)\//, "/rollouts/");
 const sourceId = (file: string): string => createHash("sha256").update(canonicalPath(file)).digest("hex");
 
