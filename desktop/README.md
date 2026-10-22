@@ -36,7 +36,11 @@ Closing a window keeps App resident in the tray. Quit stops the App, while macOS
 
 Interactive CLI requests use App's Chromium networking, including its system proxy configuration. The independent background collector uses CLI networking. Collection is cancellable when signing in, disconnecting, or quitting, and has a five-minute limit. Only aggregated usage metadata is uploaded; prompts, responses, session IDs, and source paths remain local.
 
-The current desktop entrypoint is the Electron App on `main` (0.1.18), backed by the shared CLI (0.2.79). The earlier Tauri migration remains available on `caopu/tokenflow-tauri` and in Git history; it is not the default desktop runtime on `main`.
+Settings → CLI & updates installs the latest CLI directly from the official npm registry, independently of the version bundled with App. App includes npm and Node.js, so no terminal command or separate Node installation is needed. Downloads are staged with integrity verification and lifecycle scripts disabled. The new CLI must support the desktop protocol and pass a real execution check before replacing the existing installation. Its terminal entrypoint, account, configuration and history are retained. App switches to the new CLI and resumes background collection without restarting.
+
+App updates download inside Settings. Once ready, choose Install and restart to replace App and reopen it automatically. macOS releases use the same Developer ID signature across versions. Legacy unsigned/ad-hoc macOS builds require one manual migration to a signed App before macOS permits automatic updates.
+
+The current desktop entrypoint is the Electron App on `main` (0.1.20), backed by the shared CLI (0.2.82). The earlier Tauri migration remains available on `caopu/tokenflow-tauri` and in Git history; it is not the default desktop runtime on `main`.
 
 ## Development and verification
 

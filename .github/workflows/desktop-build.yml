@@ -53,6 +53,8 @@ jobs:
         run: npm test --prefix desktop
       - name: Test native desktop process
         run: npm run smoke --prefix desktop
+      - name: Upgrade the shared CLI from real npm through App
+        run: node desktop/scripts/cli-update-smoke.mjs
       - name: Verify cached Dashboard and incremental background collection
         run: node desktop/scripts/cache-smoke.mjs
       - name: Build installation packages

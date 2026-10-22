@@ -134,7 +134,9 @@ function render(state) {
   $('downloadUpdate').hidden = !['available','manual'].includes(state.update.status);
   $('downloadUpdate').textContent = state.update.status === 'manual' ? (state.settings.language === 'zh' ? '下载安装包 ↗' : 'Download installer ↗') : t.download;
   $('installUpdate').hidden = state.update.status !== 'downloaded';
-  $('update').disabled = ['checking','downloading'].includes(state.update.status);
+  $('update').disabled = ['checking','downloading','downloaded'].includes(state.update.status) || updating;
+  $('downloadUpdate').disabled = state.update.status === 'downloading' || updating;
+  $('installUpdate').disabled = updating;
   $('updateStatus').classList.toggle('status-current',state.update.status==='current');
   $('updateStatus').textContent = state.update.message || ({current:t.current,checking:t.checking,available:t.available,downloading:t.downloading + ' ' + Math.round(state.update.percent || 0) + '%',downloaded:t.downloaded,error:t.error})[state.update.status] || '';
 }

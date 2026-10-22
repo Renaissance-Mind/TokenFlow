@@ -14,6 +14,7 @@ import type { DesktopSecret, DesktopState, LocalSummary, Settings } from "./cont
 import { trayWidgetIds } from "./contracts.js";
 import { sameRendererLocation } from "./ipc-origin.js";
 import { CliClient } from "./cli-client.js";
+import { cliRegistry, compareVersions, withLatestCli } from "./cli-update.js";
 import { CloudDashboardCache } from "./cloud-dashboard-cache.js";
 import { collectorHome, findCli, installCli, rememberCli, type CliInstallation } from "./cli-installation.js";
 import { appSettings, sharedSettings } from "./settings.js";
@@ -441,29 +442,35 @@ async function selectCli(value: CliInstallation): Promise<void> {
     updateStatus: value.compatible ? "idle" : "required" };
 }
 async function upgradeCli(): Promise<void> {
-  if (state.cli.updateStatus === "installing" || state.loginBusy) return;
-  await stopCollection(); state.cli.updateStatus = "installing"; state.error = null; emit();
+  if (state.cli.updateStatus === "installing" || state.loginBusy || loggingOut || shuttingDown) return;
+  state.cli.updateStatus = "installing"; state.error = null; emit();
   try {
-    const bundled = JSON.parse(await fs.readFile(path.join(runtime, "package.json"), "utf8"));
-    if (state.cli.availableVersion && state.cli.availableVersion !== bundled.version) {
-      throw new Error("A newer CLI is available on npm. Run tokenflow update, or update App to get that CLI version.");
-    }
-    // Upgrade the existing installation in place. Its terminal command and login survive.
-    const value = await installCli(runtime, standaloneNode() || installation!.node, { replace: installation?.source === "installed" ? installation : undefined, copyRuntime: app.isPackaged });
-    await selectCli(value); state.cli.updateStatus = "current";
-    await refreshCollector(); await configureScheduler(); await marker();
-  } catch (error) { state.cli.updateStatus = "error"; throw error; }
+    const node = standaloneNode() || installation!.node;
+    const npm = app.isPackaged ? path.join(realpathSync.native(process.resourcesPath), "npm", "bin", "npm-cli.js") : path.resolve(here, "../node_modules/npm/bin/npm-cli.js");
+    await withLatestCli(node, npm, async (payload, version) => {
+      if (shuttingDown) throw new Error("App is shutting down. Retry the CLI update after restarting.");
+      if (installation && compareVersions(version, installation.version) < 0) throw new Error("The installed CLI is newer than npm latest");
+      await stopCollection(); await cli?.stopBackground();
+      // Keep the existing terminal entrypoint and shared authorization intact.
+      const value = await installCli(payload, node, { replace: installation?.source === "installed" ? installation : undefined, copyRuntime: app.isPackaged });
+      await selectCli(value); state.cli.availableVersion = version; state.cli.updateStatus = "current";
+      await refreshCollector(); await configureScheduler(); await marker();
+    });
+  } catch (error) {
+    state.cli.updateStatus = "error";
+    if (!shuttingDown && installation?.compatible) await configureScheduler();
+    throw error;
+  }
 }
 async function checkCliUpdate(): Promise<void> {
+  if (state.cli.updateStatus === "installing") return;
   state.cli.updateStatus = "checking"; emit();
   try {
-    const response = await desktopFetch("https://registry.npmjs.org/@renaissancemind%2Ftokenflow/latest", { signal: AbortSignal.timeout(30_000) });
+    const response = await desktopFetch(`${cliRegistry}/@renaissancemind%2Ftokenflow/latest`, { signal: AbortSignal.timeout(30_000) });
     if (!response.ok) throw new Error("Unable to check CLI updates");
     const pkg = await response.json() as { version: string };
-    const bundled = JSON.parse(await fs.readFile(path.join(runtime, "package.json"), "utf8"));
-    const newer = (a: string, b: string) => a.split(".").reduce((r, n, i) => r || Math.sign(Number(n) - Number(b.split(".")[i] || 0)), 0) > 0;
-    state.cli.availableVersion = newer(pkg.version, bundled.version) ? pkg.version : bundled.version;
-    state.cli.updateStatus = !state.cli.compatible || newer(state.cli.availableVersion!, state.cli.version) ? "available" : "current";
+    state.cli.availableVersion = pkg.version;
+    state.cli.updateStatus = !state.cli.compatible || compareVersions(pkg.version, state.cli.version) > 0 ? "available" : "current";
   } catch (error) { state.cli.updateStatus = "error"; throw error; }
 }
 async function configureCliDashboard(config: any): Promise<void> {
@@ -542,7 +549,7 @@ async function logoutDesktop(): Promise<void> {
   } finally { loggingOut = false; emit(); }
 }
 function runJob(action: "scan" | "sync"): Promise<void> {
-  if (!installation?.compatible || collectionTask || stoppingCollection || state.loginBusy || loggingOut || shuttingDown || (action === "sync" && !state.hasCollector)) return Promise.resolve();
+  if (!installation?.compatible || collectionTask || stoppingCollection || state.cli.updateStatus === "installing" || state.loginBusy || loggingOut || shuttingDown || (action === "sync" && !state.hasCollector)) return Promise.resolve();
   collectionTask = runCollection(action).finally(() => { collectionTask = null; });
   return collectionTask;
 }
@@ -571,12 +578,13 @@ function handle(name: string, action: (...args: any[]) => unknown): void {
   });
 }
 async function updateAction(action: unknown): Promise<void> {
+  if (state.cli.updateStatus === "installing") throw new Error("Wait for the CLI update to finish");
   if (action === "download" && state.update.status === "manual") {
     await shell.openExternal(desktopReleasesUrl); return;
   }
   if (action === "install") {
     if (state.update.status !== "downloaded") throw new Error("Download an update first");
-    shuttingDown = true; await shutdown(); autoUpdater.quitAndInstall(); return;
+    shuttingDown = true; await shutdown(); autoUpdater.quitAndInstall(false, true); return;
   }
   if (action === "download") { await autoUpdater.downloadUpdate(); return; }
   if (action !== "check") throw new Error("Invalid update action");
@@ -591,7 +599,8 @@ async function updateAction(action: unknown): Promise<void> {
   const response = await desktopFetch("https://api.github.com/repos/Renaissance-Mind/TokenFlow/releases?per_page=30", { signal: AbortSignal.timeout(30_000) });
   if (!response.ok) throw new Error(`Update service returned ${response.status}`);
   const releases = await response.json() as Array<{ tag_name: string; draft: boolean; prerelease: boolean }>;
-  const release = releases.find((item) => /^desktop-v\d+\.\d+\.\d+$/.test(item.tag_name) && !item.draft && !item.prerelease);
+  const release = releases.filter((item) => /^desktop-v\d+\.\d+\.\d+$/.test(item.tag_name) && !item.draft && !item.prerelease)
+    .sort((a, b) => compareVersions(b.tag_name.slice(9), a.tag_name.slice(9)))[0];
   if (!release) { state.update = { status: "current", message: "No desktop update has been published yet." }; return; }
   autoUpdater.setFeedURL({ provider: "generic", url: `https://github.com/Renaissance-Mind/TokenFlow/releases/download/${encodeURIComponent(release.tag_name)}/` });
   await autoUpdater.checkForUpdates();

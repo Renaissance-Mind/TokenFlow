@@ -11,6 +11,10 @@ files:
   - package.json
   - LICENSE
 extraResources:
+  - from: node_modules/npm
+    to: npm
+    filter:
+      - '**/*'
   - from: node-${arch}
     to: node-${arch}
     filter:
