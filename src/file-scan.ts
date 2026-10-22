@@ -49,6 +49,7 @@ export interface SourceStatus {
 
 export interface CollectionResult {
   revision?: string;
+  scannedFiles?: string[];
   events: UsageEvent[];
   pricingProfiles: PricingProfile[];
   sources: SourceStatus[];
@@ -389,7 +390,7 @@ async function collectUsage(
   }, { home, codexHome, claudeHome, geminiHome, codexServiceTier });
   for (const file of allFiles) tracker?.complete(file);
   tracker?.processing();
-  return result;
+  return { ...result, scannedFiles: allFiles };
 }
 
 async function readCodexServiceTier(codexHome: string): Promise<"standard" | "fast" | "priority" | "flex"> {

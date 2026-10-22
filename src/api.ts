@@ -113,18 +113,33 @@ export async function ingestUsageSnapshot(params: {
   deviceName?: string;
   platform?: string;
   buckets: UsageBucket[];
+  coverage?: import("./sync-coverage.js").Coverage[];
 }): Promise<{ accepted: number; updated: number }> {
   const token = params.uploadToken || params.deviceToken;
   if (!token) throw new Error("Missing upload token");
-  const payload = toUsageSnapshotPayload(params.buckets, {
-    deviceName: params.deviceName,
-    platform: params.platform,
-  });
-  const data = await postJson(`${params.serverUrl}/api/ingest`, payload, token);
-  return {
-    accepted: Number(data.accepted || 0),
-    updated: Number(data.updated || 0),
-  };
+  // Delta uploads require merge support; never send them to an older server
+  // that would interpret each batch as a complete-device replacement.
+  if (params.coverage !== undefined) {
+    const capabilities = await getJson(`${params.serverUrl}/api/sync-capabilities`);
+    if (capabilities.snapshot_merge !== true || capabilities.source_contributions !== 1) throw new Error("Server upgrade required for incremental history sync");
+  }
+  const scopeKey = (agent: string, day: string) => `${agent}\0${day}`;
+  const scopes = [...new Set([...params.buckets.map(bucket => scopeKey(bucket.agent, bucket.bucketStart.slice(0, 10))),
+    ...(params.coverage || []).map(proof => scopeKey(proof.agent, proof.day))])].sort();
+  let accepted = 0, updated = 0;
+  // Bound Worker memory and D1 operations during initial attribution/backfill.
+  const batchSize = params.coverage === undefined ? Math.max(1, scopes.length) : 20;
+  for (let index = 0; index < Math.max(1, scopes.length); index += batchSize) {
+    const selected = new Set(scopes.slice(index, index + batchSize));
+    const payload = toUsageSnapshotPayload(params.buckets.filter(bucket => selected.has(scopeKey(bucket.agent, bucket.bucketStart.slice(0, 10)))), {
+      deviceName: params.deviceName, platform: params.platform,
+    });
+    if (params.coverage !== undefined) payload.coverage = params.coverage.filter(proof => selected.has(scopeKey(proof.agent, proof.day)));
+    const data = await postJson(`${params.serverUrl}/api/ingest`, payload, token);
+    accepted += Number(data.accepted || 0);
+    updated += Number(data.updated || 0);
+  }
+  return { accepted, updated };
 }
 
 export async function syncPing(
