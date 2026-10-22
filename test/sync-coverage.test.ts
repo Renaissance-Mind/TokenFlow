@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { createHash } from "node:crypto";
-import { ACCOUNTING_REVISION, collectCoverage } from "../src/sync-coverage.js";
+import { ACCOUNTING_REVISION, collectCoverage, coverageFingerprint } from "../src/sync-coverage.js";
 import type { UsageEvent } from "../src/types.js";
 
 function event(file: string, tokens: number): UsageEvent {
@@ -22,6 +22,7 @@ describe("source contribution coverage", () => {
       expect(first[0].sources[0].daily?.[0].total_tokens).toBe(100);
       const state = { revision:ACCOUNTING_REVISION, scopes:first };
       const unchanged = await collectCoverage([event(file, 100)], [file], state, [], home);
+      expect(coverageFingerprint(unchanged[0])).toBe(coverageFingerprint(first[0]));
       expect(unchanged[0].sources[0]).toMatchObject({ bytes: 9, prefix_bytes: 9, prefix_digest: first[0].sources[0].digest });
       await fs.appendFile(file, "more logs\n");
       const appended = await collectCoverage([event(file, 200)], [file], state, [], home);
