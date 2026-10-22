@@ -1,4 +1,5 @@
 import { NetworkProgress } from "./network-progress.js";
+import { desktopReleasesUrl, hasMacUpdateSignature } from "./update-signature.js";
 import { app, BrowserWindow, WebContentsView, Menu, Tray, nativeImage, ipcMain, shell, screen, session, safeStorage, powerMonitor, dialog, net, protocol } from "electron";
 import type { IpcMainInvokeEvent, Point, Rectangle, WebContents } from "electron";
 import updater from "electron-updater";
@@ -570,6 +571,9 @@ function handle(name: string, action: (...args: any[]) => unknown): void {
   });
 }
 async function updateAction(action: unknown): Promise<void> {
+  if (action === "download" && state.update.status === "manual") {
+    await shell.openExternal(desktopReleasesUrl); return;
+  }
   if (action === "install") {
     if (state.update.status !== "downloaded") throw new Error("Download an update first");
     shuttingDown = true; await shutdown(); autoUpdater.quitAndInstall(); return;
@@ -578,6 +582,12 @@ async function updateAction(action: unknown): Promise<void> {
   if (action !== "check") throw new Error("Invalid update action");
   if (!app.isPackaged) { state.update = { status: "current", message: "Updates are available in the installed app." }; return; }
   state.update = { status: "checking" }; emit();
+  if (process.platform === "darwin" && !await hasMacUpdateSignature(process.execPath)) {
+    state.update = { status: "manual", message: state.settings.language === "zh"
+      ? "当前 App 使用旧签名。请下载最新 macOS 安装包，退出 TokenFlow 后替换应用程序中的 App；账号和用量记录会保留。完成这一次手动安装后即可使用应用内更新。"
+      : "This App uses a legacy signature. Download the latest macOS installer, quit TokenFlow, and replace the App in Applications. Your account and usage history are retained. In-app updates will work after this one-time installation." };
+    return;
+  }
   const response = await desktopFetch("https://api.github.com/repos/Renaissance-Mind/TokenFlow/releases?per_page=30", { signal: AbortSignal.timeout(30_000) });
   if (!response.ok) throw new Error(`Update service returned ${response.status}`);
   const releases = await response.json() as Array<{ tag_name: string; draft: boolean; prerelease: boolean }>;

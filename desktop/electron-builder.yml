@@ -26,8 +26,10 @@ extraResources:
       - '**/*'
 asar: true
 beforePack: scripts/prepare-node.cjs
+afterSign: scripts/verify-mac-signature.cjs
 npmRebuild: false
 mac:
+  forceCodeSigning: true
   category: public.app-category.developer-tools
   icon: assets/icon.png
   hardenedRuntime: true

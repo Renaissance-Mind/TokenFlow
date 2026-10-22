@@ -131,7 +131,8 @@ function render(state) {
     el.append(name,status,location); return el;
   }));
   $('scanned').textContent = t.scanned + ' ' + time(state.summary?.scannedAt);
-  $('downloadUpdate').hidden = state.update.status !== 'available';
+  $('downloadUpdate').hidden = !['available','manual'].includes(state.update.status);
+  $('downloadUpdate').textContent = state.update.status === 'manual' ? (state.settings.language === 'zh' ? '下载安装包 ↗' : 'Download installer ↗') : t.download;
   $('installUpdate').hidden = state.update.status !== 'downloaded';
   $('update').disabled = ['checking','downloading'].includes(state.update.status);
   $('updateStatus').classList.toggle('status-current',state.update.status==='current');

@@ -29,7 +29,8 @@ jobs:
             artifact: win-x64
     runs-on: ${{ matrix.os }}
     env:
-      CSC_IDENTITY_AUTO_DISCOVERY: false
+      CSC_LINK: ${{ matrix.platform == 'mac' && secrets.CSC_LINK || '' }}
+      CSC_KEY_PASSWORD: ${{ matrix.platform == 'mac' && secrets.CSC_KEY_PASSWORD || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -55,14 +56,20 @@ jobs:
       - name: Verify cached Dashboard and incremental background collection
         run: node desktop/scripts/cache-smoke.mjs
       - name: Build installation packages
+        if: matrix.platform != 'mac' || env.CSC_LINK != ''
         working-directory: desktop
         run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never
+      - name: Build unsigned macOS app for testing only
+        if: matrix.platform == 'mac' && env.CSC_LINK == ''
+        working-directory: desktop
+        run: npx electron-builder --mac --${{ matrix.arch }} --dir -c.mac.forceCodeSigning=false -c.mac.identity=null --publish never
       - name: Test packaged desktop process
         run: node desktop/scripts/packaged-smoke.mjs
       - name: Install and test the Windows EXE
         if: matrix.platform == 'win'
         run: node desktop/scripts/installer-smoke.mjs
       - uses: actions/upload-artifact@v4
+        if: matrix.platform != 'mac' || env.CSC_LINK != ''
         with:
           name: tokenflow-desktop-${{ matrix.artifact }}
           path: |
