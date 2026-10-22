@@ -159,6 +159,7 @@ async function startLoginServer(): Promise<{
     uploadedBucketCount: 0,
   };
   const server = createServer(async (request, response) => {
+    if (request.method === "GET" && request.url === "/api/sync-capabilities") return json(response, { snapshot_merge: true, source_contributions: 1 });
     if (request.method === "POST" && request.url === "/api/device/start") {
       return json(response, {
         device_code: "device_code_test",

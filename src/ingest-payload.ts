@@ -68,6 +68,7 @@ export interface UsageSnapshotDay extends UsageSnapshotSlot {
 }
 
 export interface UsageSnapshotPayload {
+  coverage?: import("./sync-coverage.js").Coverage[];
   device_name?: string;
   platform?: string;
   snapshot_version: "daily-v1";
