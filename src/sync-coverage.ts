@@ -49,8 +49,17 @@ export async function collectCoverage(events: UsageEvent[], scannedFiles: string
       if (!stat || !stat.isFile()) return;
       const id = sourceId(file);
       const prior = priorSources.get(id);
-      const signature = JSON.stringify([stat.dev, stat.ino, stat.size, stat.mtimeMs, stat.ctimeMs, prior?.bytes]);
-      let proof = cached[id]?.signature === signature ? cached[id].proof : undefined;
+      const signature = JSON.stringify([stat.dev, stat.ino, stat.size, stat.mtimeMs, stat.ctimeMs]);
+      const remembered = cached[id];
+      // Older proof indexes included the last uploaded length in this key. The
+      // physical file version is sufficient; an unchanged full digest is also
+      // its own prefix proof at that length, without reading all logs again.
+      const sameVersion = remembered && JSON.stringify(JSON.parse(remembered.signature).slice(0, 5)) === signature;
+      let proof = sameVersion ? remembered.proof : undefined;
+      if (proof && prior) {
+        if (prior.bytes === proof.bytes && prior.digest === proof.digest) proof = { ...proof, prefix_bytes: prior.bytes, prefix_digest: proof.digest };
+        else if (proof.prefix_bytes !== prior.bytes || proof.prefix_digest !== prior.digest) proof = undefined;
+      }
       if (!proof) {
         const full = createHash("sha256"), prefix = createHash("sha256");
         let consumed = 0, logical = 0;

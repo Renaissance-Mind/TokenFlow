@@ -21,6 +21,8 @@ describe("source contribution coverage", () => {
       expect(first[0].sources[0].digest).toBe(createHash("sha256").update("old logs\n").digest("hex"));
       expect(first[0].sources[0].daily?.[0].total_tokens).toBe(100);
       const state = { revision:ACCOUNTING_REVISION, scopes:first };
+      const unchanged = await collectCoverage([event(file, 100)], [file], state, [], home);
+      expect(unchanged[0].sources[0]).toMatchObject({ bytes: 9, prefix_bytes: 9, prefix_digest: first[0].sources[0].digest });
       await fs.appendFile(file, "more logs\n");
       const appended = await collectCoverage([event(file, 200)], [file], state, [], home);
       expect(appended[0].sources[0].prefix_digest).toBe(first[0].sources[0].digest);
