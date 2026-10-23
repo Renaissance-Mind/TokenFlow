@@ -56,8 +56,10 @@ describe("local harness compatibility", () => {
     [1419, "Gemini 4 Argon", "gemini-4-argon"],
     [1050, "model_placeholder_m50", "gemini-3.1-flash-lite"],
     [1050, "Gemini 3.1 Flash Lite", "gemini-3.1-flash-lite"],
+    [1402, undefined, "claude-opus-5-5"],
+    [1402, "model_placeholder_m402", "claude-opus-5-5"],
   ] as const)("attributes Antigravity model %s from native metadata", async (modelId, label, model) => {
-    // Native model ID and labels from ccusage c2db695 Antigravity parser cases.
+    // Native model IDs and wire fields from ccusage c2db695 and baeb991 parser cases.
     const home = await root();
     const dir = path.join(home, ".gemini/antigravity/conversations");
     await fs.mkdir(dir, { recursive: true });
