@@ -4,6 +4,7 @@ export interface CodexSession {
   id: string;
   parent?: string;
   forkTime?: string;
+  rewrittenBurst?: string | null;
   events: UsageEvent[];
   compactions: Map<string, string>;
 }
@@ -49,9 +50,13 @@ export function dedupeCodexSessions(sessions: CodexSession[]): UsageEvent[] {
           continue;
         }
         matching = false;
-        if (
-          replayIndex === 0 &&
+        if (replayIndex === 0 && session.rewrittenBurst) {
+          burstEnd = Date.parse(session.rewrittenBurst);
+        } else if (
+          replayIndex === 0 && session.rewrittenBurst === undefined &&
           normal.length > 1 &&
+          (!session.forkTime || Math.abs(Date.parse(normal[0].timestamp) - Date.parse(session.forkTime)) <= 1000) &&
+          Date.parse(normal[1].timestamp) >= Date.parse(normal[0].timestamp) &&
           Date.parse(normal[1].timestamp) - Date.parse(normal[0].timestamp) <=
             1000
         )

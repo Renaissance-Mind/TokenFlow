@@ -45,7 +45,8 @@ export interface CodexCheckpoint {
   compacted: string[]; emitted: string[];
   pending: Array<[string, { event: ParsedCodexUsageEvent; threadUsage: CumulativeUsage | null }]>;
   latestResponse: string | null; compactions: Array<[string, string]>;
-  session: { id: string; parent?: string; forkTime?: string } | null;
+  replayFirstUsage?: string;
+  session: { id: string; parent?: string; forkTime?: string; rewrittenBurst?: string | null } | null;
 }
 export function createCodexJsonlParser(options: ParseOptions, saved?: unknown): JsonlUsageParser {
   const checkpoint = saved as CodexCheckpoint | undefined;
@@ -62,6 +63,7 @@ export function createCodexJsonlParser(options: ParseOptions, saved?: unknown): 
   const pending = new Map<string, { event: ParsedCodexUsageEvent; threadUsage: CumulativeUsage | null }>(checkpoint?.pending);
   let latestResponse: string | null = checkpoint?.latestResponse || null;
   let session: CodexCheckpoint["session"] = checkpoint?.session || null;
+  let replayFirstUsage = checkpoint?.replayFirstUsage;
   if (checkpoint) for (const [id, time] of checkpoint.compactions) options.compactionHistory?.set(id, time);
 
   function setCurrentModel(model: string): void {
@@ -73,7 +75,7 @@ export function createCodexJsonlParser(options: ParseOptions, saved?: unknown): 
   return {
     snapshot: (): CodexCheckpoint => ({ events, seenModels: [...seenModels], sessionId, currentModel, currentServiceTier, previousTotal,
       suppressInheritedSubagentReplay, compacted: [...compacted], emitted: [...emitted], pending: [...pending], latestResponse,
-      compactions: [...(options.compactionHistory || [])], session }),
+      compactions: [...(options.compactionHistory || [])], session, replayFirstUsage }),
     pushLine(line: string): void {
       if (!line.trim()) return;
       if (
@@ -172,6 +174,16 @@ export function createCodexJsonlParser(options: ParseOptions, saved?: unknown): 
 
       const lastUsage = recordField(info, "last_token_usage");
       const totalUsage = recordField(info, "total_token_usage");
+      // Probe raw snapshots before cumulative deduplication hides repeated replay rows.
+      const probeUsage = lastUsage || totalUsage;
+      if (session?.parent && session.rewrittenBurst === undefined && probeUsage && !isZero(normalizeUsage(probeUsage))) {
+        if (replayFirstUsage === undefined) replayFirstUsage = timestamp;
+        else {
+          const first = Date.parse(replayFirstUsage), pause = Date.parse(timestamp) - first;
+          const startsAtFork = !session.forkTime || Math.abs(first - Date.parse(session.forkTime)) <= 1000;
+          session.rewrittenBurst = pause >= 0 && pause <= 1000 && startsAtFork ? replayFirstUsage : null;
+        }
+      }
       const delta = pickDelta(lastUsage, totalUsage, previousTotal);
       const request = latestResponse ? pending.get(latestResponse) : null;
       if (delta && request && (sameUsage(delta as CumulativeUsage, request.event)
