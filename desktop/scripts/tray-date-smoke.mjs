@@ -39,6 +39,15 @@ try{
   await panel.waitForLoadState('domcontentloaded');
   const errors=[];panel.on('pageerror',error=>errors.push(error.message));
   await expect(panel.locator('body')).toHaveAttribute('data-mini-loaded','true');
+  const click=async selector=>{
+    // A Windows tray popup closes on native blur. Restore focus after the
+    // reopen/clock checks before Playwright waits for actionable controls.
+    await instance.evaluate(({BrowserWindow})=>{
+      const popup=BrowserWindow.getAllWindows().find(win=>win.webContents.getURL().includes('mode=tray'));
+      popup.show();popup.focus();
+    });
+    await panel.locator(selector).click();
+  };
   const assertRange=async(offset,days,tokens)=>{
     const to=localDay(offset),from=localDay(offset-days+1);
     await expect.poll(()=>panel.evaluate(()=>({from:dashboardSummaryPayload?.from.slice(0,10),to:dashboardSummaryPayload?.to.slice(0,10),chartTo:dailyTrendPayload?.to}))).toEqual({from,to,chartTo:to});
@@ -69,13 +78,13 @@ try{
   });
   await assertRange(0,1,1100);
   for(const days of [7,30]){
-    await panel.locator(`[data-mini-range="${days}"]`).click();
+    await click(`[data-mini-range="${days}"]`);
     await assertRange(0,days,1650);
   }
-  await panel.locator('[data-mini-range="1"]').click();
+  await click('[data-mini-range="1"]');
   await assertRange(0,1,1100);
   await panel.clock.setFixedTime(pageTime(1));
-  await panel.locator('#miniRefresh').click();
+  await click('#miniRefresh');
   await assertRange(1,1,0);
   // Moving the clock back also refreshes after focus, as when the timezone
   // changes during sleep. The startup Date remains six days old throughout.
