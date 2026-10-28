@@ -596,13 +596,8 @@ async function updateAction(action: unknown): Promise<void> {
       : "This App uses a legacy signature. Download the latest macOS installer, quit TokenFlow, and replace the App in Applications. Your account and usage history are retained. In-app updates will work after this one-time installation." };
     return;
   }
-  const response = await desktopFetch("https://api.github.com/repos/Renaissance-Mind/TokenFlow/releases?per_page=30", { signal: AbortSignal.timeout(30_000) });
-  if (!response.ok) throw new Error(`Update service returned ${response.status}`);
-  const releases = await response.json() as Array<{ tag_name: string; draft: boolean; prerelease: boolean }>;
-  const release = releases.filter((item) => /^desktop-v\d+\.\d+\.\d+$/.test(item.tag_name) && !item.draft && !item.prerelease)
-    .sort((a, b) => compareVersions(b.tag_name.slice(9), a.tag_name.slice(9)))[0];
-  if (!release) { state.update = { status: "current", message: "No desktop update has been published yet." }; return; }
-  autoUpdater.setFeedURL({ provider: "generic", url: `https://github.com/Renaissance-Mind/TokenFlow/releases/download/${encodeURIComponent(release.tag_name)}/` });
+  // app-update.yml points to the static desktop-latest release feed. Reading
+  // its manifest avoids GitHub's shared anonymous REST API quota entirely.
   await autoUpdater.checkForUpdates();
 }
 async function shutdown(): Promise<void> {

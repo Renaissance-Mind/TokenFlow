@@ -1,6 +1,6 @@
 {
   "name": "tokenflow-desktop",
-  "version": "0.1.21",
+  "version": "0.1.22",
   "private": true,
   "description": "TokenFlow dashboard and bundled local usage collector",
   "author": "RenaissanceMind",
@@ -24,6 +24,7 @@
     "electron": "^44.7.0",
     "electron-builder": "^26.15.3",
     "extract-zip": "2.0.1",
+    "js-yaml": "4.3.2",
     "npm": "10.9.4",
     "sharp": "^0.35.5",
     "typescript": "^5.9.3"

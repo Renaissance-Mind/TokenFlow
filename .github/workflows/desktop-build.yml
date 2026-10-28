@@ -71,6 +71,9 @@ jobs:
         run: node desktop/scripts/packaged-smoke.mjs
       - name: Upgrade the CLI using only packaged Node and npm
         run: node desktop/scripts/cli-update-smoke.mjs --packaged
+      - name: Check App updates with GitHub REST access blocked
+        if: matrix.platform == 'win' || env.CSC_LINK != ''
+        run: node desktop/scripts/app-update-feed-smoke.mjs
       - name: Install and test the Windows EXE
         if: matrix.platform == 'win'
         run: node desktop/scripts/installer-smoke.mjs
