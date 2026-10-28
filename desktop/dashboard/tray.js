@@ -62,7 +62,8 @@ async function refresh(){
   if(running){pending=true;return;}running=true;
   const firstPaint=document.body.dataset.miniLoaded!=='true';
   if(!document.body.dataset.miniLoaded)document.body.dataset.miniLoaded='false';actions();
-  try{if(!started){started=true;await window.tokenflowDashboard.boot();}else await window.tokenflowDashboard.refresh();
+  try{window.tokenflowDashboard.miniRange(latest.settings.trayRange);
+    if(!started){started=true;await window.tokenflowDashboard.boot();}else await window.tokenflowDashboard.refresh();
     document.body.dataset.miniLoaded='true';
     // Chart containers have no dimensions while the initial loading state hides
     // the widgets. Repaint the cached data once those containers are visible.
@@ -91,7 +92,7 @@ function update(state){
   modelLimit.textContent=t.models;
   for(const button of document.querySelectorAll('[data-mini-range]'))button.setAttribute('aria-pressed',String(Number(button.dataset.miniRange)===state.settings.trayRange));
   actions();
-  const key=JSON.stringify([state.dashboardSource,state.dashboardRevision,state.summary?.scannedAt,state.settings.serverUrl,state.account?.id,state.lastSyncAt,state.settings.trayRange,state.settings.trayWidgets,state.settings.language]);
+  const key=JSON.stringify([window.tokenflowDashboard.currentDate(),state.dashboardSource,state.dashboardRevision,state.summary?.scannedAt,state.settings.serverUrl,state.account?.id,state.lastSyncAt,state.settings.trayRange,state.settings.trayWidgets,state.settings.language]);
   if(key!==revision){revision=key;window.tokenflowDashboard.language(state.settings.language);window.tokenflowDashboard.miniRange(state.settings.trayRange);theme();void refresh();}
   else theme();
   resize();
@@ -101,5 +102,11 @@ $('trayDashboard').onclick=()=>window.tokenflow.dashboard();
 $('miniRefresh').onclick=async()=>{try{lastError='';if(latest.dashboardSource==='local')await window.tokenflow.scan();await refresh();}catch(error){lastError=error.message;actions();}};
 for(const button of document.querySelectorAll('[data-mini-range]'))button.onclick=()=>window.tokenflow.saveSettings({trayRange:Number(button.dataset.miniRange)});
 media.addEventListener('change',theme);
+// A popup can stay alive for days without new usage. Check the date when it
+// reopens or resumes, and while it remains visible across midnight.
+function refreshDate(){if(latest && document.visibilityState==='visible')update(latest);}
+window.addEventListener('focus',refreshDate);
+document.addEventListener('visibilitychange',refreshDate);
+setInterval(refreshDate,60_000);
 new ResizeObserver(resize).observe(main);
 window.tokenflow.onState(update);window.tokenflow.getState().then(update);

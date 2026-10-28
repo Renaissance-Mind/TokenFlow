@@ -5368,6 +5368,7 @@
     }
     function heatmapParams(days = HEATMAP_DAYS) {
       const params = filterParams();
+      if (window.tokenflowMini) params.set('to', selectedToDate());
       params.set('days', String(days));
       return params;
     }
@@ -6406,8 +6407,13 @@
       });
       stage.addEventListener('pointerleave', () => { tilt.style.transform = ''; });
     }
+    function currentDashboardDate() {
+      const now = new Date();
+      return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())).toISOString().slice(0, 10);
+    }
     window.tokenflowDashboard = { boot, refresh: async () => { usageHeatmapCache.clear(); hourlyCache.clear(); await boot(); }, language: applyLanguage,
-      miniRange: days => { selectedTrendDays = days; dashboardAllRange = false; const to = today.toISOString().slice(0, 10); document.getElementById('from').value = rangeStartDate(to, days); document.getElementById('to').value = to; }, repaint: refreshThemeSensitiveViews };
+      currentDate: currentDashboardDate,
+      miniRange: days => { selectedTrendDays = days; dashboardAllRange = false; const to = currentDashboardDate(); document.getElementById('from').value = rangeStartDate(to, days); document.getElementById('to').value = to; }, repaint: refreshThemeSensitiveViews };
   </script>
 <script type="module" src="/desktop.js"></script></body>
 </html>

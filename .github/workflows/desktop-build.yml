@@ -57,6 +57,8 @@ jobs:
         run: node desktop/scripts/cli-update-smoke.mjs
       - name: Verify cached Dashboard and incremental background collection
         run: node desktop/scripts/cache-smoke.mjs
+      - name: Verify tray date rollover and matching totals
+        run: node desktop/scripts/tray-date-smoke.mjs
       - name: Build installation packages
         if: matrix.platform != 'mac' || env.CSC_LINK != ''
         working-directory: desktop
