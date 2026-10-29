@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import { execFile, execFileSync } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
+import { compareVersions, withCliVersion } from '../app/cli-update.js';
 const execute = promisify(execFile);
 const desktop = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'tokenflow-npm-update-smoke-'));
@@ -14,6 +15,11 @@ const npm = path.join(desktop, 'node_modules/npm/bin/npm-cli.js');
 let instance;
 try {
   await execute(process.execPath, [npm, 'install', '--prefix', temp, '--registry=https://registry.npmjs.org', '--ignore-scripts', '--install-strategy=nested', '--no-audit', '--no-fund', '@renaissancemind/tokenflow@0.2.81'], {timeout:180_000});
+  // An explicitly selected published version must win even when npm latest is newer.
+  await withCliVersion(process.execPath, npm, '0.2.82', async (payload, version) => {
+    assert.equal(version, '0.2.82');
+    assert.equal(JSON.parse(await fs.readFile(path.join(payload, 'package.json'), 'utf8')).version, '0.2.82');
+  });
   const entry = path.join(temp, 'node_modules/@renaissancemind/tokenflow/dist/cli.js');
   const data = path.join(temp, 'data'); await fs.mkdir(data);
   const config = { serverUrl:'https://tokenflow.renaissancemind.ai', deviceId:'isolated-update-smoke', deviceName:'CLI update smoke', autoSyncPaused:true };
@@ -38,12 +44,17 @@ try {
   assert.ok(settings, 'Settings window opened');
   const before = await settings.evaluate(()=>window.tokenflow.getState());
   assert.equal(before.cli.version,'0.2.81');
-  await settings.evaluate(()=>window.tokenflow.checkCliUpdate());
-  const checked = await settings.evaluate(()=>window.tokenflow.getState());
-  assert.equal(checked.cli.updateStatus,'available');
+  // Exercise both the checked version and a direct upgrade without a prior check.
+  let checked;
+  if (!process.argv.includes('--packaged')) {
+    await settings.evaluate(()=>window.tokenflow.checkCliUpdate());
+    checked = await settings.evaluate(()=>window.tokenflow.getState());
+    assert.equal(checked.cli.updateStatus,'available');
+  }
   await settings.evaluate(()=>window.tokenflow.upgradeCli());
   const after = await settings.evaluate(()=>window.tokenflow.getState());
-  assert.equal(after.cli.version,checked.cli.availableVersion);
+  if (checked) assert.equal(after.cli.version,checked.cli.availableVersion);
+  else assert.equal(compareVersions(after.cli.version,before.cli.version),1);
   assert.equal(after.cli.updateStatus,'current'); assert.equal(after.error,null);
   assert.equal(after.cli.path,before.cli.path,'Existing terminal path preserved');
   assert.deepEqual(JSON.parse(await fs.readFile(path.join(data,'config.json'),'utf8')),config,'Configuration preserved');

@@ -14,7 +14,7 @@ import type { DesktopSecret, DesktopState, LocalSummary, Settings } from "./cont
 import { trayWidgetIds } from "./contracts.js";
 import { sameRendererLocation } from "./ipc-origin.js";
 import { CliClient } from "./cli-client.js";
-import { cliRegistry, compareVersions, withLatestCli } from "./cli-update.js";
+import { compareVersions, latestCliVersion, withCliVersion } from "./cli-update.js";
 import { CloudDashboardCache } from "./cloud-dashboard-cache.js";
 import { collectorHome, findCli, installCli, rememberCli, type CliInstallation } from "./cli-installation.js";
 import { appSettings, sharedSettings } from "./settings.js";
@@ -442,14 +442,17 @@ async function selectCli(value: CliInstallation): Promise<void> {
     updateStatus: value.compatible ? "idle" : "required" };
 }
 async function upgradeCli(): Promise<void> {
-  if (state.cli.updateStatus === "installing" || state.loginBusy || loggingOut || shuttingDown) return;
+  if (["installing", "checking"].includes(state.cli.updateStatus) || state.loginBusy || loggingOut || shuttingDown) return;
+  const checkedVersion = state.cli.availableVersion;
   state.cli.updateStatus = "installing"; state.error = null; emit();
   try {
     const node = standaloneNode() || installation!.node;
     const npm = app.isPackaged ? path.join(realpathSync.native(process.resourcesPath), "npm", "bin", "npm-cli.js") : path.resolve(here, "../node_modules/npm/bin/npm-cli.js");
-    await withLatestCli(node, npm, async (payload, version) => {
+    const targetVersion = checkedVersion || await latestCliVersion(desktopFetch);
+    state.cli.availableVersion = targetVersion;
+    await withCliVersion(node, npm, targetVersion, async (payload, version) => {
       if (shuttingDown) throw new Error("App is shutting down. Retry the CLI update after restarting.");
-      if (installation && compareVersions(version, installation.version) < 0) throw new Error("The installed CLI is newer than npm latest");
+      if (installation && compareVersions(version, installation.version) < 0) throw new Error("The installed CLI is newer than the selected update");
       await stopCollection(); await cli?.stopBackground();
       // Keep the existing terminal entrypoint and shared authorization intact.
       const value = await installCli(payload, node, { replace: installation?.source === "installed" ? installation : undefined, copyRuntime: app.isPackaged });
@@ -463,14 +466,13 @@ async function upgradeCli(): Promise<void> {
   }
 }
 async function checkCliUpdate(): Promise<void> {
-  if (state.cli.updateStatus === "installing") return;
+  if (["installing", "checking"].includes(state.cli.updateStatus)) return;
+  delete state.cli.availableVersion;
   state.cli.updateStatus = "checking"; emit();
   try {
-    const response = await desktopFetch(`${cliRegistry}/@renaissancemind%2Ftokenflow/latest`, { signal: AbortSignal.timeout(30_000) });
-    if (!response.ok) throw new Error("Unable to check CLI updates");
-    const pkg = await response.json() as { version: string };
-    state.cli.availableVersion = pkg.version;
-    state.cli.updateStatus = !state.cli.compatible || compareVersions(pkg.version, state.cli.version) > 0 ? "available" : "current";
+    const version = await latestCliVersion(desktopFetch);
+    state.cli.availableVersion = version;
+    state.cli.updateStatus = !state.cli.compatible || compareVersions(version, state.cli.version) > 0 ? "available" : "current";
   } catch (error) { state.cli.updateStatus = "error"; throw error; }
 }
 async function configureCliDashboard(config: any): Promise<void> {
