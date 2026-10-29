@@ -45,6 +45,8 @@ export interface SourceStatus {
   path: string;
   files: number;
   exists: boolean;
+  warnings?: string[];
+  skippedFiles?: string[];
 }
 
 export interface CollectionResult {
@@ -390,7 +392,9 @@ async function collectUsage(
   }, { home, codexHome, claudeHome, geminiHome, codexServiceTier });
   for (const file of allFiles) tracker?.complete(file);
   tracker?.processing();
-  return { ...result, scannedFiles: allFiles };
+  const sources: SourceStatus[] = result.sources;
+  const skippedFiles = new Set(sources.flatMap(source => source.skippedFiles || []));
+  return { ...result, scannedFiles: allFiles.filter(file => !skippedFiles.has(file)) };
 }
 
 async function readCodexServiceTier(codexHome: string): Promise<"standard" | "fast" | "priority" | "flex"> {

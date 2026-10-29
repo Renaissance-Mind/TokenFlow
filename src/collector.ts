@@ -107,5 +107,6 @@ export async function syncLocalUsageWithHeldLock(options: SyncOptions = {}): Pro
   const lastSyncAt = new Date().toISOString();
   await writeConfig({ ...latest!, serverUrl, lastSyncAt });
   return { events: collection.events.length, collection, buckets, sources: collection.sources, uploaded: result.accepted,
-    updated: result.updated, lastSyncAt, warning: pricing.warning };
+    updated: result.updated, lastSyncAt,
+    warning: [pricing.warning, ...collection.sources.flatMap(source => source.warnings || [])].filter(Boolean).join("\n") || undefined };
 }

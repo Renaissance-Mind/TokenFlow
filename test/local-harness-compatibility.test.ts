@@ -50,6 +50,26 @@ const jsonl = (...rows: object[]) =>
   rows.map((row) => JSON.stringify(row)).join("\n");
 
 describe("local harness compatibility", () => {
+  it.each(["sqlite", "protobuf", "schema"])("keeps healthy Antigravity databases when another has invalid %s data", async kind => {
+    const home = await root();
+    process.env = { PATH: originalEnv.PATH, HOME: home, TMPDIR: os.tmpdir(), CODEX_HOME: path.join(home, ".codex") };
+    const dir = path.join(home, ".gemini/antigravity/conversations");
+    await fs.mkdir(dir, { recursive: true });
+    const healthy = path.join(dir, "healthy.db"), broken = path.join(dir, "broken.db");
+    const metadata = proto([1, proto([3, 1402], [4, proto([1, 1402], [2, 100], [3, 20], [11, "healthy-response"])], [9, proto([4, proto([1, 1793232000])])])]);
+    sqlite(healthy, `CREATE TABLE gen_metadata(idx INTEGER PRIMARY KEY,data BLOB); INSERT INTO gen_metadata VALUES(1,X'${metadata.toString("hex")}');`);
+    if (kind === "sqlite") await fs.writeFile(broken, "not sqlite");
+    else if (kind === "protobuf") sqlite(broken, "CREATE TABLE gen_metadata(idx INTEGER PRIMARY KEY,data BLOB); INSERT INTO gen_metadata VALUES(1,X'80');");
+    else sqlite(broken, "CREATE TABLE unrelated(id INTEGER PRIMARY KEY);");
+    const result = await collectLocalUsage(home);
+    expect(result.events.filter(event => event.agent === "antigravity").map(event => event.totalTokens)).toEqual([120]);
+    const source = result.sources.find(source => source.agent === "antigravity")!;
+    expect(source.warnings?.[0]).toContain(broken);
+    expect(source.skippedFiles).toEqual([broken]);
+    expect(result.scannedFiles).toContain(healthy);
+    expect(result.scannedFiles).not.toContain(broken);
+    expect((await collectLocalUsage(home)).sources.find(source => source.agent === "antigravity")?.warnings).toEqual(source.warnings);
+  });
   it.each([
     [1417, undefined, "gemini-4-argon"],
     [1418, "model_placeholder_m418", "gemini-4-argon"],
