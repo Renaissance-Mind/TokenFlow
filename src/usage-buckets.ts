@@ -17,7 +17,8 @@ export function aggregateEvents(events: UsageEvent[], pricingProfiles: PricingPr
 
   for (const event of events) {
     const bucketStart = event.bucketStart;
-    const key = `${event.agent}|${event.model}|${event.pricingModel || event.model}|${bucketStart}${event.serviceTier === "flex" ? "|flex" : ""}`;
+    const separateTier = event.serviceTier === "flex" || event.serviceTier === "ultrafast" ? event.serviceTier : undefined;
+    const key = `${event.agent}|${event.model}|${event.pricingModel || event.model}|${bucketStart}${separateTier ? `|${separateTier}` : ""}`;
     const bucket =
       buckets.get(key) ||
       ({
@@ -63,7 +64,7 @@ export function aggregateEvents(events: UsageEvent[], pricingProfiles: PricingPr
         pricingStatus: "unpriced",
       } satisfies UsageBucket);
 
-    bucket.serviceTier = event.serviceTier === "flex" ? "flex" : "standard";
+    bucket.serviceTier = separateTier || "standard";
     const pricingModel = event.pricingModel || event.model;
     if (!modelPricing.has(pricingModel)) modelPricing.set(pricingModel, resolvePricing(pricingModel, pricingProfiles));
     const eventPricing = modelPricing.get(pricingModel)!;
@@ -115,6 +116,7 @@ function calculateBucketCost(
 
 function calculateBucketTokenCost(bucket: UsageBucket, pricing: PricingProfile): CostBreakdown {
   if (bucket.serviceTier === "flex") return calculateCost(bucket.agent, bucket, pricing, pricing.flexMultiplier || "1");
+  if (bucket.serviceTier === "ultrafast") return calculateCost(bucket.agent, bucket, pricing, pricing.ultrafastMultiplier || "1");
   if (bucket.agent === "zcode" && bucket.pricingModel?.startsWith("zai/")) pricing = {
     ...pricing, cacheCreationUsdPerMillion: pricing.inputUsdPerMillion,
     cacheCreationAbove200kUsdPerMillion: pricing.inputAbove200kUsdPerMillion,

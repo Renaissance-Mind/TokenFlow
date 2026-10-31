@@ -355,6 +355,8 @@ function pricingCandidatesForCleanedModel(cleaned: string): string[] {
     const candidate = queue.shift();
     if (!candidate || out.includes(candidate)) continue;
     out.push(candidate);
+    const dottedGpt = candidate.replace(/(^|\/)(gpt-\d+)-(\d+)(?=-(?:sol|terra|luna|astra|cyber)(?:-|$))/g, "$1$2.$3");
+    if (dottedGpt !== candidate) queue.push(dottedGpt);
 
     const namespaceStripped = stripKnownNamespace(candidate);
     if (namespaceStripped) queue.push(namespaceStripped);
@@ -431,6 +433,7 @@ function separatorNormalizedPricingKey(model: string): string {
 }
 
 function cleanModelId(model: string): string {
+  model = model.replace(/@(?=gpt-)/g, "/");
   const afterSlash = model.includes("/") ? model.slice(model.lastIndexOf("/") + 1) : model;
   const beforeColon = afterSlash.split(":")[0] || afterSlash;
   return beforeColon.trim().replace(/\[1m\]$/i, "").replaceAll("@", "-").toLowerCase();
@@ -447,7 +450,7 @@ function cleanProviderModelId(
   model: string,
   options: { preserveCase?: boolean } = {},
 ): string {
-  const trimmed = model.trim().replace(/\[1m\]$/i, "").replaceAll("@", "-");
+  const trimmed = model.trim().replace(/\[1m\]$/i, "").replace(/@(?=gpt-)/g, "/").replaceAll("@", "-");
   const cleaned = options.preserveCase ? trimmed : trimmed.toLowerCase();
   if (cleaned.toLowerCase().startsWith("hf:")) return cleaned;
   return cleaned || "unknown";

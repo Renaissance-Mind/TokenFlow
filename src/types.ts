@@ -58,7 +58,8 @@ export interface UsageTotals {
 
 export interface UsageEvent extends UsageTotals {
   messageId?: string;
-  serviceTier?: "standard" | "fast" | "flex";
+  serviceTier?: "standard" | "fast" | "flex" | "ultrafast";
+  recordedServiceTier?: "standard" | "fast" | "flex" | "ultrafast";
   agent: AgentSource;
   model: string;
   pricingModel?: string;
@@ -82,6 +83,7 @@ export interface PricingRate {
   longContextThresholdTokens?: number;
   fastMultiplier?: string;
   flexMultiplier?: string;
+  ultrafastMultiplier?: string;
 }
 
 export interface PricingProfile extends PricingRate {
@@ -99,7 +101,7 @@ export interface CostBreakdown {
 }
 
 export interface UsageBucket extends UsageTotals {
-  serviceTier?: "standard" | "flex";
+  serviceTier?: "standard" | "flex" | "ultrafast";
   recordedUsage?: UsageTotals;
   agent: AgentSource;
   model: string;

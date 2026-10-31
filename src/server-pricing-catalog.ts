@@ -20,6 +20,7 @@ const rateFields = [
   "cacheCreationAbove200kUsdPerMillion",
   "fastMultiplier",
   "flexMultiplier",
+  "ultrafastMultiplier",
 ] as const;
 
 export function parsePricingCatalog(value: unknown): PricingCatalog {

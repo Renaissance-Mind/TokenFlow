@@ -24,7 +24,7 @@ interface CumulativeUsage {
   totalTokens: number;
 }
 
-type CodexServiceTier = "standard" | "fast" | "flex";
+type CodexServiceTier = "standard" | "fast" | "flex" | "ultrafast";
 
 interface ParsedCodexUsageEvent extends UsageEvent {
   codexServiceTier?: CodexServiceTier;
@@ -129,7 +129,7 @@ export function createCodexJsonlParser(options: ParseOptions, saved?: unknown): 
         const model = rawModel ? normalizeAgentModelForUsage("codex", rawModel) : currentModel;
         const event: ParsedCodexUsageEvent = { agent: "codex", model: model.model,
           ...(model.pricingModel ? { pricingModel: model.pricingModel } : {}),
-          ...codexPricingFields(model, effectiveServiceTier(currentServiceTier, options.serviceTier)),
+          ...codexPricingFields(model, effectiveServiceTier(currentServiceTier, options.serviceTier), currentServiceTier),
           messageId: id, sessionId, sourcePath: options.sourcePath, timestamp, bucketStart, ...totals };
         latestResponse = id;
         if (compacted.has(id)) { events.push(event); emitted.add(id); }
@@ -204,7 +204,7 @@ export function createCodexJsonlParser(options: ParseOptions, saved?: unknown): 
         agent: "codex",
         model: eventModel.model,
         ...(eventModel.pricingModel ? { pricingModel: eventModel.pricingModel } : {}),
-        ...codexPricingFields(eventModel, effectiveServiceTier(currentServiceTier, options.serviceTier)),
+        ...codexPricingFields(eventModel, effectiveServiceTier(currentServiceTier, options.serviceTier), currentServiceTier),
         sessionId,
         sourcePath: options.sourcePath,
         timestamp,
@@ -268,12 +268,15 @@ function isSubagentSession(payload: Record<string, unknown>): boolean {
 function codexPricingFields(
   model: UsageModelNormalization,
   serviceTier: CodexServiceTier,
-): { costMultiplier?: string; codexServiceTier?: CodexServiceTier; serviceTier?: CodexServiceTier } {
-  if (serviceTier !== "fast") return { codexServiceTier: serviceTier, serviceTier };
+  recordedTier?: CodexServiceTier | null,
+): { costMultiplier?: string; codexServiceTier?: CodexServiceTier; serviceTier?: CodexServiceTier; recordedServiceTier?: CodexServiceTier } {
+  const recorded = recordedTier ? { recordedServiceTier: recordedTier } : {};
+  if (serviceTier !== "fast") return { codexServiceTier: serviceTier, serviceTier, ...recorded };
   const multiplier = codexFastMultiplier(model);
   return {
     codexServiceTier: serviceTier,
     serviceTier,
+    ...recorded,
     ...(multiplier ? { costMultiplier: multiplier } : {}),
   };
 }
@@ -306,6 +309,7 @@ function codexServiceTierFromSettings(payload: Record<string, unknown> | null): 
   if (value === "default" || value === "standard") return "standard";
   if (value === "fast" || value === "priority") return "fast";
   if (value === "flex") return "flex";
+  if (value === "ultrafast") return "ultrafast";
   return null;
 }
 

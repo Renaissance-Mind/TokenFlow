@@ -23,7 +23,7 @@ function usageKey(event: UsageEvent): string {
 export function dedupeCodexSessions(sessions: CodexSession[]): UsageEvent[] {
   const byId = new Map(sessions.map((session) => [session.id, session]));
   const output: UsageEvent[] = [];
-  const seen = new Set<string>();
+  const seen = new Map<string, UsageEvent>();
   for (const session of sessions) {
     const parent = session.parent ? byId.get(session.parent) : undefined;
     const prefix =
@@ -73,9 +73,20 @@ export function dedupeCodexSessions(sessions: CodexSession[]): UsageEvent[] {
       const key = event.messageId
         ? `request|${event.messageId}`
         : `${session.id}|${event.timestamp}|${event.model}|${usageKey(event)}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        output.push(event);
+      const existing = seen.get(key);
+      if (!existing) {
+        const retained = event.messageId ? { ...event } : event;
+        seen.set(key, retained);
+        output.push(retained);
+      } else if (event.messageId) {
+        const priority = { standard: 4, ultrafast: 3, fast: 2, flex: 1 };
+        const previous = existing.recordedServiceTier ? priority[existing.recordedServiceTier] : 0;
+        const incoming = event.recordedServiceTier ? priority[event.recordedServiceTier] : 0;
+        if (incoming > previous) {
+          existing.serviceTier = event.serviceTier;
+          existing.recordedServiceTier = event.recordedServiceTier;
+          existing.costMultiplier = event.costMultiplier;
+        }
       }
     }
   }
