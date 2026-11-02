@@ -24,10 +24,10 @@ export function parseClaudeJsonl(jsonl: string, options: ParseOptions): UsageEve
 export function createClaudeJsonlParser(options: ParseOptions, saved?: unknown): JsonlUsageParser {
   const checkpoint = saved as { events: UsageEvent[]; seen?: string[] } | undefined;
   const events: UsageEvent[] = checkpoint?.events || [];
-  const seen = new Set<string>(checkpoint?.seen);
+  const seen = new Map<string, number>(events.flatMap((event, index) => event.messageId ? [[event.messageId, index] as [string, number]] : []));
 
   return {
-    snapshot: () => ({ events, seen: [...seen] }),
+    snapshot: () => ({ events, seen: [...seen.keys()] }),
     pushLine(line: string): void {
       if (!line.trim() || !line.includes('"usage"')) return;
 
@@ -53,38 +53,51 @@ export function createClaudeJsonlParser(options: ParseOptions, saved?: unknown):
         messageId, requestId,
         ...(requestId ? [] : [sessionId || options.sourcePath, ...(/^(msg_|resp_)/.test(messageId || "") ? [] : [timestamp])]),
       ]) : null;
-      if (dedupeId && seen.has(dedupeId)) return;
 
       const totals = normalizeClaudeUsage(usage);
       const recordedCostUsd = typeof row.costUSD === "number" ? optionalDecimalString(row.costUSD) : undefined;
       if (isZero(totals) && !(Number(recordedCostUsd) > 0)) return;
 
-      if (dedupeId) seen.add(dedupeId);
       const speed = speedField(usage, "speed");
       const model = normalizeClaudeModelForUsage(
         normalizeAgentModelForUsage("claude", stringField(message, "model") || stringField(row, "model")),
         speed,
       );
       const fastMultiplier = model.pricingModel ? claudeFastMultiplier(model.pricingModel) : null;
-      events.push({
+      const event: UsageEvent = {
         ...(dedupeId ? { messageId: dedupeId } : {}),
         agent: "claude",
         model: model.displayModel,
         ...(model.pricingModel ? { pricingModel: model.pricingModel } : {}),
         ...(fastMultiplier ? { costMultiplier: fastMultiplier } : {}),
         sessionId,
+        ...(row.isSidechain === true ? { isSidechain: true } : {}),
         sourcePath: options.sourcePath,
         timestamp,
         bucketStart,
         ...totals,
         ...(recordedCostUsd !== undefined ? { recordedCostUsd } : {}),
-      });
+      };
+      const existing = dedupeId ? seen.get(dedupeId) : undefined;
+      if (existing !== undefined) events[existing] = mergeClaudeUsageCopies(events[existing], event);
+      else {
+        if (dedupeId) seen.set(dedupeId, events.length);
+        events.push(event);
+      }
     },
 
     finish(): UsageEvent[] {
       return events;
     },
   };
+}
+
+export function mergeClaudeUsageCopies(existing: UsageEvent, candidate: UsageEvent): UsageEvent {
+  const aliases = new Set([existing, candidate].flatMap(event => event.isSidechain ? [] : [...(event.claudeSessionAliases || []), ...(event.sessionId ? [event.sessionId] : [])]));
+  const replace = existing.isSidechain !== candidate.isSidechain
+    ? !!existing.isSidechain
+    : candidate.totalTokens > existing.totalTokens;
+  return { ...(replace ? candidate : existing), ...(aliases.size ? { claudeSessionAliases: [...aliases] } : {}) };
 }
 
 function normalizeClaudeModelForUsage(

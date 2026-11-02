@@ -60,6 +60,9 @@ export interface UsageEvent extends UsageTotals {
   messageId?: string;
   serviceTier?: "standard" | "fast" | "flex" | "ultrafast";
   recordedServiceTier?: "standard" | "fast" | "flex" | "ultrafast";
+  nativeClaudeSessionId?: string;
+  isSidechain?: boolean;
+  claudeSessionAliases?: string[];
   agent: AgentSource;
   model: string;
   pricingModel?: string;

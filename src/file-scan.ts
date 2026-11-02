@@ -9,7 +9,7 @@ import path from "node:path";
 import { parse as parseToml } from "smol-toml";
 
 import { parseAmpThread } from "./sources/amp.js";
-import { createClaudeJsonlParser } from "./sources/claude.js";
+import { createClaudeJsonlParser, mergeClaudeUsageCopies } from "./sources/claude.js";
 import { createCodexJsonlParser, type CodexCheckpoint } from "./sources/codex.js";
 import { dedupeCodexSessions, type CodexSession } from "./sources/codex-replay.js";
 import { sqliteRows, tableColumns } from "./sources/store-io.js";
@@ -617,7 +617,7 @@ async function readOpenCodeDbRows(dbPath: string): Promise<OpenCodeMessageRow[]>
         }
       }
     }
-    appendItems(rows, messages.filter((row) => row.type === "assistant" && !(row.seq !== undefined && row.seq !== null && cutoffs.has(row.session_id) && row.seq <= cutoffs.get(row.session_id)!)));
+    appendItems(rows, messages.filter((row) => row.type === "assistant" && !(row.seq !== undefined && row.seq !== null && cutoffs.has(row.session_id) && row.seq <= cutoffs.get(row.session_id)!)).map(row => ({ ...row, v2: true })));
   }
   for (const table of ["session_v2", "session"]) {
     const columns = await tableColumns(dbPath, table);
@@ -855,14 +855,24 @@ function isQwenChatFile(filePath: string): boolean {
 }
 
 function dedupeTranscriptEvents(events: UsageEvent[]): UsageEvent[] {
-  const seen = new Set<string>();
-  return events.filter((event) => {
-    if (!["kimi", "qwen", "gemini", "claude"].includes(event.agent)) return true;
+  const seen = new Map<string, number>();
+  const kept: UsageEvent[] = [];
+  for (const event of events) {
+    if (!["kimi", "qwen", "gemini", "claude"].includes(event.agent)) { kept.push(event); continue; }
     const key = event.messageId ? `${event.agent}|${event.agent === "claude" ? "" : event.sessionId}|${event.messageId}`
       : [event.agent,event.sessionId,event.timestamp,event.model,event.inputTokens,event.outputTokens,event.cachedInputTokens,event.cacheCreationTokens,event.reasoningOutputTokens,event.totalTokens].join("|");
-    if (seen.has(key)) return false;
-    seen.add(key); return true;
-  });
+    const previous = seen.get(key);
+    if (previous !== undefined) {
+      if (event.agent === "claude") kept[previous] = mergeClaudeUsageCopies(kept[previous], event);
+      continue;
+    }
+    seen.set(key, kept.length); kept.push(event);
+  }
+  // Native wrapper links are local evidence; match only counted main-thread UTC days.
+  const counted = new Set(kept.flatMap(event => event.agent === "claude" && !event.isSidechain
+    ? [...(event.claudeSessionAliases || []), ...(event.sessionId ? [event.sessionId] : [])].map(session => JSON.stringify([session, event.bucketStart.slice(0, 10)])) : []));
+  return kept.filter(event => event.agent !== "opencode" || !event.nativeClaudeSessionId
+    || !counted.has(JSON.stringify([event.nativeClaudeSessionId, event.bucketStart.slice(0, 10)])));
 }
 
 function isCodebuffChatMessagesFile(filePath: string): boolean {

@@ -10,6 +10,7 @@ export interface OpenCodeMessageRow {
   time_created?: number;
   data: string;
   aggregate?: boolean;
+  v2?: boolean;
 }
 
 export function parseOpenCodeMessageRow(row: OpenCodeMessageRow, sourcePath = "opencode.db"): UsageEvent | null {
@@ -37,6 +38,12 @@ export function parseOpenCodeMessageRow(row: OpenCodeMessageRow, sourcePath = "o
   const modelRef = objectField(value, "model");
   const rawModel = stringField(modelRef?.id) || stringField(modelRef?.modelID) || stringField(value.modelID) || stringField(value.model) || "unknown";
   const provider = stringField(modelRef?.providerID) || stringField(value.providerID);
+  const nativeSession = row.v2 && provider === "claude-agent" && Array.isArray(value.content)
+    ? value.content.flatMap(part => {
+        if (!part || typeof part !== "object" || Array.isArray(part)) return [];
+        const native = objectField(part as Record<string, unknown>, "native");
+        return typeof native?.sessionID === "string" && native.sessionID.trim() ? [native.sessionID.trim()] : [];
+      })[0] : undefined;
   const model = normalizeAgentModelForUsage(
     "opencode",
     provider ? `${provider}/${rawModel}` : rawModel,
@@ -48,6 +55,7 @@ export function parseOpenCodeMessageRow(row: OpenCodeMessageRow, sourcePath = "o
     ...(model.pricingModel ? { pricingModel: model.pricingModel } : {}),
     sessionId: row.session_id || stringField(value.sessionID) || null,
     sourcePath,
+    ...(nativeSession ? { nativeClaudeSessionId: nativeSession } : {}),
     timestamp,
     bucketStart,
     ...applyTotalTokenFallback({ inputTokens, cachedInputTokens, outputTokens, reasoningOutputTokens, cacheCreationTokens, totalTokens }, intField(tokens.total)),
