@@ -67,7 +67,8 @@ await withDesktopTestServer(async({url,request,db,userId,sessionToken})=>{
   const invalid=await request('/api/usage/summary?'+query.replace('Asia%2FShanghai','Invalid%2FZone'),undefined,first.token);assert.equal(invalid.status,400);
   let instance;
   try{
-    instance=await electron.launch({args:[desktop],env,timeout:60000});
+    const executablePath=process.env.TOKENFLOW_EXECUTABLE;
+    instance=await electron.launch({args:executablePath?[]:[desktop],...(executablePath?{executablePath}:{}),env,timeout:60000});
     const dashboard=await instance.firstWindow();await dashboard.waitForURL(/mode=dashboard$/);
     await expect.poll(async()=>(await dashboard.evaluate(()=>window.tokenflow.getState())).usageToday?.tokens,{timeout:60000}).toBe(6600);
     await dashboard.evaluate(()=>{document.getElementById('from').value=window.tokenflowDashboard.currentDate();document.getElementById('to').value=window.tokenflowDashboard.currentDate();return window.tokenflowDashboard.refresh();});
