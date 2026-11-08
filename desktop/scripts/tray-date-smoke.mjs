@@ -50,7 +50,7 @@ try{
   };
   const assertRange=async(offset,days,tokens)=>{
     const to=localDay(offset),from=localDay(offset-days+1);
-    await expect.poll(()=>panel.evaluate(()=>({from:dashboardSummaryPayload?.from.slice(0,10),to:dashboardSummaryPayload?.to.slice(0,10),chartTo:dailyTrendPayload?.to}))).toEqual({from,to,chartTo:to});
+    await expect.poll(()=>panel.evaluate(()=>({from:dashboardSummaryPayload?.from_date,to:dashboardSummaryPayload?.to_date,chartTo:dailyTrendPayload?.to}))).toEqual({from,to,chartTo:to});
     await expect(panel.locator('#totalTokens')).toHaveAttribute('title',new Intl.NumberFormat('en-US').format(tokens));
     const view=await panel.evaluate(()=>({
       summary:Number(dashboardSummaryPayload.totals.total_tokens),

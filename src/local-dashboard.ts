@@ -1,3 +1,4 @@
+import { calendarDate, usageRange } from "./usage-calendar.js";
 import type { UsageBucket } from "./types.js";
 
 // The same response shapes consumed by the web Dashboard. No message text,
@@ -25,27 +26,16 @@ function totals(buckets: DashboardCache["buckets"]) {
   value.unpriced_buckets = String(buckets.filter(b => b.pricingStatus === "unpriced").length);
   return value;
 }
-function dateStart(value: string): number {
-  const timestamp = Date.parse(value + "T00:00:00.000Z");
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || !Number.isFinite(timestamp) || new Date(timestamp).toISOString().slice(0, 10) !== value) throw new Error("Invalid Dashboard date range");
-  return timestamp;
-}
 
 export function localDashboardApi(cache: DashboardCache | null, config: { deviceId?: string; deviceName?: string; lastSyncAt?: string } | null, request: string): unknown {
   const url = new URL(request, "https://tokenflow.local");
   const id = config?.deviceId || "local-device", name = config?.deviceName || "Computer";
   if (url.pathname === "/api/me") return { authenticated: true, user: { id: "local", name, email: null, persona_key: null } };
   if (url.pathname === "/api/devices") return { devices: [{ id, name, platform: process.platform, status: "active", last_sync_at: config?.lastSyncAt || null }] };
-  const to = url.searchParams.get("to") || new Date().toISOString().slice(0, 10);
-  const toStart = dateStart(to);
-  const days = Math.min(370, Math.max(1, Math.floor(Number(url.searchParams.get("days"))) || 30));
-  const from = url.searchParams.get("from") || new Date(toStart - (days - 1) * 86400000).toISOString().slice(0, 10);
-  const start = dateStart(from), end = toStart + 86400000 - 1;
-  if (start > end) throw new Error("Invalid Dashboard date range");
-  // Summary aggregates cached buckets, including the Dashboard's All range.
-  // Only chart endpoints that expand a date range need a size bound.
-  if (url.pathname === "/api/usage/heatmap" && end - start >= 370 * 86400000) throw new Error("Heatmap date range cannot exceed 370 days");
-  if (url.pathname === "/api/usage/hourly" && end - start >= 92 * 86400000) throw new Error("Hourly date range cannot exceed 92 days");
+  const range = usageRange(url.searchParams);
+  const { fromDate: from, toDate: to, start, end, timeZone, calendarDays } = range;
+  if (url.pathname === "/api/usage/heatmap" && calendarDays > 370) throw new Error("Heatmap date range cannot exceed 370 days");
+  if (url.pathname === "/api/usage/hourly" && calendarDays > 92) throw new Error("Hourly date range cannot exceed 92 days");
   const buckets = (cache?.buckets || []).filter(b => {
     const at = Date.parse(b.bucketStart);
     return at >= start && at <= end && (!url.searchParams.get("device_id") || url.searchParams.get("device_id") === id)
@@ -56,30 +46,30 @@ export function localDashboardApi(cache: DashboardCache | null, config: { device
     const groups = new Map<string, DashboardCache["buckets"]>();
     for (const b of buckets) { const k = `${b.agent}|${b.model}`; const group = groups.get(k) || []; group.push(b); groups.set(k, group); }
     const firstDate = buckets.reduce<string | null>((first, bucket) => {
-      const day = bucket.bucketStart.slice(0, 10);
+      const day = calendarDate(bucket.bucketStart, timeZone);
       return first === null || day < first ? day : first;
     }, null);
-    return { from: new Date(start).toISOString(), to: new Date(end).toISOString(), first_date: firstDate, totals: totals(buckets),
+    return { from: range.fromIso, to: range.toIso, from_date: from, to_date: to, time_zone: timeZone, first_date: firstDate, totals: totals(buckets),
       devices: buckets.length ? [{ device_id: id, device_name: name, last_sync_at: config?.lastSyncAt || null, ...totals(buckets) }] : [],
       models: [...groups.values()].map(g => ({ agent: g[0].agent, model: g[0].model, ...totals(g) })) };
   }
   if (url.pathname === "/api/usage/hourly") {
     const groups = new Map<string, DashboardCache["buckets"]>();
     for (const b of buckets) { const k = b.bucketStart.slice(0, 13); const g = groups.get(k) || []; g.push(b); groups.set(k, g); }
-    return { from, to, ...totals(buckets), hours: [...groups.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([hour, g]) => ({ hour, ...totals(g) })) };
+    return { from, to, time_zone: timeZone, ...totals(buckets), hours: [...groups.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([hour, g]) => ({ hour, ...totals(g) })) };
   }
   if (url.pathname === "/api/usage/heatmap") {
     const metric = url.searchParams.get("metric") === "cost" ? "cost" : "tokens";
     const groups = new Map<string, DashboardCache["buckets"]>();
-    for (const b of buckets) { const k = b.bucketStart.slice(0, 10); const g = groups.get(k) || []; g.push(b); groups.set(k, g); }
+    for (const b of buckets) { const k = calendarDate(b.bucketStart, timeZone); const g = groups.get(k) || []; g.push(b); groups.set(k, g); }
     const dayRows: Array<{ date: string; total_tokens: string; total_cost_usd: string; value: string }> = [];
-    for (let at = start; at <= end; at += 86400000) {
+    for (let at = Date.parse(from + "T00:00:00Z"); at <= Date.parse(to + "T00:00:00Z"); at += 86400000) {
       const date = new Date(at).toISOString().slice(0, 10), t = totals(groups.get(date) || []);
       dayRows.push({ date, total_tokens: t.total_tokens, total_cost_usd: t.total_cost_usd, value: metric === "cost" ? t.total_cost_usd : t.total_tokens });
     }
     const value = (d: typeof dayRows[number]) => metric === "cost" ? micro(d.value) : BigInt(d.value);
     const max = dayRows.reduce((s, d) => value(d) > s ? value(d) : s, 0n);
-    return { from, to, metric, total_tokens: totals(buckets).total_tokens, total_cost_usd: totals(buckets).total_cost_usd,
+    return { from, to, time_zone: timeZone, metric, total_tokens: totals(buckets).total_tokens, total_cost_usd: totals(buckets).total_cost_usd,
       days: dayRows.map(d => ({ ...d, level: value(d) <= 0n || max <= 0n ? 0 : Math.max(1, Math.min(4, Math.ceil(Number(value(d) * 4000n / max) / 1000))) })) };
   }
   throw new Error("Unsupported Dashboard request");

@@ -1,3 +1,4 @@
+import { DashboardRequests } from "./dashboard-requests.js";
 import { NetworkProgress } from "./network-progress.js";
 import { desktopReleasesUrl, hasMacUpdateSignature } from "./update-signature.js";
 import { app, BrowserWindow, WebContentsView, Menu, Tray, nativeImage, ipcMain, shell, screen, session, safeStorage, powerMonitor, dialog, net, protocol } from "electron";
@@ -43,6 +44,8 @@ let cli: CliClient;
 let installation: CliInstallation | null = null;
 let dataHome = "";
 let cloudDashboardCache: CloudDashboardCache;
+const dashboardRequests = new DashboardRequests();
+let todayContext = "", requestedToday = "";
 let collectionTask: Promise<void> | null = null;
 let stoppingCollection = false;
 let configWatcher: FSWatcher | undefined;
@@ -69,6 +72,7 @@ const defaultSettings: Settings = {
 const state: DesktopState = {
   version: app.getVersion(), windowChrome: { platform: process.platform, fullScreen: false }, collectorVersion: "", cli: { source: "managed", version: "", path: "", compatible: true, updateStatus: "idle" }, dashboardSource: "local", dashboardRevision: 0, settings: { ...defaultSettings },
   account: null, hasCollector: false, hasDashboard: false, busy: null, lastSyncAt: null,
+  reportingDate: "", reportingTimeZone: "", usageToday: null, dashboardStale: false,
   summary: null, login: null, loginBusy: false, collectionPhase: null, collectionStartedAt: null,
   error: null, notice: null, pendingRequests: 0, scanProgress: null, fetchProgress: null, requestProgress: { completed: 0, total: 0 }, settingsOpen: false, update: { status: "idle" },
 };
@@ -87,10 +91,43 @@ async function stageSecret(value: DesktopSecret): Promise<void> {
   if (!safeStorage.isEncryptionAvailable()) throw new Error("The operating system credential store is unavailable. Unlock it and sign in again.");
   await atomicWrite(pendingSecretPath(), safeStorage.encryptString(JSON.stringify(value)));
 }
+function statisticsContext(): string {
+  return JSON.stringify([state.dashboardSource, state.settings.serverUrl, state.account?.id, watchedAuthorization,
+    state.dashboardSource === "local" ? state.summary?.scannedAt : state.lastSyncAt,
+    new Intl.DateTimeFormat().resolvedOptions().timeZone, new Date().toLocaleDateString("en-CA")]);
+}
+function acceptToday(endpoint: string, data: any, context: string): void {
+  if (context !== statisticsContext()) return;
+  const url = new URL(endpoint, "https://tokenflow.local");
+  const date = new Date().toLocaleDateString("en-CA");
+  const timeZone = new Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (url.pathname !== "/api/usage/summary" || url.searchParams.get("from") !== date || url.searchParams.get("to") !== date
+    || ["device_id", "agent", "model"].some(key => url.searchParams.has(key)) || data.time_zone !== timeZone) return;
+  const today = { date, timeZone, source: state.dashboardSource, tokens: Number(data.totals.total_tokens), costUsd: Number(data.totals.total_cost_usd), unpricedBuckets: Number(data.totals.unpriced_buckets || 0) };
+  const changed = todayContext !== context || JSON.stringify(today) !== JSON.stringify(state.usageToday);
+  todayContext = context; state.usageToday = today;
+  if (changed) emit();
+}
+function refreshUsageToday(force = false): void {
+  if (!ready || !cloudDashboardCache) return;
+  const context = statisticsContext();
+  if (!force && requestedToday === context) return;
+  requestedToday = context;
+  const date = new Date().toLocaleDateString("en-CA");
+  void dashboardRequest(`/api/usage/summary?from=${date}&to=${date}`).catch(error => {
+    if (context === statisticsContext()) { state.notice = message(error); emit(); }
+  });
+}
 function emit(): void {
+  state.reportingDate = new Date().toLocaleDateString("en-CA");
+  state.reportingTimeZone = new Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const context = statisticsContext();
+  dashboardRequests.useScope(context);
+  if (todayContext !== context) state.usageToday = null;
+  refreshUsageToday();
   for (const contents of [dashboardWindow?.webContents, settingsView?.webContents, popup?.webContents]) if (contents && !contents.isDestroyed()) contents.send("tokenflow:changed", state);
   if (!tray || tray.isDestroyed()) return;
-  const today = state.summary?.today;
+  const today = state.usageToday;
   const currentDay = today?.date === new Date().toLocaleDateString("en-CA");
   const tokens = currentDay && today ? compactTokens(today.tokens) : "—";
   const cost = currentDay && today ? `$${today.costUsd.toFixed(2)}` : "—";
@@ -140,7 +177,7 @@ async function showSettings(section?: unknown): Promise<void> {
   win.show(); win.focus(); settingsView.webContents.focus(); emit();
 }
 function useLocalData(): void {
-  state.dashboardSource = "local"; emit();
+  state.dashboardSource = "local"; state.dashboardStale = false; emit();
 }
 function positionPopup(): void {
   if (!popup || popup.isDestroyed() || !popupAnchor) return;
@@ -213,6 +250,21 @@ const desktopFetch: typeof fetch = (input, init) => networkProgress.fetch(input,
 async function dashboardRequest(value: unknown, options: any = {}): Promise<any> {
   if (typeof value !== "string") throw new Error("Invalid Dashboard request");
   const url = new URL(value, "https://tokenflow.local");
+  if (url.pathname.startsWith("/api/usage/")) url.searchParams.set("time_zone", new Intl.DateTimeFormat().resolvedOptions().timeZone);
+  url.searchParams.sort();
+  const endpoint = url.pathname + url.search;
+  // Validate the original origin before normalizing the relative request.
+  if (url.origin !== "https://tokenflow.local") throw new Error("Unsupported Dashboard request");
+  const context = statisticsContext();
+  dashboardRequests.useScope(context);
+  const data = await loadDashboardRequest(endpoint, options);
+  if (context !== statisticsContext()) return dashboardRequest(value, options);
+  acceptToday(endpoint, data, context);
+  return data;
+}
+async function loadDashboardRequest(value: unknown, options: any = {}): Promise<any> {
+  if (typeof value !== "string") throw new Error("Invalid Dashboard request");
+  const url = new URL(value, "https://tokenflow.local");
   const allowed = ["/api/me", "/api/devices", "/api/usage/summary", "/api/usage/heatmap", "/api/usage/hourly", "/api/profile/persona"];
   const persona = url.pathname === "/api/profile/persona";
   if (url.origin !== "https://tokenflow.local" || !allowed.includes(url.pathname) || (persona ? options.method !== "PATCH" : options.method && options.method !== "GET")) throw new Error("Unsupported Dashboard request");
@@ -223,12 +275,13 @@ async function dashboardRequest(value: unknown, options: any = {}): Promise<any>
   }
   const endpoint = url.pathname + url.search;
   const authorization = watchedAuthorization;
+  const context = statisticsContext();
   if (state.hasDashboard && state.dashboardSource === "cloud") {
     const scope = JSON.stringify([state.settings.serverUrl, state.account?.id]);
     const cacheable = !persona && url.pathname !== "/api/me";
     const serverUrl = state.settings.serverUrl;
     const bearer = dashboardBearer;
-    const fetchCloud = async () => {
+    const readCloud = async () => {
       const response = await networkProgress.fetch(serverUrl + endpoint, { ...(persona ? { method: "PATCH", body: options.body } : {}), headers: { Authorization: `Bearer ${bearer}`, ...(persona ? { "Content-Type": "application/json" } : {}) }, credentials: "omit", redirect: "error", signal: AbortSignal.timeout(15_000) }, (url, init) => dashboardSession().fetch(url as string, init));
       const data = await response.json() as any;
       if (!response.ok || (url.pathname === "/api/me" && !data.authenticated)) throw new ApiError(data.error || "Dashboard request failed", response.status || 401);
@@ -236,25 +289,34 @@ async function dashboardRequest(value: unknown, options: any = {}): Promise<any>
         const preference = await readOptional(path.join(app.getPath("userData"), "dashboard-persona.json"));
         if (preference) data.user.persona_key = JSON.parse(preference.toString()).persona_key;
       }
+      if (url.pathname.startsWith("/api/usage/") && data.time_zone !== url.searchParams.get("time_zone"))
+        throw new Error("The server does not support the requested reporting timezone. Update the server before viewing synced statistics.");
       return data;
     };
+    const fetchCloud = () => cacheable ? dashboardRequests.read(endpoint, readCloud) : readCloud();
     const cached = cacheable ? await cloudDashboardCache.get(scope, endpoint) : null;
-    if (authorization !== watchedAuthorization || dashboardBearer !== bearer) return dashboardRequest(value, options);
+    if (context !== statisticsContext() || authorization !== watchedAuthorization || dashboardBearer !== bearer) return dashboardRequest(value, options);
     if (cached !== null) {
       // Show the last successful response now, then refresh it without holding
       // the Dashboard behind a network request.
       void fetchCloud().then(data => {
-        if (loggingOut || authorization !== watchedAuthorization || dashboardBearer !== bearer || state.dashboardSource !== "cloud") return;
+        if (loggingOut || context !== statisticsContext() || authorization !== watchedAuthorization || dashboardBearer !== bearer || state.dashboardSource !== "cloud") return;
         void cloudDashboardCache.put(scope, endpoint, data).then(changed => {
-          if (changed && !loggingOut && authorization === watchedAuthorization && dashboardBearer === bearer && state.dashboardSource === "cloud") { state.dashboardRevision++; emit(); }
+          if (!loggingOut && context === statisticsContext() && authorization === watchedAuthorization && dashboardBearer === bearer && state.dashboardSource === "cloud") {
+            acceptToday(endpoint, data, context);
+            const wasStale = state.dashboardStale; state.dashboardStale = false;
+            if (state.notice === "Synced data is unavailable. Showing saved statistics.") state.notice = null;
+            if (changed || wasStale) { state.dashboardRevision++; emit(); }
+          }
         }, error => { if (!loggingOut) { state.notice = `Unable to save Dashboard cache: ${message(error)}`; emit(); } });
       }).catch(error => {
-        if (loggingOut || authorization !== watchedAuthorization || dashboardBearer !== bearer || state.dashboardSource !== "cloud") return;
+        if (loggingOut || context !== statisticsContext() || authorization !== watchedAuthorization || dashboardBearer !== bearer || state.dashboardSource !== "cloud") return;
         if (error instanceof ApiError && error.status === 401) {
           state.hasDashboard = false; state.account = null;
           state.notice = "Synced data is unavailable. Showing this device’s data.";
           useLocalData();
         } else {
+          state.dashboardStale = true;
           state.notice = "Synced data is unavailable. Showing saved statistics.";
           emit();
         }
@@ -264,12 +326,20 @@ async function dashboardRequest(value: unknown, options: any = {}): Promise<any>
     try {
       const data = await fetchCloud();
       if (loggingOut) return data;
-      if (authorization !== watchedAuthorization || dashboardBearer !== bearer) return dashboardRequest(value, options);
+      if (context !== statisticsContext() || authorization !== watchedAuthorization || dashboardBearer !== bearer) return dashboardRequest(value, options);
+      state.dashboardStale = false;
+      if (state.notice === "Synced data is unavailable. Showing saved statistics.") state.notice = null;
       if (cacheable) await cloudDashboardCache.put(scope, endpoint, data).catch(error => { state.notice = `Unable to save Dashboard cache: ${message(error)}`; emit(); });
       return data;
     } catch (error) {
       if (authorization !== watchedAuthorization) return dashboardRequest(value, options);
       if (persona || (error instanceof ApiError && error.status >= 400 && error.status < 500 && error.status !== 401)) throw error;
+      if (url.pathname === "/api/me" && state.account && !(error instanceof ApiError && error.status === 401)) {
+        state.dashboardStale = true;
+        state.notice = "Synced data is unavailable. Showing saved statistics.";
+        emit();
+        return { authenticated: true, user: state.account };
+      }
       if (error instanceof ApiError && error.status === 401) { state.hasDashboard = false; state.account = null; }
       state.notice = "Synced data is unavailable. Showing this device’s data.";
       useLocalData();
@@ -690,6 +760,7 @@ async function initialize(): Promise<void> {
   handle("cancel-login", () => { loginController?.abort(); });
   handle("settings", saveSettings); handle("sync", () => runJob("sync")); handle("scan", () => runJob("scan"));
   handle("dashboard", showDashboard); handle("dashboard-request", (value, options) => trackRequest(() => dashboardRequest(value, options)));
+  handle("refresh-dashboard", () => { dashboardRequests.invalidate(); refreshUsageToday(true); state.dashboardRevision++; });
   handle("resize-tray", resizePopup);
   handle("api-token", setApiToken); handle("cli-update", (action) => action === "check" ? checkCliUpdate() : upgradeCli()); handle("open-settings", showSettings); handle("logout", logoutDesktop);
   handle("update", async (action: unknown) => {
@@ -704,7 +775,7 @@ async function initialize(): Promise<void> {
   autoUpdater.on("error", (error) => { state.update = { status: "error", message: message(error) }; emit(); });
   configureLoginItem(); await marker(); await configureScheduler();
   timers.push(setInterval(() => { void marker().catch((error) => { state.error = message(error); emit(); }); }, 30_000));
-  powerMonitor.on("resume", () => { void refreshLocalSnapshot().catch(error => { state.notice = message(error); emit(); }); });
+  powerMonitor.on("resume", () => { dashboardRequests.invalidate(); emit(); refreshUsageToday(true); void refreshLocalSnapshot().catch(error => { state.notice = message(error); emit(); }); });
   const background = process.argv.includes("--background") || (process.platform === "darwin" && app.getLoginItemSettings().wasOpenedAtLogin);
   ready = true; emit();
   const connection = configureCliDashboard(config).catch(error => { state.notice = message(error); });
@@ -716,6 +787,7 @@ async function initialize(): Promise<void> {
     if (filename === "local-cache.json" || filename === "background-status.json") void refreshLocalSnapshot().catch(error => { state.notice = message(error); emit(); });
   });
   await refreshLocalSnapshot();
+  timers.push(setInterval(() => { emit(); refreshUsageToday(true); }, 60_000));
   timers.push(setInterval(() => { void refreshLocalSnapshot().catch(error => { state.notice = message(error); emit(); }); }, 15_000));
   timers.push(setInterval(() => { void reconcileCollector().catch(() => {}); }, 15_000));
 }

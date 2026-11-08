@@ -62,6 +62,8 @@ npm run build --prefix desktop
 npm test --prefix desktop
 npm run smoke --prefix desktop
 node desktop/scripts/cache-smoke.mjs
+node desktop/scripts/tray-date-smoke.mjs
+TOKENFLOW_AUTH_TEST_SERVER=/absolute/path/TokenFlow_Server/scripts/desktop-test-server.mjs node desktop/scripts/statistics-smoke.mjs
 TOKENFLOW_AUTH_TEST_SERVER=/absolute/path/TokenFlow_Server/scripts/desktop-test-server.mjs node desktop/scripts/background-sync-smoke.mjs
 TOKENFLOW_AUTH_TEST_SERVER=/absolute/path/TokenFlow_Server/scripts/desktop-test-server.mjs node desktop/scripts/auth-smoke.mjs
 ```
@@ -97,3 +99,11 @@ Legacy unsigned/ad-hoc macOS installations (including the original 0.1.18) must 
 App updates read the static `desktop-latest` release feed, without calling the rate-limited GitHub REST API. Publish installers, update YAML files, and blockmaps in a `desktop-vX.Y.Z` release, separately from npm CLI releases. The `Publish desktop update feed` workflow then validates both platform manifests and updates the static feed with URLs pointing to those versioned installers. Older release events cannot roll the feed back. To refresh it manually, run `node desktop/scripts/publish-update-feed.mjs desktop-vX.Y.Z` after publishing all assets. CLI upgrades in Settings install the latest npm version independently of App. Local builds do not publish anything.
 
 CLI sign-in reuse requires the server Dashboard read endpoints to accept active device credentials. This permission update requires no database migration. The server migration `0009_desktop_auth.sql` and desktop authorization endpoints must be deployed for browser sign-in. API-token data access uses existing account usage APIs and does not load the server `/dashboard` page. Deploy migrations before the Worker. Existing OAuth settings and callback URLs still apply.
+
+## Reporting consistency
+
+The menu bar always shows today for the same data source and account as the popup and Dashboard. Signed-in views use synced account totals; local mode uses the bundled Dashboard adapter. All views send the system IANA `time_zone` and share summary responses and network requests. The menu never reads the collector's independent local summary. Choosing 7 or 30 days in the popup changes that view's range while the menu remains today.
+
+Cache identity includes server, account, data source, reporting timezone, calendar date and the relevant sync/scan revision. Concurrent readers share one request, with a 60-second refresh interval; explicit refresh and wake invalidate it. Cached cloud results remain cloud results during network outages and are labeled as cached. Authorization changes switch all views together, and obsolete in-flight responses cannot update the new context.
+
+The server resolves local calendar bounds and aggregates half-hour snapshot slots across UTC dates. Omitted `time_zone` retains the API's UTC contract. The packaged local adapter implements the same contract; daylight-saving boundaries use each date's offset. The checked-in Dashboard snapshot and its server source must retain `refreshReportingCalendar` and timezone query propagation when regenerated.

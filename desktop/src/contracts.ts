@@ -27,6 +27,10 @@ export interface DesktopState {
   cli: { source: "installed" | "managed"; version: string; path: string; compatible: boolean; updateStatus: string; availableVersion?: string };
   dashboardSource: "local" | "cloud";
   dashboardRevision: number;
+  reportingDate: string;
+  reportingTimeZone: string;
+  usageToday: { date: string; tokens: number; costUsd: number; unpricedBuckets: number; source: "local" | "cloud"; timeZone: string } | null;
+  dashboardStale: boolean;
   version: string;
   collectorVersion: string;
   settings: Settings;

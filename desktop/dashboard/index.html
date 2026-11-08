@@ -3343,6 +3343,7 @@
     let hourProfileChart = null;
     let punchCardChart = null;
     let dashboardSummaryPayload = null;
+    let dashboardLoadRevision = 0;
     let dailyTrendPayload = null;
     let selectedTrendDays = 30;
     let dashboardAllRange = false;
@@ -3360,7 +3361,7 @@
     let identityShareModule = null;
     let tbtiLockedState = { key: 'tbti.reading', values: {} };
     const localNow = new Date();
-    const today = snapshotMode
+    let today = snapshotMode
       ? new Date(LANDING_DASHBOARD_SNAPSHOT.today + 'T00:00:00.000Z')
       : new Date(Date.UTC(localNow.getFullYear(), localNow.getMonth(), localNow.getDate()));
     document.getElementById('from').value = defaultFromDate(today);
@@ -4229,6 +4230,8 @@
       scheduleDashboardRefresh();
     }
     async function loadDashboard(options = {}) {
+      const loadRevision = ++dashboardLoadRevision;
+      refreshReportingCalendar();
       normalizeDashboardDates();
       syncDashboardRangeControls();
       syncRangeButtons();
@@ -4245,11 +4248,13 @@
         ? Promise.resolve()
         : refreshHourlyInsightsSafely();
       const summary = await summaryPromise;
+      if (loadRevision !== dashboardLoadRevision) return;
       if (dashboardAllRange && summary.first_date && summary.first_date > selectedFromDate()) {
         document.getElementById('from').value = summary.first_date;
         syncDashboardRangeControls();
       }
       const filterOptionsSummary = await filterOptionsPromise;
+      if (loadRevision !== dashboardLoadRevision) return;
       if (renderFilterOptions(filterOptionsSummary)) return loadDashboard(options);
       renderDashboardSummary(summary);
       await fixedWidgetsPromise;
@@ -4594,6 +4599,25 @@
       element.textContent = message;
       element.classList.remove('hidden');
     }
+    function reportingTimeZone() { return Intl.DateTimeFormat().resolvedOptions().timeZone; }
+    let lastReportingTimeZone = reportingTimeZone();
+    function refreshReportingCalendar() {
+      if (snapshotMode) return false;
+      const now = new Date();
+      const next = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+      const previous = today.toISOString().slice(0, 10), date = next.toISOString().slice(0, 10);
+      const zone = reportingTimeZone();
+      if (date === previous && zone === lastReportingTimeZone) return false;
+      const from = selectedFromDate(), to = selectedToDate();
+      const days = selectedRangeDays(), sixMonths = from === monthRangeStartDate(to, 6);
+      today = next; lastReportingTimeZone = zone;
+      if (to === previous) {
+        document.getElementById('to').value = date;
+        if (!dashboardAllRange) document.getElementById('from').value = sixMonths ? monthRangeStartDate(date, 6) : rangeStartDate(date, days);
+      }
+      usageHeatmapCache.clear(); hourlyCache.clear();
+      return true;
+    }
     function dashboardParams() {
       normalizeDashboardDates();
       const params = filterParams();
@@ -4604,6 +4628,7 @@
     function dashboardFilterOptionsParams() {
       normalizeDashboardDates();
       const params = new URLSearchParams();
+      if (!snapshotMode && !previewMode) params.set('time_zone', reportingTimeZone());
       appendFilter(params, 'device_id', 'deviceFilter');
       params.set('from', document.getElementById('from').value);
       params.set('to', document.getElementById('to').value);
@@ -4611,6 +4636,7 @@
     }
     function filterParams() {
       const params = new URLSearchParams();
+      if (!snapshotMode && !previewMode) params.set('time_zone', reportingTimeZone());
       appendFilter(params, 'device_id', 'deviceFilter');
       appendFilter(params, 'agent', 'agentFilter');
       appendFilter(params, 'model', 'modelFilter');
@@ -6412,7 +6438,7 @@
       return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())).toISOString().slice(0, 10);
     }
     window.tokenflowDashboard = { boot, refresh: async () => { usageHeatmapCache.clear(); hourlyCache.clear(); await boot(); }, language: applyLanguage,
-      currentDate: currentDashboardDate,
+      currentDate: currentDashboardDate, refreshCalendar: refreshReportingCalendar,
       miniRange: days => { selectedTrendDays = days; dashboardAllRange = false; const to = currentDashboardDate(); document.getElementById('from').value = rangeStartDate(to, days); document.getElementById('to').value = to; }, repaint: refreshThemeSensitiveViews };
   </script>
 <script type="module" src="/desktop.js"></script></body>

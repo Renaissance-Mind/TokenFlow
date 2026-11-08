@@ -27,7 +27,7 @@ document.querySelector('.desktop-toolbar').outerHTML=`<header class="mini-header
 </header>`;
 let latest,revision='',running=false,pending=false,started=false,lastHeight=0,lastError='';
 const media=matchMedia('(prefers-color-scheme: dark)');
-const words={en:{local:'This device',cloud:'Synced data',today:'Today',week:'7D',month:'30D',models:'Top 4',actions:'Dashboard actions',range:'Time range',settings:'Customize popup',refresh:'Refresh',open:'Open Dashboard',loading:'Loading Dashboard…'},zh:{local:'本机数据',cloud:'同步数据',today:'今日',week:'7天',month:'30天',models:'前4个模型',actions:'Dashboard 操作',range:'时间范围',settings:'设置小窗',refresh:'刷新',open:'打开 Dashboard',loading:'正在读取 Dashboard…'}};
+const words={en:{local:'This device',cloud:'Synced data',cached:'Synced data (cached)',today:'Today',week:'7D',month:'30D',models:'Top 4',actions:'Dashboard actions',range:'Time range',settings:'Customize popup',refresh:'Refresh',open:'Open Dashboard',loading:'Loading Dashboard…'},zh:{local:'本机数据',cloud:'同步数据',cached:'同步数据（缓存）',today:'今日',week:'7天',month:'30天',models:'前4个模型',actions:'Dashboard 操作',range:'时间范围',settings:'设置小窗',refresh:'刷新',open:'打开 Dashboard',loading:'正在读取 Dashboard…'}};
 function resize(){
   const height=Math.ceil(document.querySelector('.mini-header').getBoundingClientRect().height+main.getBoundingClientRect().height);
   if(Math.abs(height-lastHeight)>1){lastHeight=height;void window.tokenflow.resizeTray(height);}
@@ -83,7 +83,7 @@ function update(state){
   // by the visual editor. Move the canonical nodes rather than cloning charts.
   const order=Array.from(content.children,node=>node.dataset.miniWidget);
   if(JSON.stringify(order)!==JSON.stringify(state.settings.trayWidgets))for(const name of state.settings.trayWidgets)if(widgets[name])content.append(widgets[name]);
-  $('miniSource').textContent=t[state.dashboardSource];
+  $('miniSource').textContent=t[state.dashboardStale&&state.dashboardSource==='cloud'?'cached':state.dashboardSource];
   document.querySelector('[data-mini-range="1"]').textContent=t.today;
   document.querySelector('[data-mini-range="7"]').textContent=t.week;
   document.querySelector('[data-mini-range="30"]').textContent=t.month;
@@ -92,14 +92,14 @@ function update(state){
   modelLimit.textContent=t.models;
   for(const button of document.querySelectorAll('[data-mini-range]'))button.setAttribute('aria-pressed',String(Number(button.dataset.miniRange)===state.settings.trayRange));
   actions();
-  const key=JSON.stringify([window.tokenflowDashboard.currentDate(),state.dashboardSource,state.dashboardRevision,state.summary?.scannedAt,state.settings.serverUrl,state.account?.id,state.lastSyncAt,state.settings.trayRange,state.settings.trayWidgets,state.settings.language]);
+  const key=JSON.stringify([window.tokenflowDashboard.currentDate(),state.dashboardSource,state.dashboardRevision,state.reportingTimeZone,state.summary?.scannedAt,state.settings.serverUrl,state.account?.id,state.lastSyncAt,state.settings.trayRange,state.settings.trayWidgets,state.settings.language]);
   if(key!==revision){revision=key;window.tokenflowDashboard.language(state.settings.language);window.tokenflowDashboard.miniRange(state.settings.trayRange);theme();void refresh();}
   else theme();
   resize();
 }
 $('miniSettings').onclick=()=>window.tokenflow.openSettings('tray');
 $('trayDashboard').onclick=()=>window.tokenflow.dashboard();
-$('miniRefresh').onclick=async()=>{try{lastError='';if(latest.dashboardSource==='local')await window.tokenflow.scan();await refresh();}catch(error){lastError=error.message;actions();}};
+$('miniRefresh').onclick=async()=>{try{lastError='';await window.tokenflow.refreshDashboard();if(latest.dashboardSource==='local')await window.tokenflow.scan();await refresh();}catch(error){lastError=error.message;actions();}};
 for(const button of document.querySelectorAll('[data-mini-range]'))button.onclick=()=>window.tokenflow.saveSettings({trayRange:Number(button.dataset.miniRange)});
 media.addEventListener('change',theme);
 // A popup can stay alive for days without new usage. Check the date when it

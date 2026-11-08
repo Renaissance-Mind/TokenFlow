@@ -109,7 +109,7 @@ export function createWidgetEditor(){
     for(const button of document.querySelectorAll('[data-tray-metric]')){
       button.setAttribute('aria-pressed',String(button.dataset.trayMetric===draft.trayMetric));button.disabled=saving;
     }
-    const today=latest.summary?.today;
+    const today=latest.usageToday;
     const current=today?.date===new Date().toLocaleDateString('en-CA');
     const compact=value=>value>=1_000_000?(value/1_000_000).toFixed(1)+'M':value>=1000?(value/1000).toFixed(1)+'K':String(value);
     $('previewTrayIcon').hidden=!draft.showTrayIcon&&draft.trayMetric!=='icon';
@@ -197,7 +197,7 @@ export function createWidgetEditor(){
     update(state){
       const languageChanged=latest&&latest.settings.language!==state.settings.language;
       latest=state;if(languageChanged&&dirty)$('traySavedStatus').textContent=t().unsaved;
-      const key=JSON.stringify([state.dashboardSource,state.account?.id,state.summary?.scannedAt,state.lastSyncAt,state.settings.serverUrl]);
+      const key=JSON.stringify([state.dashboardSource,state.dashboardRevision,state.reportingDate,state.reportingTimeZone,state.account?.id,state.summary?.scannedAt,state.lastSyncAt,state.settings.serverUrl]);
       if(key!==revision){revision=key;requests.clear();}
       if(!dirty&&!saving)draft=preferences(state.settings);
       render();if(active)post('state',previewState());

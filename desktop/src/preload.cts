@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld("tokenflow", Object.freeze({
   saveSettings: (settings: unknown) => ipcRenderer.invoke("tokenflow:settings", settings),
   sync: () => ipcRenderer.invoke("tokenflow:sync"),
   scan: () => ipcRenderer.invoke("tokenflow:scan"),
+  refreshDashboard: () => ipcRenderer.invoke("tokenflow:refresh-dashboard"),
   dashboard: () => ipcRenderer.invoke("tokenflow:dashboard"),
   dashboardRequest: (path: string, options?: unknown) => ipcRenderer.invoke("tokenflow:dashboard-request", path, options),
   setApiToken: (token: string) => ipcRenderer.invoke("tokenflow:api-token", token),

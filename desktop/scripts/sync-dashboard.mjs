@@ -53,7 +53,7 @@ try {
       return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())).toISOString().slice(0, 10);
     }
     window.tokenflowDashboard = { boot, refresh: async () => { usageHeatmapCache.clear(); hourlyCache.clear(); await boot(); }, language: applyLanguage,
-      currentDate: currentDashboardDate,
+      currentDate: currentDashboardDate, refreshCalendar: refreshReportingCalendar,
       miniRange: days => { selectedTrendDays = days; dashboardAllRange = false; const to = currentDashboardDate(); document.getElementById('from').value = rangeStartDate(to, days); document.getElementById('to').value = to; }, repaint: refreshThemeSensitiveViews };`);
   html=html.replace('</head>','<link rel="stylesheet" href="/desktop.css"><link rel="stylesheet" href="/progress.css"><link rel="stylesheet" href="/window-chrome.css"><link rel="stylesheet" href="/tray.css"></head>');
   html=html.replace('</body>','<script type="module" src="/desktop.js"></script></body>');

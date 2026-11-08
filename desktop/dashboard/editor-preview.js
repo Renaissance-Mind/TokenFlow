@@ -16,6 +16,7 @@ window.addEventListener('message',event=>{
 window.tokenflow=Object.freeze({
   getState:async()=>{const state=await rpc('state');requestAnimationFrame(measure);return state;},
   onState:listener=>{listeners.add(listener);return()=>listeners.delete(listener);},
+  refreshDashboard:()=>Promise.resolve(),
   dashboardRequest:path=>rpc('request',{path}),
   resizeTray:()=>{requestAnimationFrame(measure);return Promise.resolve();},
   saveSettings:()=>Promise.resolve(),scan:()=>Promise.resolve(),dashboard:()=>{},openSettings:()=>{},
