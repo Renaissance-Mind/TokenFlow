@@ -13,6 +13,9 @@ module.exports = async (context) => {
   if (!['darwin', 'win32'].includes(platform)) throw new Error('Unsupported desktop platform');
   const target = path.join(context.packager.info.appDir, `node-${arch}`);
   const filename = platform === 'win32' ? 'node.exe' : 'node';
+  // Local release builds can target macOS and Windows from one checkout. Never
+  // ship the previous platform's runtime through the shared extraResources path.
+  await fs.rm(path.join(target, platform === 'win32' ? 'node' : 'node.exe'), { force: true });
   if (await fs.readFile(path.join(target, 'VERSION'), 'utf8').catch(() => '') === version && await fs.access(path.join(target, filename)).then(() => true).catch(() => false)) return;
   const stem = `node-v${version}-${platform === 'win32' ? 'win' : 'darwin'}-${arch}`;
   const archive = `${stem}.${platform === 'win32' ? 'zip' : 'tar.gz'}`;
