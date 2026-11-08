@@ -77,7 +77,7 @@ try {
   await page.setViewportSize({width:1440,height:960});
   await page.locator('#dashboardRangeAll').click();
   await expect(page.locator('#dashboardRangeAll')).toHaveAttribute('aria-pressed','true');
-  await expect.poll(()=>page.evaluate(()=>dashboardSummaryPayload?.from?.slice(0,10))).toBe('2025-07-13');
+  await expect.poll(()=>page.evaluate(()=>dashboardSummaryPayload?.from_date)).toBe('2025-07-13');
   assert.equal((await page.evaluate(()=>window.tokenflow.getState())).error,null);
   await page.locator('#dashboardRange7').click();await expect(page.locator('#dashboardRange7')).toHaveAttribute('aria-pressed','true');
   await page.locator('[data-picker="deviceFilter"] .picker-trigger').click();
