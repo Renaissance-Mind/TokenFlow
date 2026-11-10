@@ -46,7 +46,7 @@ export interface CodexCheckpoint {
   pending: Array<[string, { event: ParsedCodexUsageEvent; threadUsage: CumulativeUsage | null }]>;
   latestResponse: string | null; compactions: Array<[string, string]>;
   replayFirstUsage?: string;
-  session: { id: string; parent?: string; forkTime?: string; rewrittenBurst?: string | null } | null;
+  session: { id: string; parent?: string; forkTime?: string; rewrittenBurst?: string | null; spawned?: boolean; spawnedRecordIndex?: number } | null;
 }
 export function createCodexJsonlParser(options: ParseOptions, saved?: unknown): JsonlUsageParser {
   const checkpoint = saved as CodexCheckpoint | undefined;
@@ -102,8 +102,10 @@ export function createCodexJsonlParser(options: ParseOptions, saved?: unknown): 
       const payload = recordField(row, "payload");
       if (type === "session_meta" && payload) {
         const source = recordField(payload, "source");
-        session = { id: stringField(payload, "id") || stringField(payload, "session_id") || options.sourcePath,
+        const id = stringField(payload, "id") || stringField(payload, "session_id") || options.sourcePath;
+        session = { ...(session?.id === id ? session : {}), id,
           parent: stringField(payload, "forked_from_id") || stringField(recordField(recordField(source, "subagent"), "thread_spawn"), "parent_thread_id") || undefined,
+          spawned: !!stringField(recordField(recordField(source, "subagent"), "thread_spawn"), "parent_thread_id"),
           forkTime: stringField(row, "timestamp") || undefined };
       }
 
@@ -124,6 +126,11 @@ export function createCodexJsonlParser(options: ParseOptions, saved?: unknown): 
         if (!bucketStart) return;
         const totals = normalizeUsage(usage);
         if (isZero(totals)) return;
+        // Spawned threads do not inherit request records; user forks do.
+        if (session?.spawned && session.spawnedRecordIndex === undefined) {
+          session.spawnedRecordIndex = events.length;
+          suppressInheritedSubagentReplay = false;
+        }
         options.compactionHistory?.set(id, timestamp);
         const rawModel = modelFromContextPayload(payload || {});
         const model = rawModel ? normalizeAgentModelForUsage("codex", rawModel) : currentModel;

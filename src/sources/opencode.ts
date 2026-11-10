@@ -11,10 +11,12 @@ export interface OpenCodeMessageRow {
   data: string;
   aggregate?: boolean;
   v2?: boolean;
+  kind?: "assistant" | "compaction";
 }
 
 export function parseOpenCodeMessageRow(row: OpenCodeMessageRow, sourcePath = "opencode.db"): UsageEvent | null {
   const value = JSON.parse(row.data) as Record<string, unknown>;
+  if (row.kind === "compaction" && value.status !== "completed") return null;
 
   const time = objectField(value, "time");
   const tokens = objectField(value, "tokens");
@@ -28,7 +30,7 @@ export function parseOpenCodeMessageRow(row: OpenCodeMessageRow, sourcePath = "o
   const cacheCreationTokens = intField(cache?.write);
   const totalTokens =
     inputTokens + outputTokens + reasoningOutputTokens + cachedInputTokens + cacheCreationTokens;
-  if (totalTokens === 0 && !(row.aggregate && Number(value.cost) > 0)) return null;
+  if (totalTokens === 0 && !((row.aggregate || row.kind === "compaction") && Number(value.cost) > 0)) return null;
 
   const timestampMs =
     typeof time?.created === "number" ? time.created : typeof row.time_created === "number" ? row.time_created : 0;

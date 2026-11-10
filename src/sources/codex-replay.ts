@@ -5,6 +5,7 @@ export interface CodexSession {
   parent?: string;
   forkTime?: string;
   rewrittenBurst?: string | null;
+  spawnedRecordIndex?: number;
   events: UsageEvent[];
   compactions: Map<string, string>;
 }
@@ -23,7 +24,7 @@ function usageKey(event: UsageEvent): string {
 export function dedupeCodexSessions(sessions: CodexSession[]): UsageEvent[] {
   const byId = new Map(sessions.map((session) => [session.id, session]));
   const output: UsageEvent[] = [];
-  const seen = new Map<string, UsageEvent>();
+  const seen = new Map<string, number>();
   for (const session of sessions) {
     const parent = session.parent ? byId.get(session.parent) : undefined;
     const prefix =
@@ -36,7 +37,12 @@ export function dedupeCodexSessions(sessions: CodexSession[]): UsageEvent[] {
     let replayIndex = 0;
     let matching = !!session.parent;
     let burstEnd: number | null = null;
-    for (const event of session.events) {
+    // Equal usage at one timestamp may describe multiple requests in one file.
+    const occurrences = new Map<string, number>();
+    for (const [eventIndex, event] of session.events.entries()) {
+      if (session.spawnedRecordIndex !== undefined && eventIndex >= session.spawnedRecordIndex) {
+        matching = false; burstEnd = null;
+      }
       if (event.messageId) {
         const inherited = parent?.compactions.get(event.messageId);
         if (inherited && (!session.forkTime || inherited <= session.forkTime))
@@ -70,22 +76,25 @@ export function dedupeCodexSessions(sessions: CodexSession[]): UsageEvent[] {
         }
         burstEnd = null;
       }
+      const baseKey = `${session.id}|${event.timestamp}|${event.model}|${usageKey(event)}`;
+      const occurrence = occurrences.get(baseKey) || 0;
+      if (!event.messageId) occurrences.set(baseKey, occurrence + 1);
       const key = event.messageId
         ? `request|${event.messageId}`
-        : `${session.id}|${event.timestamp}|${event.model}|${usageKey(event)}`;
-      const existing = seen.get(key);
-      if (!existing) {
+        : `${baseKey}|${occurrence}`;
+      const previousIndex = seen.get(key);
+      if (previousIndex === undefined) {
         const retained = event.messageId ? { ...event } : event;
-        seen.set(key, retained);
+        seen.set(key, output.length);
         output.push(retained);
-      } else if (event.messageId) {
+      } else {
+        const existing = output[previousIndex];
         const priority = { standard: 4, ultrafast: 3, fast: 2, flex: 1 };
         const previous = existing.recordedServiceTier ? priority[existing.recordedServiceTier] : 0;
         const incoming = event.recordedServiceTier ? priority[event.recordedServiceTier] : 0;
         if (incoming > previous) {
-          existing.serviceTier = event.serviceTier;
-          existing.recordedServiceTier = event.recordedServiceTier;
-          existing.costMultiplier = event.costMultiplier;
+          output[previousIndex] = { ...existing, serviceTier: event.serviceTier,
+            recordedServiceTier: event.recordedServiceTier, costMultiplier: event.costMultiplier };
         }
       }
     }

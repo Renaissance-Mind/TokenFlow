@@ -63,7 +63,7 @@ Home: /Users/alice/.tokenflow
 | Codex | `~/.codex/sessions/**/*.jsonl`, `.jsonl.zst`, and nested `archived_sessions` | Streams plain and Zstandard rollouts, prefers active/plain copies during migration, and preserves fork/replay and compaction accounting. Recorded Standard/Fast/Flex/Ultrafast tiers take precedence over the selected TOML profile fallback and use server-owned model rates. |
 | Claude Code | `~/.claude/projects/**/*.jsonl` | Parses project JSONL usage data. |
 | Gemini CLI | `~/.gemini/tmp/**/*.{json,jsonl}` | Reads per-request usage, JSONL settlement records and stats; preserves legacy cumulative session parsing. |
-| OpenCode | `~/.local/share/opencode/opencode*.db` and legacy message JSON | Reads legacy and v2 message tables, excludes copied fork rows, and uses uncovered session counters as fallback. Linked v2 Claude Agent turns already counted in Claude main-thread logs on the same UTC day are counted under Claude. Requires `sqlite3`. |
+| OpenCode | `~/.local/share/opencode/opencode*.db` and legacy message JSON | Reads legacy and v2 assistant/completed-compaction rows, excludes copied fork rows, and uses uncovered session counters as fallback without overlapping compaction usage. Linked v2 Claude Agent turns already counted in Claude main-thread logs on the same UTC day are counted under Claude. Requires `sqlite3`. |
 | Kimi CLI / Kimi Code | `~/.kimi/sessions/**/wire.jsonl` and `~/.kimi-code/sessions/**/wire.jsonl` | Reads legacy `StatusUpdate.token_usage` and turn-level `usage.record` entries, including nested agents. Session snapshots are excluded. |
 | Qwen Code | `~/.qwen/projects/**/*.jsonl` | Reads assistant `usageMetadata` rows. |
 | Amp | `~/.local/share/amp/threads/*.json` | Reads `usageLedger.events[]` or assistant `messages[].usage`. |
@@ -77,7 +77,7 @@ Home: /Users/alice/.tokenflow
 | Grok Build | `~/.grok/sessions/**/updates.jsonl` | Reads completed turns, splits cache-inclusive input, deduplicates event IDs, and preserves recorded billing ticks. |
 | ZCode | `~/.zcode/cli/db/db.sqlite` | Reads completed model-usage ledger rows, supports legacy optional columns and current Z.ai account/builtin plan IDs, and bounds cache slices within inclusive input. |
 | GitHub Copilot | `~/.copilot/session-state/*/events.jsonl`, existing `~/.copilot/otel/**/*.jsonl` | Reads native shutdown/checkpoint records without enabling telemetry. Reconciles cumulative usage and existing OTel calls, and retains persistent unattributed AI credits at $0.01 per credit. |
-| Antigravity | Conversation SQLite files under `~/.gemini/antigravity*` and `~/.config/antigravity` | Reads generation/step protobuf usage and billed retries, merging response identities across stores and backups. Unreadable databases are skipped with warnings and cannot authorize historical usage reductions. |
+| Antigravity | Conversation SQLite files under `~/.gemini/antigravity*` and `~/.config/antigravity` | Reads generation/step protobuf usage and billed retries, merging response identities and unkeyed turn positions across stores and backups while preserving distinct retry attempts. Unreadable databases are skipped with warnings and cannot authorize historical usage reductions. |
 | DeepSeek Harness (dsh) | `~/.dsh/sessions/**/session*.jsonl` or `session*.jsonl.zstd` | Reads plain or Zstandard-compressed Session formats 0–4; selects the latest generation and excludes inherited fork usage. |
 
 TokenFlow intentionally does not upload source file paths, session IDs, prompts, or responses.

@@ -159,6 +159,10 @@ interface Metadata {
   time?: string;
   provider: number;
   usages: Fields[];
+  primaryUsage?: Fields;
+  stepIndices: string[];
+  index?: string;
+  step?: boolean;
 }
 export function parseAntigravityMetadata(hex: string, step: boolean): Metadata {
   const root = decodeProto(Buffer.from(hex, "hex"));
@@ -171,6 +175,14 @@ export function parseAntigravityMetadata(hex: string, step: boolean): Metadata {
     .filter(Buffer.isBuffer)
     .map((retry) => bytes(decodeProto(retry), 2))
     .filter((retry): retry is Buffer => !!retry);
+  const primary = usage ? decodeProto(usage) : undefined;
+  const attempts = retries.map(decodeProto);
+  // Retry lists include one primary mirror; every other attempt remains billable.
+  if (primary) {
+    const mirror = attempts.findIndex(retry => [1, 2, 3, 4, 5, 9, 10].every(field => number(primary, field) === number(retry, field))
+      && [7, 11, 12].every(field => !text(retry, field) || text(retry, field) === text(primary, field)));
+    if (mirror >= 0) attempts.splice(mirror, 1);
+  }
   return {
     model: normalizeModel(
       step
@@ -181,8 +193,25 @@ export function parseAntigravityMetadata(hex: string, step: boolean): Metadata {
       ? timestamp(nested(fields, bytes(fields, 8) ? 8 : 1))
       : timestamp(nested(nested(fields, 9), 4)),
     provider: step ? number(info, 7) : 0,
-    usages: [...(usage ? [usage] : []), ...retries].map(decodeProto),
+    usages: [...(primary ? [primary] : []), ...attempts],
+    primaryUsage: primary,
+    stepIndices: step ? [] : stepIndices(root),
   };
+}
+
+function stepIndices(root: Fields): string[] {
+  const indices: string[] = [];
+  const add = (value: bigint) => { if (value <= 0x7fffffffffffffffn) indices.push(String(value)); };
+  for (const value of root.get(2) || []) {
+    if (!Buffer.isBuffer(value)) { add(BigInt(value)); continue; }
+    let current = 0n, shift = 0n;
+    for (const byte of value) {
+      current |= BigInt(byte & 127) << shift;
+      if (!(byte & 128)) { add(current); current = 0n; shift = 0n; }
+      else { shift += 7n; if (shift >= 70n) break; }
+    }
+  }
+  return indices;
 }
 
 interface IdentifiedUsage {
@@ -278,21 +307,23 @@ export async function planAntigravity(home: string) {
               const generation = (
                 await sqliteRows<{
                   hex: string;
+                  idx: string;
                 }>(
                   database,
-                  "SELECT hex(data) AS hex FROM gen_metadata ORDER BY idx;",
+                  "SELECT CAST(idx AS TEXT) AS idx, hex(data) AS hex FROM gen_metadata ORDER BY idx;",
                 )
-              ).map((row) => parseAntigravityMetadata(row.hex, false));
+              ).map((row) => ({ ...parseAntigravityMetadata(row.hex, false), index: row.idx, step: false }));
               const stepColumns = await tableColumns(database, "steps");
               const steps = stepColumns.has("metadata")
                 ? (
                     await sqliteRows<{
                       hex: string;
+                    idx: string;
                     }>(
                       database,
-                      "SELECT hex(metadata) AS hex FROM steps WHERE metadata IS NOT NULL ORDER BY idx;",
+                    "SELECT CAST(idx AS TEXT) AS idx, hex(metadata) AS hex FROM steps WHERE metadata IS NOT NULL ORDER BY idx;",
                     )
-                  ).map((row) => parseAntigravityMetadata(row.hex, true))
+                ).map((row) => ({ ...parseAntigravityMetadata(row.hex, true), index: row.idx, step: true }))
                 : [];
               const trajectoryColumns = await tableColumns(
                 database,
@@ -328,6 +359,11 @@ export async function planAntigravity(home: string) {
                   ).flatMap(([field, name]) =>
                     text(usage, field) ? [`${name}:${text(usage, field)}`] : [],
                   );
+                  if (!identities.length && usage === meta.primaryUsage) {
+                    const session = path.basename(file, ".db");
+                    identities.push(...(meta.step ? [`step:${session}:${meta.index}`]
+                      : meta.stepIndices.length ? meta.stepIndices.map(index => `step:${session}:${index}`) : [`gen:${session}:${meta.index}`]));
+                  }
                   const output = Math.max(
                     number(usage, 3),
                     number(usage, 10) + number(usage, 9),

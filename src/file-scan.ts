@@ -565,7 +565,7 @@ interface OpenCodeCollection {
 }
 
 async function readOpenCodeEvents(dbPaths: string[], messageFiles: string[]): Promise<OpenCodeCollection> {
-  const events: UsageEvent[] = [], aggregates: UsageEvent[] = [];
+  const events: UsageEvent[] = [], aggregates: UsageEvent[] = [], compactions: UsageEvent[] = [];
   const seenIds = new Set<string>(), sourcePaths = new Set<string>();
   for (const file of [...dbPaths, ...messageFiles]) {
     const database = dbPaths.includes(file);
@@ -573,20 +573,24 @@ async function readOpenCodeEvents(dbPaths: string[], messageFiles: string[]): Pr
       const rows = database ? await readOpenCodeDbRows(file) : [await readOpenCodeMessageFile(file)];
       return rows.flatMap(row => {
         const event = row && parseOpenCodeMessageRow(row, file);
-        return row && event ? [{ event, id: row.id, aggregate: !!row.aggregate }] : [];
+        return row && event ? [{ event, id: row.id, aggregate: !!row.aggregate, compaction: row.kind === "compaction" }] : [];
       });
     }));
     for (const entry of entries) {
       if (entry.aggregate) { aggregates.push(entry.event); continue; }
       if (entry.id && seenIds.has(entry.id)) continue;
       if (entry.id) seenIds.add(entry.id);
+      if (entry.compaction) { compactions.push(entry.event); sourcePaths.add(file); continue; }
       events.push(entry.event); sourcePaths.add(file);
     }
   }
   const covered = new Set(events.map(event => event.sessionId));
+  const aggregateSessions = new Set<string | null>();
   for (const event of aggregates) if (!covered.has(event.sessionId)) {
     events.push(event); sourcePaths.add(event.sourcePath); covered.add(event.sessionId);
+    aggregateSessions.add(event.sessionId);
   }
+  for (const event of compactions) if (!aggregateSessions.has(event.sessionId)) events.push(event);
   events.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
   return { events, sourcePaths: [...sourcePaths].sort() };
 }
@@ -617,7 +621,7 @@ async function readOpenCodeDbRows(dbPath: string): Promise<OpenCodeMessageRow[]>
         }
       }
     }
-    appendItems(rows, messages.filter((row) => row.type === "assistant" && !(row.seq !== undefined && row.seq !== null && cutoffs.has(row.session_id) && row.seq <= cutoffs.get(row.session_id)!)).map(row => ({ ...row, v2: true })));
+    appendItems(rows, messages.filter((row) => (row.type === "assistant" || row.type === "compaction") && !(row.seq !== undefined && row.seq !== null && cutoffs.has(row.session_id) && row.seq <= cutoffs.get(row.session_id)!)).map(row => ({ ...row, v2: true, kind: row.type as "assistant" | "compaction" })));
   }
   for (const table of ["session_v2", "session"]) {
     const columns = await tableColumns(dbPath, table);

@@ -13,6 +13,7 @@ runtime libraries are identified separately below.
   Grok/ZCode ledger accounting, Antigravity protobuf field mappings, OpenClaw SQLite migration,
   Codex compaction/fork deduplication and Flex tiers, Pi stores, Copilot session/OTel reconciliation
   and test fixtures, and cost accounting semantics.
+- The Codex `issue_2046` regression fixture comes from ccusage commit `e4f0ea9` under the MIT license.
 
 ## cc-switch
 

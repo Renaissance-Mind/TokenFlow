@@ -50,6 +50,28 @@ const jsonl = (...rows: object[]) =>
   rows.map((row) => JSON.stringify(row)).join("\n");
 
 describe("local harness compatibility", () => {
+  it.each([false, true])("deduplicates unkeyed Antigravity step mirrors with packed indices %s", async packed => {
+    const home = await root(); delete process.env.ANTIGRAVITY_DATA_DIR;
+    const usage = proto([1, 1417], [2, 15027], [3, 49], [10, 49]);
+    const generation = proto([1, proto([3, 1417], [4, usage], [17, proto([2, usage])])], [2, packed ? Buffer.from([1]) : 1]);
+    const step = proto([9, usage], [24, proto([1, 1417])]);
+    for (const name of ["antigravity", "antigravity-backup"]) {
+      const dir = path.join(home, ".gemini", name, "conversations"); await fs.mkdir(dir, { recursive: true });
+      sqlite(path.join(dir, "mirror.db"), `CREATE TABLE gen_metadata(idx INTEGER PRIMARY KEY,data BLOB); CREATE TABLE steps(idx INTEGER PRIMARY KEY,metadata BLOB);
+        INSERT INTO gen_metadata VALUES(1,X'${generation.toString("hex")}'); INSERT INTO steps VALUES(1,X'${step.toString("hex")}');`);
+    }
+    const events = (await collectAntigravity(home)).events;
+    expect(events.reduce((sum, event) => sum + event.totalTokens, 0)).toBe(15076);
+  });
+  it("keeps unkeyed failed retries while dropping exactly one primary mirror", async () => {
+    const home = await root(); delete process.env.ANTIGRAVITY_DATA_DIR;
+    const dir = path.join(home, ".gemini/antigravity/conversations"); await fs.mkdir(dir, { recursive: true });
+    const primary = proto([1, 1417], [2, 100], [3, 50], [10, 50]);
+    const failed = proto([1, 1417], [2, 100], [3, 10], [10, 10]);
+    const generation = proto([1, proto([3, 1417], [4, primary], [17, proto([2, primary])], [17, proto([2, failed])])]);
+    sqlite(path.join(dir, "retry.db"), `CREATE TABLE gen_metadata(idx INTEGER PRIMARY KEY,data BLOB); INSERT INTO gen_metadata VALUES(1,X'${generation.toString("hex")}');`);
+    expect((await collectAntigravity(home)).events.reduce((sum, event) => sum + event.totalTokens, 0)).toBe(260);
+  });
   it.each(["sqlite", "protobuf", "schema"])("keeps healthy Antigravity databases when another has invalid %s data", async kind => {
     const home = await root();
     process.env = { PATH: originalEnv.PATH, HOME: home, TMPDIR: os.tmpdir(), CODEX_HOME: path.join(home, ".codex") };
