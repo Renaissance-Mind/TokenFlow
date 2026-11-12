@@ -156,6 +156,7 @@ function normalizeModel(raw: string | undefined): string | undefined {
 
 interface Metadata {
   model?: string;
+  modelId?: number;
   time?: string;
   provider: number;
   usages: Fields[];
@@ -184,6 +185,7 @@ export function parseAntigravityMetadata(hex: string, step: boolean): Metadata {
     if (mirror >= 0) attempts.splice(mirror, 1);
   }
   return {
+    modelId: number(step ? info : fields, step ? 1 : 3) || undefined,
     model: normalizeModel(
       step
         ? text(info, 12) || text(info, 8) || modelName(number(info, 1))
@@ -251,8 +253,10 @@ export function mergeAntigravityUsage(rows: IdentifiedUsage[]): UsageEvent[] {
         target.event.bucketStart = duplicate.event.bucketStart;
         target.rank = duplicate.rank;
       }
-      if (target.event.model === "gemini-internal-model")
+      if (modelResolution(duplicate.event.model) > modelResolution(target.event.model)) {
         target.event.model = duplicate.event.model;
+        target.event.pricingModel = duplicate.event.pricingModel;
+      }
       appendItems(target.identities, duplicate.identities);
     }
     for (const i of matches.slice(1)) slots[i] = null;
@@ -377,7 +381,7 @@ export async function planAntigravity(home: string) {
                   const event = makeUsageEvent({
                     agent: "antigravity",
                     model:
-                      normalizeModel(modelName(number(usage, 1))) ||
+                      usageModel(usage, meta) ||
                       currentModel ||
                       (steps.includes(meta) ? generationModel : undefined) ||
                       "gemini-internal-model",
@@ -426,3 +430,13 @@ export async function planAntigravity(home: string) {
 }
 
 export async function collectAntigravity(home: string) { return (await planAntigravity(home)).collect(); }
+
+function modelResolution(model: string): number {
+  return model === "gemini-internal-model" ? 0 : /^(model_placeholder_m|antigravity-model-)/.test(model) ? 1 : 2;
+}
+function usageModel(usage: Fields, meta: Metadata): string | undefined {
+  const id = number(usage, 1), resolved = normalizeModel(modelName(id));
+  if (resolved && modelResolution(resolved) === 2) return resolved;
+  if (id && id === meta.modelId && meta.model && modelResolution(meta.model) === 2) return meta.model;
+  return resolved;
+}

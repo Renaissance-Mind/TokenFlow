@@ -10,6 +10,7 @@ import { parse as parseToml } from "smol-toml";
 
 import { parseAmpThread } from "./sources/amp.js";
 import { createClaudeJsonlParser, mergeClaudeUsageCopies } from "./sources/claude.js";
+import { planCline } from "./sources/cline.js";
 import { createCodexJsonlParser, type CodexCheckpoint } from "./sources/codex.js";
 import { dedupeCodexSessions, type CodexSession } from "./sources/codex-replay.js";
 import { sqliteRows, tableColumns } from "./sources/store-io.js";
@@ -108,6 +109,7 @@ async function collectUsage(
     planZcode(home),
     planAntigravity(home),
     planCopilot(home),
+    planCline(home),
   ]);
   const codexFiles: string[] = [];
   const seenRollouts = new Set<string>();

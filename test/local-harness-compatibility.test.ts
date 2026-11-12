@@ -50,6 +50,19 @@ const jsonl = (...rows: object[]) =>
   rows.map((row) => JSON.stringify(row)).join("\n");
 
 describe("local harness compatibility", () => {
+  it("uses a same-ID Antigravity row label without misattributing a different retry model", async () => {
+    const home = await root(); delete process.env.ANTIGRAVITY_DATA_DIR;
+    const dir = path.join(home, ".gemini/antigravity/conversations"); await fs.mkdir(dir, { recursive: true });
+    const usage = proto([1, 1401], [2, 60], [3, 10], [5, 40], [11, "new-model"]);
+    const retry = proto([1, 1499], [2, 5], [3, 1], [11, "other-model-retry"]);
+    for (const [file, label] of [["a", "model_placeholder_m401"], ["b", "claude-opus-5-5-medium"]]) {
+      const metadata = proto([1, proto([3, 1401], [19, label], [4, usage], [17, proto([2, retry])])]);
+      sqlite(path.join(dir, `${file}.db`), `CREATE TABLE gen_metadata(idx INTEGER PRIMARY KEY,data BLOB); INSERT INTO gen_metadata VALUES(1,X'${metadata.toString("hex")}');`);
+    }
+    const events = (await collectAntigravity(home)).events;
+    expect(events.find(event => event.totalTokens === 110)?.model).toBe("claude-opus-5-5-medium");
+    expect(events.find(event => event.totalTokens === 6)?.model).toBe("model_placeholder_m499");
+  });
   it.each([false, true])("deduplicates unkeyed Antigravity step mirrors with packed indices %s", async packed => {
     const home = await root(); delete process.env.ANTIGRAVITY_DATA_DIR;
     const usage = proto([1, 1417], [2, 15027], [3, 49], [10, 49]);

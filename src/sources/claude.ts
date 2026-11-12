@@ -70,6 +70,7 @@ export function createClaudeJsonlParser(options: ParseOptions, saved?: unknown):
         model: model.displayModel,
         ...(model.pricingModel ? { pricingModel: model.pricingModel } : {}),
         ...(fastMultiplier ? { costMultiplier: fastMultiplier } : {}),
+        ...(speed ? { recordedServiceTier: speed } : {}),
         sessionId,
         ...(row.isSidechain === true ? { isSidechain: true } : {}),
         sourcePath: options.sourcePath,
@@ -94,9 +95,13 @@ export function createClaudeJsonlParser(options: ParseOptions, saved?: unknown):
 
 export function mergeClaudeUsageCopies(existing: UsageEvent, candidate: UsageEvent): UsageEvent {
   const aliases = new Set([existing, candidate].flatMap(event => event.isSidechain ? [] : [...(event.claudeSessionAliases || []), ...(event.sessionId ? [event.sessionId] : [])]));
+  const speedRank = (event: UsageEvent) => event.recordedServiceTier === "fast" || event.model.endsWith("-fast") ? 2 : event.recordedServiceTier === "standard" ? 1 : 0;
+  const detailRank = (event: UsageEvent) => Number(event.cacheCreation5mTokens !== undefined || event.cacheCreation1hTokens !== undefined);
   const replace = existing.isSidechain !== candidate.isSidechain
     ? !!existing.isSidechain
-    : candidate.totalTokens > existing.totalTokens;
+    : candidate.totalTokens !== existing.totalTokens ? candidate.totalTokens > existing.totalTokens
+    : speedRank(candidate) !== speedRank(existing) ? speedRank(candidate) > speedRank(existing)
+    : detailRank(candidate) > detailRank(existing);
   return { ...(replace ? candidate : existing), ...(aliases.size ? { claudeSessionAliases: [...aliases] } : {}) };
 }
 
@@ -128,18 +133,22 @@ function stripFastSuffix(model: string): string | null {
 }
 
 function normalizeClaudeUsage(usage: Record<string, unknown>): UsageTotals {
-  const inputTokens = nonNegativeInt(usage.input_tokens) + nonNegativeInt(usage.cache_creation_input_tokens);
+  const inputTokens = nonNegativeInt(usage.input_tokens);
+  const creation = recordField(usage, "cache_creation");
+  const created5m = nonNegativeInt(creation?.ephemeral_5m_input_tokens), created1h = nonNegativeInt(creation?.ephemeral_1h_input_tokens);
+  const created = nonNegativeInt(usage.cache_creation_input_tokens) || created5m + created1h;
   const cachedInputTokens = nonNegativeInt(usage.cache_read_input_tokens);
   const outputTokens = nonNegativeInt(usage.output_tokens);
   const totalTokens =
-    nonNegativeInt(usage.total_tokens) || inputTokens + cachedInputTokens + outputTokens;
+    nonNegativeInt(usage.total_tokens) || inputTokens + cachedInputTokens + outputTokens + created;
 
   return {
     inputTokens,
     cachedInputTokens,
     outputTokens,
     reasoningOutputTokens: 0,
-    cacheCreationTokens: nonNegativeInt(usage.cache_creation_input_tokens),
+    cacheCreationTokens: created,
+    ...(creation ? { cacheCreation5mTokens: created5m, cacheCreation1hTokens: created1h } : {}),
     totalTokens,
   };
 }

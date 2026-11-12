@@ -18,6 +18,7 @@ export type AgentSource =
   | "zcode"
   | "antigravity"
   | "copilot"
+  | "cline"
   | "unknown";
 
 export interface UsageTotals {

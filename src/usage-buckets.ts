@@ -66,8 +66,9 @@ export function aggregateEvents(events: UsageEvent[], pricingProfiles: PricingPr
 
     bucket.serviceTier = separateTier || "standard";
     const pricingModel = event.pricingModel || event.model;
-    if (!modelPricing.has(pricingModel)) modelPricing.set(pricingModel, resolvePricing(pricingModel, pricingProfiles));
-    const eventPricing = modelPricing.get(pricingModel)!;
+    const lookup = event.agent === "cline" ? `cline|${event.model}|${pricingModel}` : pricingModel;
+    if (!modelPricing.has(lookup)) modelPricing.set(lookup, (event.agent === "cline" ? resolvePricing(event.model, pricingProfiles) : null) || resolvePricing(pricingModel, pricingProfiles));
+    const eventPricing = modelPricing.get(lookup)!;
     addTotals(bucket, event);
     addLongContextTotals(bucket, event, eventPricing);
     addFastTotals(bucket, event, eventPricing);
@@ -109,7 +110,8 @@ function calculateBucketCost(
       : { cost: ZERO_COST, status: "priced" as const };
     return { cost: { ...unrecorded.cost, totalUsd: addUsdStrings(bucket.recordedCostUsd, unrecorded.cost.totalUsd)! }, status: unrecorded.status };
   }
-  const pricing = resolvePricingAt(bucket.pricingModel || bucket.model, bucket.bucketStart, pricingProfiles);
+  const pricing = (bucket.agent === "cline" ? resolvePricingAt(bucket.model, bucket.bucketStart, pricingProfiles) : null)
+    || resolvePricingAt(bucket.pricingModel || bucket.model, bucket.bucketStart, pricingProfiles);
   if (!pricing) return { cost: ZERO_COST, status: "unpriced" };
   return { cost: calculateBucketTokenCost(bucket, pricing), status: "priced" };
 }

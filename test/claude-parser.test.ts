@@ -4,6 +4,19 @@ import { aggregateEvents } from "../src/usage-buckets.js";
 import { toUsageSnapshotPayload } from "../src/ingest-payload.js";
 
 describe("Claude Code parser", () => {
+  it.each([false, true])("prefers recorded Fast over a Standard copy with TTL details: %s", reverse => {
+    const row = (fast: boolean) => ({ timestamp: "2026-05-22T02:34:40Z", sessionId: "s", requestId: "req-speed", message: { id: "msg_speed", model: "claude-opus-4-7", usage: { input_tokens: 10, output_tokens: 5, cache_creation_input_tokens: 100, speed: fast ? "fast" : "standard", ...(!fast ? { cache_creation: { ephemeral_5m_input_tokens: 40, ephemeral_1h_input_tokens: 60 } } : {}) } } });
+    const events = parseClaudeJsonl((reverse ? [row(true), row(false)] : [row(false), row(true)]).map(row => JSON.stringify(row)).join("\n"), { sourcePath: "/fixture/speed.jsonl" });
+    expect(events).toHaveLength(1); expect(events[0].recordedServiceTier).toBe("fast");
+  });
+  it.each([false, true])("retains TTL detail from equal native copies in either order %s", reverse => {
+    const base = { timestamp: "2026-05-22T02:34:40Z", sessionId: "s", requestId: "req-ttl", message: { id: "msg_ttl", model: "claude-sonnet-4-20250514", usage: { input_tokens: 10, output_tokens: 5, cache_creation_input_tokens: 100 } } };
+    const split = { ...base, message: { ...base.message, usage: { ...base.message.usage, cache_creation: { ephemeral_5m_input_tokens: 40, ephemeral_1h_input_tokens: 60 } } } };
+    const events = parseClaudeJsonl((reverse ? [split, base] : [base, split]).map(row => JSON.stringify(row)).join("\n"), { sourcePath: "/fixture/ttl.jsonl" });
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ inputTokens: 10, cacheCreationTokens: 100, cacheCreation5mTokens: 40, cacheCreation1hTokens: 60, totalTokens: 115 });
+    expect(aggregateEvents(events)[0].cost.totalUsd).toBe("0.000615");
+  });
   it("deduplicates requestless Responses IDs across content-block timestamps within a session", () => {
     // Official ccusage f49593c requestless_response_message_id_content_blocks fixture.
     const row = (timestamp: string, sessionId = "session-a", requestId?: string) => ({ timestamp, sessionId, requestId,
@@ -65,7 +78,7 @@ describe("Claude Code parser", () => {
       agent: "claude",
       model: "claude-sonnet-4-6",
       bucketStart: "2026-06-09T02:00:00.000Z",
-      inputTokens: 1_100,
+      inputTokens: 1_000,
       cachedInputTokens: 2_000,
       outputTokens: 300,
       reasoningOutputTokens: 0,
