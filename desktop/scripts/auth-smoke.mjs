@@ -1,3 +1,4 @@
+import './native-test-policy.mjs';
 import { _electron as electron, expect } from '@playwright/test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';

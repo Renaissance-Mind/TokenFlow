@@ -57,6 +57,8 @@ npm start --prefix desktop
 
 Some npm configurations skip installation scripts. The explicit Electron step downloads its runtime in that case. Development uses an installed system Node runtime; packaged apps install their independent bundled runtime.
 
+Native UI checks can activate windows, change full-screen Spaces and use input. Their entrypoints refuse to launch on the local desktop by default. Run them on GitHub Actions or an isolated test display/VM with `TOKENFLOW_TEST_DISPLAY_ISOLATED=1`. Set `TOKENFLOW_ALLOW_FOREGROUND_TESTS=1` only after explicit approval for the current foreground test. Unit tests, type checks and builds run without this opt-in.
+
 ```sh
 npm test
 npm run typecheck

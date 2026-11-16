@@ -1,3 +1,4 @@
+import './native-test-policy.mjs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';

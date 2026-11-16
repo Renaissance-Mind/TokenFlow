@@ -1,3 +1,4 @@
+import './native-test-policy.mjs';
 // Real npm packages, real App IPC, isolated data; no registry or updater stubs.
 import { _electron as electron } from '@playwright/test';
 import fs from 'node:fs/promises';

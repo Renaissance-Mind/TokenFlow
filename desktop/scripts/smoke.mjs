@@ -1,3 +1,4 @@
+import './native-test-policy.mjs';
 import { _electron as electron, expect as baseExpect } from '@playwright/test';
 const expect=baseExpect.configure({timeout:60_000});
 import assert from 'node:assert/strict';
