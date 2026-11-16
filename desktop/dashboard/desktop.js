@@ -83,6 +83,8 @@ for(const option of document.querySelectorAll('[data-language-option]')){
 new ResizeObserver(([entry])=>document.documentElement.style.setProperty('--desktop-toolbar-height',entry.target.getBoundingClientRect().height+'px')).observe(document.querySelector('.desktop-toolbar'));
 function refreshCalendar(){if(document.visibilityState==='visible'&&window.tokenflowDashboard.refreshCalendar())void refresh();}
 window.addEventListener('focus',refreshCalendar);document.addEventListener('visibilitychange',refreshCalendar);setInterval(refreshCalendar,60_000);
-window.tokenflow.onState(update);window.tokenflow.getState().then(update);
+window.tokenflow.onState(update);window.tokenflow.getState().then(state=>{
+  update(state);document.documentElement.dataset.tokenflowReady='true';
+});
 
 }

@@ -34,6 +34,8 @@ The popup gear opens this editor in the existing Settings window. Layout height 
 
 Closing a window keeps App resident in the tray. Quit stops the App, while macOS launchd keeps the standalone CLI collector running. The CLI checks for source changes every 15 seconds and uploads every ten minutes. The same scheduled task is used by CLI and App installations. A CLI process lock elects one background collector. Manual collection and account changes ask it to yield and share the CLI sync lock. Pausing is stored in shared CLI configuration and also applies after App quits; manual sync remains available. Windows runs the same background CLI while App is resident.
 
+Dashboard checks its page when opened, focused, or resumed from sleep, and every 30 seconds while visible. A blank page, renderer exit, failed page load, or unresponsive renderer reloads the bundled Dashboard in the existing window. Settings drafts remain available. Recovery stops after three attempts in five minutes and offers Retry, Open Settings, or Close Window. Diagnostics are saved to `dashboard-recovery.log` in App's data directory.
+
 Interactive CLI requests use App's Chromium networking, including its system proxy configuration. The independent background collector uses CLI networking. Collection is cancellable when signing in, disconnecting, or quitting, and has a five-minute limit. Only aggregated usage metadata is uploaded; prompts, responses, session IDs, and source paths remain local.
 
 Settings → CLI & updates installs the latest CLI directly from the official npm registry, independently of the version bundled with App. App includes npm and Node.js, so no terminal command or separate Node installation is needed. Downloads are staged with integrity verification and lifecycle scripts disabled. The new CLI must support the desktop protocol and pass a real execution check before replacing the existing installation. Its terminal entrypoint, account, configuration and history are retained. App switches to the new CLI and resumes background collection without restarting.
@@ -62,6 +64,7 @@ npm run build --prefix desktop
 npm test --prefix desktop
 npm run smoke --prefix desktop
 node desktop/scripts/cache-smoke.mjs
+node desktop/scripts/dashboard-recovery-smoke.mjs
 node desktop/scripts/tray-date-smoke.mjs
 TOKENFLOW_AUTH_TEST_SERVER=/absolute/path/TokenFlow_Server/scripts/desktop-test-server.mjs node desktop/scripts/statistics-smoke.mjs
 TOKENFLOW_AUTH_TEST_SERVER=/absolute/path/TokenFlow_Server/scripts/desktop-test-server.mjs node desktop/scripts/background-sync-smoke.mjs

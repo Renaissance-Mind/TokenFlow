@@ -53,6 +53,8 @@ jobs:
         run: npm test --prefix desktop
       - name: Test native desktop process
         run: npm run smoke --prefix desktop
+      - name: Verify Dashboard crash, hang, blank-page and load-failure recovery
+        run: node desktop/scripts/dashboard-recovery-smoke.mjs
       - name: Upgrade the shared CLI from real npm through App
         run: node desktop/scripts/cli-update-smoke.mjs
       - name: Verify cached Dashboard and incremental background collection

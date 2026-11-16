@@ -1,4 +1,5 @@
 import { DashboardRequests } from "./dashboard-requests.js";
+import { DashboardRecovery } from "./dashboard-recovery.js";
 import { NetworkProgress } from "./network-progress.js";
 import { desktopReleasesUrl, hasMacUpdateSignature } from "./update-signature.js";
 import { app, BrowserWindow, WebContentsView, Menu, Tray, nativeImage, ipcMain, shell, screen, session, safeStorage, powerMonitor, dialog, net, protocol } from "electron";
@@ -32,6 +33,7 @@ if (!collectorOnly && !app.requestSingleInstanceLock()) app.exit(0);
 
 let settingsView: WebContentsView | null = null;
 let dashboardWindow: BrowserWindow | null = null;
+let dashboardRecovery: DashboardRecovery | null = null;
 let openingDashboard: Promise<void> | null = null;
 let popup: BrowserWindow | null = null;
 let openingPopup = false;
@@ -125,7 +127,7 @@ function emit(): void {
   dashboardRequests.useScope(context);
   if (todayContext !== context) state.usageToday = null;
   refreshUsageToday();
-  for (const contents of [dashboardWindow?.webContents, settingsView?.webContents, popup?.webContents]) if (contents && !contents.isDestroyed()) contents.send("tokenflow:changed", state);
+  for (const contents of [dashboardWindow?.webContents, settingsView?.webContents, popup?.webContents]) if (contents && !contents.isDestroyed() && !contents.isCrashed()) contents.send("tokenflow:changed", state);
   if (!tray || tray.isDestroyed()) return;
   const today = state.usageToday;
   const currentDay = today?.date === new Date().toLocaleDateString("en-CA");
@@ -221,6 +223,25 @@ function showDashboard(): Promise<void> {
   if (!openingDashboard) openingDashboard = openDashboard().finally(() => { openingDashboard = null; });
   return openingDashboard;
 }
+function logDashboardRecovery(reason: string): void {
+  console.error(`[Dashboard] ${reason}`);
+  void fs.appendFile(path.join(app.getPath("userData"), "dashboard-recovery.log"), `${new Date().toISOString()} ${reason}\n`, { mode: 0o600 })
+    .catch(error => console.error(`Unable to write Dashboard recovery log: ${message(error)}`));
+}
+async function dashboardRecoveryFailed(reason: string): Promise<void> {
+  const win = dashboardWindow, recovery = dashboardRecovery;
+  if (!win || win.isDestroyed() || !recovery || shuttingDown) return;
+  logDashboardRecovery(`Automatic recovery stopped: ${reason}`);
+  const zh = state.settings.language === "zh";
+  const { response } = await dialog.showMessageBox(win, {
+    type: "error", title: "TokenFlow", message: zh ? "Dashboard 无法打开" : "Unable to open Dashboard",
+    detail: reason, buttons: zh ? ["重试", "打开设置", "关闭窗口"] : ["Retry", "Open Settings", "Close Window"], cancelId: 2,
+  });
+  if (shuttingDown || win.isDestroyed() || recovery !== dashboardRecovery) return;
+  if (response === 0) void recovery.retry();
+  else if (response === 1) void showSettings();
+  else win.hide();
+}
 async function openDashboard(): Promise<void> {
   popup?.hide();
   if (!dashboardWindow || dashboardWindow.isDestroyed()) {
@@ -229,15 +250,24 @@ async function openDashboard(): Promise<void> {
       ...(process.platform === "darwin" ? { trafficLightPosition: { x: 18, y: 21 } } : { titleBarOverlay: { height: 56, color: "#00000000", symbolColor: "#808080" } }),
       backgroundColor: "#ffffff", show: false, autoHideMenuBar: true, webPreferences: localPreferences() });
     protectLocalContents(dashboardWindow.webContents);
+    const win = dashboardWindow;
+    dashboardRecovery = new DashboardRecovery(win.webContents, {
+      url: "tokenflow://dashboard/index.html?mode=dashboard",
+      active: () => !win.isDestroyed() && win.isVisible() && !state.settingsOpen,
+      stopping: () => shuttingDown, log: logDashboardRecovery,
+      failed: reason => { void dashboardRecoveryFailed(reason); },
+    });
+    win.on("focus", () => { void dashboardRecovery?.ensure(); });
     dashboardWindow.on("enter-full-screen", () => { state.windowChrome.fullScreen = true; emit(); });
     dashboardWindow.on("leave-full-screen", () => { state.windowChrome.fullScreen = false; emit(); });
     dashboardWindow.on("close", (event) => { if (!shuttingDown) { event.preventDefault(); dashboardWindow!.hide(); } });
-    dashboardWindow.on("closed", () => { settingsView?.webContents.close(); settingsView = null; dashboardWindow = null; });
-    await dashboardWindow.loadURL("tokenflow://dashboard/index.html?mode=dashboard");
+    dashboardWindow.on("closed", () => { dashboardRecovery?.dispose(); dashboardRecovery = null; settingsView?.webContents.close(); settingsView = null; dashboardWindow = null; });
+    await dashboardRecovery.load();
   }
   if (state.hasDashboard) state.dashboardSource = "cloud";
   settingsView?.setVisible(false); state.settingsOpen = false; dashboardWindow.setTitle("TokenFlow Dashboard");
-  dashboardWindow.show(); dashboardWindow.focus(); emit();
+  emit(); dashboardWindow.show(); dashboardWindow.focus(); dashboardWindow.webContents.focus();
+  await dashboardRecovery?.ensure();
 }
 async function trackRequest<T>(action: () => Promise<T>): Promise<T> {
   if (!state.pendingRequests) state.requestProgress = { completed: 0, total: 0 };
@@ -673,6 +703,7 @@ async function updateAction(action: unknown): Promise<void> {
   await autoUpdater.checkForUpdates();
 }
 async function shutdown(): Promise<void> {
+  dashboardRecovery?.dispose();
   loginController?.abort(); timers.forEach(clearInterval);
   configWatcher?.close();
   await stopCollection();
@@ -775,7 +806,8 @@ async function initialize(): Promise<void> {
   autoUpdater.on("error", (error) => { state.update = { status: "error", message: message(error) }; emit(); });
   configureLoginItem(); await marker(); await configureScheduler();
   timers.push(setInterval(() => { void marker().catch((error) => { state.error = message(error); emit(); }); }, 30_000));
-  powerMonitor.on("resume", () => { dashboardRequests.invalidate(); emit(); refreshUsageToday(true); void refreshLocalSnapshot().catch(error => { state.notice = message(error); emit(); }); });
+  powerMonitor.on("resume", () => { dashboardRequests.invalidate(); emit(); void dashboardRecovery?.ensure(); refreshUsageToday(true); void refreshLocalSnapshot().catch(error => { state.notice = message(error); emit(); }); });
+  timers.push(setInterval(() => { void dashboardRecovery?.ensure(); }, 30_000));
   const background = process.argv.includes("--background") || (process.platform === "darwin" && app.getLoginItemSettings().wasOpenedAtLogin);
   ready = true; emit();
   const connection = configureCliDashboard(config).catch(error => { state.notice = message(error); });
