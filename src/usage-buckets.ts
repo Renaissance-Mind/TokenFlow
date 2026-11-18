@@ -74,7 +74,7 @@ export function aggregateEvents(events: UsageEvent[], pricingProfiles: PricingPr
     addFastTotals(bucket, event, eventPricing);
     bucket.pricingModel ||= event.pricingModel;
     bucket.costMultiplier ||= event.costMultiplier;
-    bucket.recordedCostUsd = addUsdStrings(bucket.recordedCostUsd, event.recordedCostUsd);
+    bucket.recordedCostUsd = addRecordedUsdStrings(bucket.recordedCostUsd, event.recordedCostUsd);
     if (event.recordedCostUsd !== undefined) {
       bucket.recordedUsage ||= { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0, reasoningOutputTokens: 0, cacheCreationTokens: 0, totalTokens: 0 };
       addTotals(bucket.recordedUsage, event);
@@ -284,6 +284,19 @@ function addUsdStrings(left: string | undefined, right: string | undefined): str
   if (!right) return left;
   if (!left) return normalizeUsdString(right);
   return formatMicroUsd(parseUsdToMicro(left) + parseUsdToMicro(right));
+}
+
+function addRecordedUsdStrings(left: string | undefined, right: string | undefined): string | undefined {
+  if (right === undefined) return left;
+  const values = [left || "0", right].map(value => {
+    if (!/^\d+(\.\d+)?$/.test(value)) throw new Error(`Invalid recorded USD value: ${value}`);
+    const [whole, fraction = ""] = value.split(".");
+    return { whole, fraction };
+  });
+  const places = Math.max(6, ...values.map(value => value.fraction.length));
+  const scale = 10n ** BigInt(places);
+  const total = values.reduce((sum, value) => sum + BigInt(value.whole) * scale + BigInt(value.fraction.padEnd(places, "0")), 0n);
+  return `${total / scale}.${(total % scale).toString().padStart(places, "0")}`;
 }
 
 function subtractDecimalString(left: string, right: string): string {

@@ -17,6 +17,11 @@ const normalizeModel = (model: string) => model.trim().replace(/-1m(?:-internal)
 const time = (event: UsageEvent) => Date.parse(event.timestamp);
 const pair = (event: UsageEvent) => JSON.stringify([event.sessionId, event.pricingModel || event.model]);
 const numeric = (value: unknown): number | null => typeof value === "number" && Number.isSafeInteger(Math.round(value)) && value >= 0 ? Math.round(value) : null;
+function creditsToUsd(nano: number): string {
+  const amount = BigInt(nano), scale = 100_000_000_000n;
+  const fraction = (amount % scale).toString().padStart(11, "0").replace(/0+$/, "");
+  return `${amount / scale}${fraction ? `.${fraction}` : ""}`;
+}
 function telemetryProjection(row: Record<string, unknown>): Record<string, unknown> {
   const attributes = recordField(row, "attributes") || {};
   const safe = Object.fromEntries(Object.entries(attributes).filter(([key, value]) =>
@@ -194,14 +199,14 @@ function reconcile(native: Entry[], otel: Entry[], credits: Credit[], records: E
       const creditKey = JSON.stringify([e.sessionId, Date.parse(e.timestamp)]);
       const nano = entry.credits !== null && (!previous || previous.credits !== null) ? Math.max(0, entry.credits - (previous?.credits || 0)) : null;
       attributed.set(creditKey, (attributed.get(creditKey) || 0) + (nano || 0));
-      if (nano !== null) e.recordedCostUsd = String(nano / 1e11);
+      if (nano !== null) e.recordedCostUsd = creditsToUsd(nano);
       previous = entry;
       if ((!replace || index < start) && (e.totalTokens > 0 || Number(e.recordedCostUsd) > 0)) events.push(e);
     });
   }
   const receipts = deduplicateRecords(records);
   appendItems(events, removeRecordedCalls(retained.filter(call => time(call.event) > (after.get(pair(call.event)) ?? -Infinity)), receipts).map(call => call.event));
-  appendItems(events, receipts.map(record => ({ ...record.event, ...(record.credits !== null ? { recordedCostUsd: String(record.credits / 1e11) } : {}) })));
+  appendItems(events, receipts.map(record => ({ ...record.event, ...(record.credits !== null ? { recordedCostUsd: creditsToUsd(record.credits) } : {}) })));
   const sessions = new Map<string, Credit[]>();
   for (const snapshot of unique(credits)) { const group = sessions.get(snapshot.session) || []; group.push(snapshot); sessions.set(snapshot.session, group); }
   for (const [session, group] of sessions) {
@@ -223,7 +228,7 @@ function reconcile(native: Entry[], otel: Entry[], credits: Credit[], records: E
     for (const { snapshot, gap } of points) {
       const delta = Math.max(0, gap - reported); reported = Math.max(reported, gap);
       const event = delta ? makeUsageEvent({ agent: "copilot", model: "unknown", sessionId: session, sourcePath: snapshot.file,
-        timestamp: snapshot.time, recordedCostUsd: String(delta / 1e11) }) : null;
+        timestamp: snapshot.time, recordedCostUsd: creditsToUsd(delta) }) : null;
       if (event) events.push(event);
     }
   }

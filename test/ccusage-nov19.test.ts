@@ -104,6 +104,7 @@ it("counts native Copilot receipts, preserves recorded credits and avoids waterm
     const recorded = events.filter(event => event.sessionId === "session-recorded-credits");
     expect(recorded).toHaveLength(2);
     expect(recorded.reduce((sum, event) => sum + Number(event.recordedCostUsd), 0)).toBeCloseTo(0.004024719);
+    expect(aggregateEvents(recorded)[0].recordedCostUsd).toBe("0.004024719");
     const resumed = events.filter(event => event.sessionId === "session-resumed-receipts");
     expect(resumed.map(event => event.totalTokens)).toEqual([540, 280]);
     expect(resumed[0].recordedCostUsd).toBe("0.02");
@@ -165,4 +166,17 @@ it("prices Copilot shutdown deltas only when both interval endpoints report cred
     } },
   })));
   expect((await collectCopilot(root)).events.map(event => [event.totalTokens, event.recordedCostUsd])).toEqual([[100, undefined], [200, undefined], [300, "0.15"]]);
+});
+it("preserves nano-AIU costs below one microdollar until the bucket is summed", async () => {
+  const root = await sandbox();
+  await write(root, ".copilot/session-state/owner/events.jsonl", [
+    receipt(1, { copilotUsage: { totalNanoAiu: 1 } }),
+    receipt(2, { copilotUsage: { totalNanoAiu: 99999 } }),
+  ]);
+  const events = (await collectCopilot(root)).events;
+  expect(events.map(event => event.recordedCostUsd)).toEqual(["0.00000000001", "0.00000099999"]);
+  const bucket = aggregateEvents(events)[0];
+  expect(bucket.recordedCostUsd).toBe("0.00000100000");
+  expect(bucket.cost.totalUsd).toBe("0.000001");
+  expect(toUsageSnapshotPayload([bucket]).daily[0].slots[0].recorded_cost_usd).toBe("0.00000100000");
 });
