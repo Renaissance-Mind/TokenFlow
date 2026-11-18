@@ -22,7 +22,7 @@ export function resolveDshSessionDirs(home: string, env = process.env): string[]
   const expand = (value: string) => path.resolve(value === "~" ? home : value.startsWith("~/") ? path.join(home, value.slice(2)) : value);
   const explicit = env.DSH_SESSIONS_DIR?.trim();
   if (explicit) return [...new Set(explicit.split(",").map((value) => value.trim()).filter(Boolean).map(expand))];
-  return [path.join(expand(env.DSH_HOME?.trim() || path.join(home, ".dsh")), "sessions")];
+  return [...new Set((env.DSH_HOME?.trim() || path.join(home, ".dsh")).split(",").map(value => value.trim()).filter(Boolean).map(value => path.join(expand(value), "sessions")))];
 }
 
 export function parseDshJsonl(jsonl: string, sourcePath: string): UsageEvent[] {
@@ -32,10 +32,11 @@ export function parseDshJsonl(jsonl: string, sourcePath: string): UsageEvent[] {
 }
 
 export function createDshParser(sourcePath: string, saved?: unknown): DshParser {
-  const checkpoint = saved as { events: Array<DshUsageEvent | null>; sessionId: string | null; model: string | null; seedLength: number; seeded: boolean; sawSeedEnd: boolean; last: {turn:unknown;step:unknown;index:number} | null } | undefined;
+  const checkpoint = saved as { events: Array<DshUsageEvent | null>; sessionId: string | null; model: string | null; provider?: string | null; seedLength: number; seeded: boolean; sawSeedEnd: boolean; last: {turn:unknown;step:unknown;index:number} | null } | undefined;
   let events: Array<DshUsageEvent | null> = checkpoint?.events || [];
   let sessionId: string | null = checkpoint?.sessionId || null;
   let model: string | null = checkpoint?.model || null;
+  let provider: string | null = checkpoint?.provider || null;
   let seedLength = checkpoint?.seedLength || 0;
   let seeded = checkpoint?.seeded || false;
   let sawSeedEnd = checkpoint?.sawSeedEnd || false;
@@ -43,7 +44,7 @@ export function createDshParser(sourcePath: string, saved?: unknown): DshParser 
   const filenameVersion = SESSION_FILE.exec(path.basename(sourcePath));
 
   return {
-    snapshot: () => ({ events, sessionId, model, seedLength, seeded, sawSeedEnd, last }),
+    snapshot: () => ({ events, sessionId, model, provider, seedLength, seeded, sawSeedEnd, last }),
     pushLine(line): void {
       if (!line.trim()) return;
       const record: unknown = JSON.parse(line);
@@ -68,7 +69,11 @@ export function createDshParser(sourcePath: string, saved?: unknown): DshParser 
       if (!sessionId) throw new Error(`dsh Session header missing in ${sourcePath}`);
       const data = recordField(record, "data");
       if (type === "request/header") {
-        model = stringField(recordField(recordField(data, "header"), "config"), "model") || model;
+        const config = recordField(recordField(data, "header"), "config");
+        if (stringField(config, "model")) { model = stringField(config, "model"); provider = stringField(config, "provider"); }
+      }
+      if (type === "request/context" && stringField(data, "model")) {
+        model = stringField(data, "model"); provider = stringField(data, "provider");
       }
       if (type === "session/end-seed" && data?.inherited === true) {
         events = [];
@@ -80,7 +85,8 @@ export function createDshParser(sourcePath: string, saved?: unknown): DshParser 
         if (last?.turn === data?.turn && last?.step === data?.step) last = null;
         return;
       }
-      if (!["assistant/message", "assistant/attempt", "assistant/chunk"].includes(type || "")) return;
+      const compaction = type === "compaction/summary";
+      if (!compaction && !["assistant/message", "assistant/attempt", "assistant/chunk"].includes(type || "")) return;
       let usage = recordField(data, "usage");
       if (type === "assistant/chunk") {
         const chunk = recordField(data, "chunk");
@@ -99,14 +105,20 @@ export function createDshParser(sourcePath: string, saved?: unknown): DshParser 
       const timestamp = timestampFromMillis(record.time);
       if (!timestamp) throw new Error(`Invalid dsh usage timestamp in ${sourcePath}`);
       const message = recordField(data, "message");
+      const source = recordField(message, "source");
+      const selectedModel = compaction ? stringField(data, "model") : stringField(source, "model") || model;
+      const selectedProvider = compaction ? stringField(data, "provider") : stringField(source, "provider") || provider;
       const event = makeUsageEvent({
-        agent: "dsh", model: stringField(recordField(message, "source"), "model") || model,
+        agent: "dsh", model: selectedModel,
         sessionId, sourcePath, timestamp,
         ...baseTotalsFromRecord(usage, {
           input: "inputTokens", output: "outputTokens", cacheRead: "cacheReadTokens",
           cacheCreation: "cacheWriteTokens", reasoning: "reasoningTokens", total: "totalTokens",
         }),
       });
+      if (event && selectedProvider && selectedModel && !["deepseek-official", "deepseek-account"].includes(selectedProvider))
+        event.pricingModel = selectedModel.startsWith(`${selectedProvider}/`) ? selectedModel : `${selectedProvider}/${selectedModel}`;
+      if (compaction) { if (event) events.push({ ...event, eventSeq: seq }); return; }
       if (data?.turn === undefined || data.step === undefined) throw new Error(`dsh usage turn/step missing in ${sourcePath}`);
       const next = event ? { ...event, eventSeq: seq } : null;
       // Follow dsh's last-wins settlement slot; retries close the previous slot.

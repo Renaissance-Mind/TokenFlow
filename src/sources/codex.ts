@@ -1,3 +1,4 @@
+import path from "node:path";
 import { normalizeAgentModelForUsage, resolvePricing, type UsageModelNormalization } from "../pricing.js";
 import { toUtcHalfHourStart } from "../time.js";
 import type { UsageEvent, UsageTotals } from "../types.js";
@@ -104,7 +105,7 @@ export function createCodexJsonlParser(options: ParseOptions, saved?: unknown): 
         const source = recordField(payload, "source");
         const id = stringField(payload, "id") || stringField(payload, "session_id") || options.sourcePath;
         session = { ...(session?.id === id ? session : {}), id,
-          parent: stringField(payload, "forked_from_id") || stringField(recordField(recordField(source, "subagent"), "thread_spawn"), "parent_thread_id") || undefined,
+          parent: hasReferencedHistory(payload, options.sourcePath) ? undefined : stringField(payload, "forked_from_id") || stringField(recordField(recordField(source, "subagent"), "thread_spawn"), "parent_thread_id") || undefined,
           spawned: !!stringField(recordField(recordField(source, "subagent"), "thread_spawn"), "parent_thread_id"),
           forkTime: stringField(row, "timestamp") || undefined };
       }
@@ -159,7 +160,7 @@ export function createCodexJsonlParser(options: ParseOptions, saved?: unknown): 
         const payloadSessionId =
           stringField(payload, "session_id") || stringField(payload, "sessionId") || stringField(payload, "id");
         if (payloadSessionId && !sessionId) {
-          suppressInheritedSubagentReplay = !options.useReplayPlan && isSubagentSession(payload);
+          suppressInheritedSubagentReplay = !options.useReplayPlan && !hasReferencedHistory(payload, options.sourcePath) && isSubagentSession(payload);
           sessionId = suppressInheritedSubagentReplay
             ? stringField(payload, "id") || payloadSessionId
             : payloadSessionId;
@@ -270,6 +271,13 @@ function codexAutoReviewPricingModel(timestamp: string): string {
 
 function isSubagentSession(payload: Record<string, unknown>): boolean {
   return Boolean(recordField(recordField(payload, "source"), "subagent"));
+}
+
+function hasReferencedHistory(payload: Record<string, unknown>, sourcePath: string): boolean {
+  if (recordField(payload, "history_base")) return true;
+  const uuid = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
+  const match = new RegExp(`^rollout-\\d{4}-\\d{2}-\\d{2}T\\d{2}-\\d{2}-\\d{2}-(${uuid})_(${uuid})\\.jsonl(?:\\.zst)?$`).exec(path.basename(sourcePath));
+  return !!match && match[1] !== match[2] && payload.id === match[1];
 }
 
 function codexPricingFields(

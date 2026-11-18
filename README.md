@@ -60,12 +60,12 @@ Home: /Users/alice/.tokenflow
 
 | Source | Local data read | Notes |
 | --- | --- | --- |
-| Codex | `~/.codex/sessions/**/*.jsonl`, `.jsonl.zst`, and nested `archived_sessions` | Streams plain and Zstandard rollouts, prefers active/plain copies during migration, and preserves fork/replay and compaction accounting. Recorded Standard/Fast/Flex/Ultrafast tiers take precedence over the selected TOML profile fallback and use server-owned model rates. |
-| Claude Code | `~/.claude/projects/**/*.jsonl` | Parses project JSONL usage data. |
+| Codex | `~/.codex/sessions/**/*.jsonl`, `.jsonl.zst`, and nested `archived_sessions` | Streams plain and Zstandard rollouts, distinguishes referenced history from copied fork usage, and preserves compaction accounting. Recorded Standard/Fast/Flex/Ultrafast tiers take precedence over the selected TOML profile fallback and use server-owned model rates. |
+| Claude Code | `~/.config/claude/projects/**/*.jsonl`, `~/.claude/projects/**/*.jsonl` | Reads project usage and sums cache-write TTL splits across advisor message iterations. Supports XDG and explicit config roots. |
 | Gemini CLI | `~/.gemini/tmp/**/*.{json,jsonl}` | Reads per-request usage, JSONL settlement records and stats; preserves legacy cumulative session parsing. |
 | OpenCode | `~/.local/share/opencode/opencode*.db` and legacy message JSON | Reads legacy and v2 assistant/completed-compaction rows, excludes copied fork rows, and uses uncovered session counters as fallback without overlapping compaction usage. Linked v2 Claude Agent turns already counted in Claude main-thread logs on the same UTC day are counted under Claude. Requires `sqlite3`. |
 | Kimi CLI / Kimi Code | `~/.kimi/sessions/**/wire.jsonl` and `~/.kimi-code/sessions/**/wire.jsonl` | Reads legacy `StatusUpdate.token_usage` and turn-level `usage.record` entries, including nested agents. Session snapshots are excluded. |
-| Qwen Code | `~/.qwen/projects/**/*.jsonl` | Reads assistant `usageMetadata` rows. |
+| Qwen Code | `~/.qwen/projects/*/chats/*.jsonl` and `chats/archive/*.jsonl` | Reads live and archived assistant usage, counting copied sessions once. |
 | Amp | `~/.local/share/amp/threads/*.json` | Reads `usageLedger.events[]` or assistant `messages[].usage`. |
 | Codebuff | `~/.config/manicode*/projects/**/chat-messages.json` | Reads assistant metadata usage and run-state provider usage. |
 | Droid | `~/.factory/sessions/**/*.settings.json` | Reads session token snapshots and keeps the latest snapshot per session. |
@@ -77,9 +77,9 @@ Home: /Users/alice/.tokenflow
 | Grok Build | `~/.grok/sessions/**/updates.jsonl` | Reads completed turns, splits cache-inclusive input, deduplicates event IDs, and preserves recorded billing ticks. |
 | ZCode | `~/.zcode/cli/db/db.sqlite` | Reads completed model-usage ledger rows, supports legacy optional columns and current Z.ai account/builtin plan IDs, and bounds cache slices within inclusive input. |
 | Cline | `~/.cline`, editor global storage, or `CLINE_DATA_DIR` | Reads extension task JSON and CLI session JSON. Splits cache-inclusive CLI input and preserves recorded costs. |
-| GitHub Copilot | `~/.copilot/session-state/*/events.jsonl`, existing `~/.copilot/otel/**/*.jsonl` | Reads native shutdown/checkpoint records without enabling telemetry. Reconciles cumulative usage and existing OTel calls, and retains persistent unattributed AI credits at $0.01 per credit. |
+| GitHub Copilot | `~/.copilot/session-state/*/events.jsonl`, existing `~/.copilot/otel/**/*.jsonl` | Reads per-call usage receipts and legacy shutdown/checkpoint records. Deduplicates accounting copies and matching OTel calls, preserving recorded AI credits at $0.01 per credit. |
 | Antigravity | Conversation SQLite files under `~/.gemini/antigravity*` and `~/.config/antigravity` | Reads generation/step protobuf usage and billed retries, merging response identities and unkeyed turn positions across stores and backups while preserving distinct retry attempts. Unreadable databases are skipped with warnings and cannot authorize historical usage reductions. |
-| DeepSeek Harness (dsh) | `~/.dsh/sessions/**/session*.jsonl` or `session*.jsonl.zstd` | Reads plain or Zstandard-compressed Session formats 0–4; selects the latest generation and excludes inherited fork usage. |
+| DeepSeek Harness (dsh) | `~/.dsh/sessions/**/session*.jsonl` or `session*.jsonl.zstd` | Reads Session formats 0–4, routed request and compaction usage, and plain or Zstandard logs. Selects the latest generation, excludes inherited usage and preserves settlement/retry accounting. |
 
 TokenFlow intentionally does not upload source file paths, session IDs, prompts, or responses.
 
@@ -232,7 +232,9 @@ Environment overrides:
 | `TOKENFLOW_REQUEST_TIMEOUT_MS` | HTTP request timeout for TokenFlow server calls. Defaults to `30000`. |
 | `TOKENFLOW_UPDATE_SOURCE` | Package/source used by `tokenflow update` when `--source` is omitted. |
 | `CODEX_HOME` | Codex config home. Defaults to `~/.codex`. |
-| `CLAUDE_HOME` | Claude config home. Defaults to `~/.claude`. |
+| `CLAUDE_HOME` | Explicit Claude config home; takes precedence over other Claude roots. |
+| `CLAUDE_CONFIG_DIR` | Claude config roots, comma-separated. Expands `~` and accepts the `projects/` directory itself. Replaces default discovery. |
+| `XDG_CONFIG_HOME` | Claude discovery defaults to its `claude/projects/` directory plus `~/.claude/projects/`; defaults to `~/.config`. |
 | `GEMINI_HOME` | Gemini config home. Defaults to `~/.gemini`. |
 | `OPENCODE_DB` | Explicit OpenCode SQLite database path. |
 | `OPENCODE_HOME` | OpenCode data home. Defaults to `~/.local/share/opencode`. |
@@ -253,7 +255,7 @@ Environment overrides:
 | `KILO_DATA_DIR` | Kilo data root, or comma-separated roots. Defaults to `~/.local/share/kilo`. |
 | `OPENCLAW_DIR` | OpenClaw-compatible roots, comma-separated. Defaults to `~/.openclaw`, `~/.clawdbot`, `~/.moltbot`, and `~/.moldbot`. |
 | `PI_AGENT_DIR` | Pi agent sessions root, or comma-separated roots. Defaults to `~/.pi/agent/sessions`. |
-| `DSH_HOME` | dsh home. Defaults to `~/.dsh`; sessions are read under `sessions/`. |
+| `DSH_HOME` | dsh homes, comma-separated. Defaults to `~/.dsh`; sessions are read under `sessions/`. |
 | `DSH_SESSIONS_DIR` | Custom dsh session roots, comma-separated; overrides `DSH_HOME`. |
 | `XDG_DATA_HOME` | Used to resolve OpenCode data when `OPENCODE_DB` and `OPENCODE_HOME` are unset. |
 

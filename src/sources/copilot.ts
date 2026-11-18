@@ -10,17 +10,18 @@ import { storeFiles } from "./store-io.js";
 import type { UsageEvent } from "../types.js";
 import { toUtcHalfHourStart } from "../time.js";
 
-interface Entry { event: UsageEvent; key: string; requests: number; credits: number; rank?: number; trace?: string; response?: string; reasoning?: number; }
+interface Entry { event: UsageEvent; key: string; requests: number; credits: number | null; rank?: number; trace?: string; response?: string; serviceRequest?: string; sourceSession?: string; reasoning?: number; }
 interface Credit { session: string; time: string; shutdown: boolean; total: number | null; key: string; file: string; }
+interface CopilotState { entries: Entry[]; credits: Credit[]; records: Entry[]; covered: boolean; index: number; rows: Record<string, unknown>[]; }
 const normalizeModel = (model: string) => model.trim().replace(/-1m(?:-internal)?$/, "");
 const time = (event: UsageEvent) => Date.parse(event.timestamp);
 const pair = (event: UsageEvent) => JSON.stringify([event.sessionId, event.pricingModel || event.model]);
-const numeric = (value: unknown): number | null => value !== undefined && value !== null && Number.isFinite(Number(value)) && Number(value) >= 0 ? Math.round(Number(value)) : null;
+const numeric = (value: unknown): number | null => typeof value === "number" && Number.isSafeInteger(Math.round(value)) && value >= 0 ? Math.round(value) : null;
 function telemetryProjection(row: Record<string, unknown>): Record<string, unknown> {
   const attributes = recordField(row, "attributes") || {};
   const safe = Object.fromEntries(Object.entries(attributes).filter(([key, value]) =>
     (/^gen_ai\.(usage\.|conversation\.id$|response\.(id|model)$|request\.model$|operation\.name$)/.test(key)
-      || ["copilot_chat.session_id", "copilot_chat.chat_session_id", "session.id", "github.copilot.interaction_id", "event.name"].includes(key))
+      || ["copilot_chat.session_id", "copilot_chat.chat_session_id", "session.id", "github.copilot.interaction_id", "github.copilot.service_request_id", "event.name"].includes(key))
       && ["number", "string", "boolean"].includes(typeof value)));
   const context = recordField(row, "spanContext");
   const name = String(row.name || ""), body = String(row.body || row._body || "");
@@ -38,50 +39,69 @@ function telemetryProjection(row: Record<string, unknown>): Record<string, unkno
   return projected;
 }
 function copilotParser(file: string, telemetry: boolean, saved?: unknown): CheckpointParser {
-  const state = (saved || {entries:[],credits:[],rows:[]}) as {entries:Entry[];credits:Credit[];rows:Record<string,unknown>[]};
+  const state = (saved || {entries:[],credits:[],records:[],covered:false,index:0,rows:[]}) as CopilotState;
   return {
     pushLine(line) {
       let row: unknown;
       try { row = JSON.parse(line); } catch (error) { if (error instanceof SyntaxError) return; throw error; }
       if (!isRecord(row)) return;
       if (telemetry) state.rows.push(telemetryProjection(row));
-      else { const result = nativeRows([row], file); appendItems(state.entries, result.entries); appendItems(state.credits, result.credits); }
+      else nativeRow(row, file, state);
     },
     snapshot: () => state,
     finish: () => [],
   };
 }
 
-function nativeRows(rows: Record<string, unknown>[], file: string): { entries: Entry[]; credits: Credit[] } {
+function nativeRow(row: Record<string, unknown>, file: string, state: CopilotState): void {
   const session = path.basename(path.dirname(file));
-  const entries: Entry[] = [], credits: Credit[] = [];
-  for (const row of rows) {
-    const shutdown = row.type === "session.shutdown";
-    if (!shutdown && row.type !== "session.usage_checkpoint") continue;
-    const timestamp = stringField(row, "timestamp");
-    if (!timestamp || !Number.isFinite(Date.parse(timestamp))) continue;
-    const data = recordField(row, "data") || {};
-    const key = JSON.stringify([session, row.id || [timestamp, shutdown, data.totalNanoAiu]]);
-    let complete = true;
-    if (shutdown) for (const [model, raw] of Object.entries(recordField(data, "modelMetrics") || {})) {
-      if (!isRecord(raw)) continue;
-      const usage = recordField(raw, "usage");
-      if (!usage || !model.trim()) continue;
-      const input = nonNegativeInt(usage.inputTokens), cached = nonNegativeInt(usage.cacheReadTokens), created = nonNegativeInt(usage.cacheWriteTokens);
-      const requests = nonNegativeInt(recordField(raw, "requests")?.count);
-      const parts = { agent: "copilot" as const, model: normalizeModel(model), sessionId: session, sourcePath: file, timestamp,
-        inputTokens: Math.max(0, input - cached - created), cachedInputTokens: cached, cacheCreationTokens: created,
-        outputTokens: nonNegativeInt(usage.outputTokens) };
-      const event = makeUsageEvent(parts) || (requests > 0 ? { ...parts, reasoningOutputTokens: 0, totalTokens: 0, bucketStart: toUtcHalfHourStart(timestamp)! } : null);
-      if (!event) continue;
-      const nano = numeric(raw.totalNanoAiu);
-      complete &&= nano !== null;
-      entries.push({ event, key: JSON.stringify([key, normalizeModel(model)]), requests, credits: nano || 0 });
-    }
-    const total = numeric(data.totalNanoAiu);
-    if (shutdown || total !== null) credits.push({ session, time: timestamp, shutdown, total: complete ? total : null, key, file });
+  const data = recordField(row, "data") || {};
+  const timestamp = stringField(row, "timestamp");
+  if (row.type === "session.usage_record") {
+    const usage = recordField(data, "usage");
+    const model = stringField(usage, "model");
+    if (!usage || !model || !timestamp || !Number.isFinite(Date.parse(timestamp))) return;
+    state.covered = true;
+    state.credits = [];
+    const accounting = recordField(usage, "accounting");
+    const sourceSession = stringField(accounting, "sourceSessionId") || undefined;
+    const sequence = accounting?.sequence;
+    const identity = sourceSession && typeof sequence === "number" && Number.isSafeInteger(sequence) && sequence > 0 ? [sourceSession, sequence] : [session, stringField(row, "id") || state.index];
+    state.index++;
+    const cached = nonNegativeInt(usage.cacheReadTokens), created = nonNegativeInt(usage.cacheWriteTokens);
+    const parts = { agent: "copilot" as const, model: normalizeModel(model), sessionId: session, sourcePath: file, timestamp,
+      inputTokens: Math.max(0, nonNegativeInt(usage.inputTokens) - cached - created), cachedInputTokens: cached, cacheCreationTokens: created,
+      outputTokens: nonNegativeInt(usage.outputTokens) };
+    const event = makeUsageEvent(parts) || { ...parts, reasoningOutputTokens: 0, totalTokens: 0, bucketStart: toUtcHalfHourStart(timestamp)! };
+    state.records.push({ event, key: JSON.stringify(["usage-record", ...identity]), requests: 1,
+      credits: numeric(recordField(usage, "copilotUsage")?.totalNanoAiu), sourceSession,
+      response: stringField(usage, "apiCallId") || undefined, serviceRequest: stringField(usage, "serviceRequestId") || undefined });
+    return;
   }
-  return { entries, credits };
+  const shutdown = row.type === "session.shutdown";
+  if (!shutdown && row.type !== "session.usage_checkpoint") return;
+  if (Object.values(recordField(data, "usageAccountingWatermarks") || {}).some(value => typeof value === "number" && Number.isSafeInteger(value) && value > 0)) state.covered = true;
+  if (state.covered) { state.credits = []; return; }
+  if (!timestamp || !Number.isFinite(Date.parse(timestamp))) return;
+  const key = JSON.stringify([session, row.id || [timestamp, shutdown, data.totalNanoAiu]]);
+  let complete = true;
+  if (shutdown) for (const [model, raw] of Object.entries(recordField(data, "modelMetrics") || {})) {
+    if (!isRecord(raw)) continue;
+    const usage = recordField(raw, "usage");
+    if (!usage || !model.trim()) continue;
+    const input = nonNegativeInt(usage.inputTokens), cached = nonNegativeInt(usage.cacheReadTokens), created = nonNegativeInt(usage.cacheWriteTokens);
+    const requests = nonNegativeInt(recordField(raw, "requests")?.count);
+    const parts = { agent: "copilot" as const, model: normalizeModel(model), sessionId: session, sourcePath: file, timestamp,
+      inputTokens: Math.max(0, input - cached - created), cachedInputTokens: cached, cacheCreationTokens: created,
+      outputTokens: nonNegativeInt(usage.outputTokens) };
+    const event = makeUsageEvent(parts) || (requests > 0 ? { ...parts, reasoningOutputTokens: 0, totalTokens: 0, bucketStart: toUtcHalfHourStart(timestamp)! } : null);
+    if (!event) continue;
+    const nano = numeric(raw.totalNanoAiu);
+    complete &&= nano !== null;
+    state.entries.push({ event, key: JSON.stringify([key, normalizeModel(model)]), requests, credits: nano });
+  }
+  const total = numeric(data.totalNanoAiu);
+  if (shutdown || total !== null) state.credits.push({ session, time: timestamp, shutdown, total: complete ? total : null, key, file });
 }
 
 function otelTimestamp(row: Record<string, unknown>, fallback: string): string {
@@ -134,20 +154,20 @@ function otelRows(rows: Record<string, unknown>[], file: string, fallback: strin
     const response = stringField(a, "gen_ai.response.id") || undefined;
     const spanId = stringField(row, "spanId") || stringField(recordField(row, "spanContext"), "spanId");
     const key = m.trace && spanId ? `${rank === 1 ? "log:" : ""}${m.trace}:${spanId}` : JSON.stringify([rank, session, timestamp, file, index]);
-    entries.push({ event, key, requests: 1, credits: 0, rank, trace: m.trace, response,
+    entries.push({ event, key, requests: 1, credits: null, rank, trace: m.trace, response, serviceRequest: stringField(a, "github.copilot.service_request_id") || undefined,
       reasoning: nonNegativeInt(a["gen_ai.usage.reasoning.output_tokens"]) || nonNegativeInt(a["gen_ai.usage.reasoning_tokens"]) });
   });
   return entries;
 }
 
 function unique<T extends { key: string }>(rows: T[]): T[] { return [...new Map(rows.map(row => [row.key, row])).values()]; }
-function reconcile(native: Entry[], otel: Entry[], credits: Credit[]): UsageEvent[] {
+function reconcile(native: Entry[], otel: Entry[], credits: Credit[], records: Entry[]): UsageEvent[] {
   const calls = unique(otel).sort((a, b) => time(a.event) - time(b.event));
   const seenChat = new Set<string>();
   const retained = calls.filter(call => {
     if (call.rank === 0 && call.response) {
       const e = call.event;
-      const key = JSON.stringify([call.response, e.model, e.inputTokens, e.cachedInputTokens, e.cacheCreationTokens, e.outputTokens, call.reasoning, e.extraTotalTokens]);
+      const key = JSON.stringify([call.response, call.serviceRequest, e.model, e.inputTokens, e.cachedInputTokens, e.cacheCreationTokens, e.outputTokens, call.reasoning, e.extraTotalTokens]);
       if (seenChat.has(key)) return false; seenChat.add(key);
     }
     return !calls.some(other => other.rank! < call.rank! && ((call.trace && other.trace === call.trace) || (call.response && other.response === call.response)));
@@ -172,12 +192,16 @@ function reconcile(native: Entry[], otel: Entry[], credits: Credit[]): UsageEven
       const e = { ...entry.event };
       if (previous) for (const field of ["inputTokens", "cachedInputTokens", "outputTokens", "cacheCreationTokens", "totalTokens", "extraTotalTokens"] as const) e[field] = Math.max(0, (e[field] || 0) - (previous.event[field] || 0));
       const creditKey = JSON.stringify([e.sessionId, Date.parse(e.timestamp)]);
-      attributed.set(creditKey, (attributed.get(creditKey) || 0) + Math.max(0, entry.credits - (previous?.credits || 0)));
+      const nano = entry.credits !== null && (!previous || previous.credits !== null) ? Math.max(0, entry.credits - (previous?.credits || 0)) : null;
+      attributed.set(creditKey, (attributed.get(creditKey) || 0) + (nano || 0));
+      if (nano !== null) e.recordedCostUsd = String(nano / 1e11);
       previous = entry;
-      if ((!replace || index < start) && e.totalTokens > 0) events.push(e);
+      if ((!replace || index < start) && (e.totalTokens > 0 || Number(e.recordedCostUsd) > 0)) events.push(e);
     });
   }
-  appendItems(events, retained.filter(call => time(call.event) > (after.get(pair(call.event)) ?? -Infinity)).map(call => call.event));
+  const receipts = deduplicateRecords(records);
+  appendItems(events, removeRecordedCalls(retained.filter(call => time(call.event) > (after.get(pair(call.event)) ?? -Infinity)), receipts).map(call => call.event));
+  appendItems(events, receipts.map(record => ({ ...record.event, ...(record.credits !== null ? { recordedCostUsd: String(record.credits / 1e11) } : {}) })));
   const sessions = new Map<string, Credit[]>();
   for (const snapshot of unique(credits)) { const group = sessions.get(snapshot.session) || []; group.push(snapshot); sessions.set(snapshot.session, group); }
   for (const [session, group] of sessions) {
@@ -204,6 +228,42 @@ function reconcile(native: Entry[], otel: Entry[], credits: Credit[]): UsageEven
     }
   }
   return events.sort((a, b) => time(a) - time(b));
+}
+
+function deduplicateRecords(records: Entry[]): Entry[] {
+  const kept = new Map<string, Entry>();
+  const rank = (record: Entry) => Number(record.sourceSession !== record.event.sessionId);
+  for (const record of records) {
+    const old = kept.get(record.key);
+    if (!old || rank(record) < rank(old) || rank(record) === rank(old) && (record.event.sessionId || "") < (old.event.sessionId || "")) kept.set(record.key, record);
+  }
+  return [...kept.values()].sort((a, b) => time(a.event) - time(b.event) || a.key.localeCompare(b.key));
+}
+
+function removeRecordedCalls(calls: Entry[], records: Entry[]): Entry[] {
+  const claimed = new Set<number>(), matched = new Set<Entry>();
+  const byId = new Map<string, number[]>();
+  for (const [index, call] of calls.entries()) {
+    for (const field of ["serviceRequest", "response"] as const) {
+      if (!call[field]) continue;
+      const key = JSON.stringify([field, call[field], call.event.model]);
+      const indexes = byId.get(key) || [];
+      indexes.push(index); byId.set(key, indexes);
+    }
+  }
+  for (const field of ["serviceRequest", "response"] as const) {
+    for (const record of records) {
+      if (matched.has(record) || !record[field]) continue;
+      let nearest = -1;
+      for (const index of byId.get(JSON.stringify([field, record[field], record.event.model])) || []) {
+        if (claimed.has(index)) continue;
+        const call = calls[index];
+        if (nearest < 0 || Math.abs(time(call.event) - time(record.event)) < Math.abs(time(calls[nearest].event) - time(record.event))) nearest = index;
+      }
+      if (nearest >= 0) { claimed.add(nearest); matched.add(record); }
+    }
+  }
+  return calls.filter((_, index) => !claimed.has(index));
 }
 
 export async function planCopilot(home: string) {
@@ -234,11 +294,13 @@ export async function planCopilot(home: string) {
     collect: async () => {
       const native: Entry[] = [],
         otel: Entry[] = [],
+        records: Entry[] = [],
         credits: Credit[] = [];
       for (const file of nativeFiles) {
-        const parsed = await scanFile(file, () => cachedSource("copilot-native", [file], async () => (await readIncrementalJsonl(file, saved => copilotParser(file, false, saved))).state as {entries:Entry[];credits:Credit[]}));
+        const parsed = await scanFile(file, () => cachedSource("copilot-native", [file], async () => (await readIncrementalJsonl(file, saved => copilotParser(file, false, saved))).state as CopilotState));
         appendItems(native, parsed.entries);
         appendItems(credits, parsed.credits);
+        appendItems(records, parsed.records);
       }
       for (const file of new Set(otelFiles))
         appendItems(otel, await scanFile(file, () => cachedSource("copilot-otel", [file], async () => {
@@ -246,7 +308,7 @@ export async function planCopilot(home: string) {
           return otelRows((result.state as {rows:Record<string,unknown>[]}).rows, file, (await fs.stat(file)).mtime.toISOString());
         })));
       return {
-        events: reconcile(native, otel, credits),
+        events: reconcile(native, otel, credits, records),
         source: {
           agent: "copilot" as const,
           path: root,

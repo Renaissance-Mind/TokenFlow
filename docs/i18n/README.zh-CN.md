@@ -54,11 +54,11 @@ Home: /Users/alice/.tokenflow
 | 来源 | 读取的本地数据 | 说明 |
 | --- | --- | --- |
 | Codex | `~/.codex/sessions/**/rollout-*.jsonl` 和 archived session JSONL | 解析本地 rollout token 事件。 |
-| Claude Code | `~/.claude/projects/**/*.jsonl` | 解析项目 JSONL 使用数据。 |
+| Claude Code | `~/.config/claude/projects/**/*.jsonl`、`~/.claude/projects/**/*.jsonl` | 解析项目用量，汇总 advisor 回合各 message 迭代的缓存写入 TTL；支持 XDG 和自定义目录。 |
 | Gemini CLI | `~/.gemini/tmp/**/chats/session-*.json` | 解析 Gemini session JSON 文件。 |
 | OpenCode | `~/.local/share/opencode/opencode.db` | 需要 `PATH` 中存在 `sqlite3`。 |
 | Kimi CLI | `~/.kimi/sessions/*/*/wire.jsonl` | 读取 `StatusUpdate.token_usage` 行和 `~/.kimi/config.json` 模型元数据。 |
-| Qwen Code | `~/.qwen/projects/*/chats/*.jsonl` | 读取 assistant `usageMetadata` 行。 |
+| Qwen Code | `~/.qwen/projects/*/chats/*.jsonl`、`chats/archive/*.jsonl` | 读取当前与归档会话，重复副本只计一次。 |
 | Amp | `~/.local/share/amp/threads/*.json` | 读取 `usageLedger.events[]` 或 assistant `messages[].usage`。 |
 | Codebuff | `~/.config/manicode*/projects/**/chat-messages.json` | 读取 assistant metadata usage 和 run-state provider usage。 |
 | Droid | `~/.factory/sessions/**/*.settings.json` | 读取 session token snapshot，并保留每个 session 的最新 snapshot。 |
@@ -67,7 +67,8 @@ Home: /Users/alice/.tokenflow
 | Kilo | `~/.local/share/kilo/kilo.db` | 需要 `PATH` 中存在 `sqlite3`。 |
 | OpenClaw | `~/.openclaw`、`~/.clawdbot`、`~/.moltbot` 和 `~/.moldbot` JSONL sessions | 跟踪 model-change 行并关联后续 assistant usage。 |
 | Pi | `~/.pi/agent/sessions/**/*.jsonl` | 读取 assistant message usage 行。 |
-| DeepSeek Harness (dsh) | `~/.dsh/sessions/**/session*.jsonl` or `session*.jsonl.zstd` | 读取普通或 Zstandard 压缩的 Session 0–4 格式；选择最新版本并排除分叉继承的历史用量。 |
+| DeepSeek Harness (dsh) | `~/.dsh/sessions/**/session*.jsonl`、`session*.jsonl.zstd` | 读取 Session 0–4 格式、请求路由和压缩总结用量；选择最新版本，排除继承历史并保留结算及重试计数。 |
+| GitHub Copilot | `~/.copilot/session-state/*/events.jsonl`、已有的 `~/.copilot/otel/**/*.jsonl` | 读取逐次调用及旧版累计用量，去除记账副本和匹配的 OTel 调用；按每 AI credit 0.01 美元保留已记录费用。 |
 
 TokenFlow 不会上传源文件路径、session ID、提示词或回复内容。
 
@@ -191,7 +192,9 @@ TokenFlow 会在上传前本地计算成本。
 | `TOKENFLOW_REQUEST_TIMEOUT_MS` | TokenFlow server HTTP 请求超时。默认 `30000`。 |
 | `TOKENFLOW_UPDATE_SOURCE` | `tokenflow update` 未传 `--source` 时使用的 package/source。 |
 | `CODEX_HOME` | Codex 配置目录。默认 `~/.codex`。 |
-| `CLAUDE_HOME` | Claude 配置目录。默认 `~/.claude`。 |
+| `CLAUDE_HOME` | 显式指定 Claude 配置目录，优先于其他 Claude 路径。 |
+| `CLAUDE_CONFIG_DIR` | 用逗号分隔的 Claude 配置目录；支持 `~` 和直接指定 `projects/`，替换默认发现路径。 |
+| `XDG_CONFIG_HOME` | 默认扫描其中的 `claude/projects/` 及 `~/.claude/projects/`；未设置时使用 `~/.config`。 |
 | `GEMINI_HOME` | Gemini 配置目录。默认 `~/.gemini`。 |
 | `OPENCODE_DB` | 显式 OpenCode SQLite 数据库路径。 |
 | `OPENCODE_HOME` | OpenCode 数据目录。默认 `~/.local/share/opencode`。 |
@@ -205,7 +208,7 @@ TokenFlow 会在上传前本地计算成本。
 | `KILO_DATA_DIR` | Kilo 数据根目录，或逗号分隔的多个根目录。默认 `~/.local/share/kilo`。 |
 | `OPENCLAW_DIR` | OpenClaw 兼容根目录，可用逗号分隔。默认 `~/.openclaw`、`~/.clawdbot`、`~/.moltbot` 和 `~/.moldbot`。 |
 | `PI_AGENT_DIR` | Pi agent sessions 根目录，或逗号分隔的多个根目录。默认 `~/.pi/agent/sessions`。 |
-| `DSH_HOME` | dsh 主目录，默认 `~/.dsh`；读取其 `sessions/` 目录。 |
+| `DSH_HOME` | dsh 主目录，多个用逗号分隔；默认 `~/.dsh`，读取各目录下的 `sessions/`。 |
 | `DSH_SESSIONS_DIR` | 自定义 dsh 会话根目录，多个目录用逗号分隔；优先于 `DSH_HOME`。 |
 | `XDG_DATA_HOME` | 未设置 `OPENCODE_DB` 和 `OPENCODE_HOME` 时用于解析 OpenCode 数据目录。 |
 

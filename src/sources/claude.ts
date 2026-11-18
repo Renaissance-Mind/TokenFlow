@@ -134,9 +134,10 @@ function stripFastSuffix(model: string): string | null {
 
 function normalizeClaudeUsage(usage: Record<string, unknown>): UsageTotals {
   const inputTokens = nonNegativeInt(usage.input_tokens);
-  const creation = recordField(usage, "cache_creation");
+  const iterationCreation = messageIterationCreation(usage.iterations);
+  const creation = iterationCreation || recordField(usage, "cache_creation");
   const created5m = nonNegativeInt(creation?.ephemeral_5m_input_tokens), created1h = nonNegativeInt(creation?.ephemeral_1h_input_tokens);
-  const created = nonNegativeInt(usage.cache_creation_input_tokens) || created5m + created1h;
+  const created = iterationCreation ? created5m + created1h : nonNegativeInt(usage.cache_creation_input_tokens) || created5m + created1h;
   const cachedInputTokens = nonNegativeInt(usage.cache_read_input_tokens);
   const outputTokens = nonNegativeInt(usage.output_tokens);
   const totalTokens =
@@ -151,6 +152,23 @@ function normalizeClaudeUsage(usage: Record<string, unknown>): UsageTotals {
     ...(creation ? { cacheCreation5mTokens: created5m, cacheCreation1hTokens: created1h } : {}),
     totalTokens,
   };
+}
+
+function messageIterationCreation(iterations: unknown): Record<string, number> | null {
+  if (!Array.isArray(iterations)) return null;
+  const messages = iterations.filter(value => isRecord(value) && value.type === "message");
+  if (!messages.length) return null;
+  const total = { ephemeral_5m_input_tokens: 0, ephemeral_1h_input_tokens: 0 };
+  for (const message of messages) {
+    const split = recordField(message, "cache_creation");
+    if (!split) return null;
+    for (const key of ["ephemeral_5m_input_tokens", "ephemeral_1h_input_tokens"] as const) {
+      const count = split[key] === undefined ? 0 : split[key];
+      if (typeof count !== "number" || !Number.isSafeInteger(count) || count < 0 || !Number.isSafeInteger(total[key] + count)) return null;
+      total[key] += count;
+    }
+  }
+  return total;
 }
 
 function isZero(value: UsageTotals): boolean {

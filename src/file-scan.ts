@@ -69,6 +69,8 @@ async function collectUsage(
 ): Promise<CollectionResult> {
   const codexHome = process.env.CODEX_HOME || path.join(home, ".codex");
   const claudeHome = process.env.CLAUDE_HOME || path.join(home, ".claude");
+  const claudeCandidates = resolveClaudeProjectDirs(home);
+  const claudeRoots = await existingDirs(claudeCandidates);
   const geminiHome = process.env.GEMINI_HOME || path.join(home, ".gemini");
   const geminiRoots = process.env.GEMINI_DATA_DIR?.trim()
     ? process.env.GEMINI_DATA_DIR.split(",")
@@ -121,8 +123,8 @@ async function collectUsage(
       seenRollouts.add(key); codexFiles.push(file);
     }
   }
-  const claudeFiles = await listFiles(
-    path.join(claudeHome, "projects"),
+  const claudeFiles = await listFilesForRoots(
+    claudeRoots,
     (file) => file.endsWith(".jsonl"),
   );
   const geminiFiles = await listFilesForRoots(
@@ -135,7 +137,7 @@ async function collectUsage(
   );
   const qwenFiles = await listFilesForRoots(
     qwenRoots.map((root) => path.join(root, "projects")),
-    isQwenChatFile,
+    file => qwenRoots.some(root => isQwenChatFile(path.relative(path.join(root, "projects"), file))),
   );
   const ampFiles = await listFilesForRoots(
     ampRoots.map((root) => path.join(root, "threads")),
@@ -184,7 +186,7 @@ async function collectUsage(
     ...allFiles,
     ...allFiles.filter(file => /\.(?:db|sqlite|sqlite3|vscdb)$/.test(file)).map(file => file + "-wal"),
     path.join(codexHome, "config.toml"), path.join(codexHome, "sessions"), path.join(codexHome, "archived_sessions"),
-    path.join(claudeHome, "projects"), ...geminiRoots, ...kimiCandidates, ...qwenRoots, ...ampRoots,
+    ...claudeCandidates, ...geminiRoots, ...kimiCandidates, ...qwenRoots, ...ampRoots,
     ...codebuffProjectRoots, ...droidRoots, ...openclawRoots, ...piRoots, ...resolveDshSessionDirs(home),
     ...kimiCandidates.map(root => path.join(root, "config.json")),
     ...droidFiles.map(file => file.replace(/\.settings\.json$/, ".jsonl")),
@@ -287,9 +289,9 @@ async function collectUsage(
         },
         {
           agent: "claude",
-          path: path.join(claudeHome, "projects"),
+          path: sourcePathLabel(claudeRoots, claudeCandidates),
           files: claudeFiles.length,
-          exists: await exists(path.join(claudeHome, "projects")),
+          exists: claudeRoots.length > 0,
         },
         {
           agent: "gemini",
@@ -857,7 +859,20 @@ function isKimiWireFile(filePath: string): boolean {
 }
 
 function isQwenChatFile(filePath: string): boolean {
-  return filePath.endsWith(".jsonl");
+  const relative = filePath.split(path.sep);
+  return filePath.endsWith(".jsonl") && (relative.length === 2 || relative[1] === "chats"
+    && (relative.length === 3 || relative.length === 4 && relative[2] === "archive"));
+}
+
+function resolveClaudeProjectDirs(home: string): string[] {
+  const explicit = process.env.CLAUDE_HOME;
+  if (explicit) return [path.join(explicit, "projects")];
+  const roots = process.env.CLAUDE_CONFIG_DIR !== undefined ? process.env.CLAUDE_CONFIG_DIR.split(",").map(value => value.trim()).filter(Boolean)
+    : [path.join(process.env.XDG_CONFIG_HOME?.trim() || path.join(home, ".config"), "claude"), path.join(home, ".claude")];
+  return [...new Set(roots.map(value => {
+    const expanded = path.resolve(value === "~" ? home : value.startsWith("~/") ? path.join(home, value.slice(2)) : value);
+    return path.basename(expanded) === "projects" ? expanded : path.join(expanded, "projects");
+  }))];
 }
 
 function dedupeTranscriptEvents(events: UsageEvent[]): UsageEvent[] {

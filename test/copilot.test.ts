@@ -36,7 +36,8 @@ describe("Copilot native local sources", () => {
     expect(a.reduce((s, e) => s + e.inputTokens, 0)).toBe(163);
     expect(a.reduce((s, e) => s + e.outputTokens, 0)).toBe(94);
     const credits = result.events.filter(e => e.recordedCostUsd !== undefined);
-    expect(credits.reduce((s, e) => s + Number(e.recordedCostUsd), 0)).toBeCloseTo(0.08);
+    expect(credits.filter(e => e.model === "unknown").reduce((s, e) => s + Number(e.recordedCostUsd), 0)).toBeCloseTo(0.08);
+    expect(credits.reduce((s, e) => s + Number(e.recordedCostUsd), 0)).toBeCloseTo(0.11);
     const payload = JSON.stringify(toUsageSnapshotPayload(aggregateEvents(result.events)));
     expect(payload).not.toContain("private prompt");
     expect(payload).not.toContain("session-a");
@@ -45,12 +46,16 @@ describe("Copilot native local sources", () => {
   it("only reports unexplained credits that remain unexplained in all future shutdowns", async () => {
     const r = await home();
     await write(r, [checkpoint("c", "2026-01-02T09:00:00Z", 51), shutdown("s1", "2026-01-02T10:00:00Z", 93, 42), shutdown("s2", "2026-01-03T10:00:00Z", 93, 93)]);
-    expect((await collectCopilot(r)).events.filter(e => e.recordedCostUsd !== undefined)).toHaveLength(0);
+    const events = (await collectCopilot(r)).events;
+    expect(events.filter(e => e.model === "unknown")).toHaveLength(0);
+    expect(events.reduce((sum, e) => sum + Number(e.recordedCostUsd || 0), 0)).toBeCloseTo(0.93);
   });
   it("keeps checkpoint-only credits and avoids credit guesses for legacy shutdowns", async () => {
     const r = await home(); await write(r, [checkpoint("c", "2026-01-02T09:00:00Z", 7)]);
     expect((await collectCopilot(r)).events[0]).toMatchObject({ model: "unknown", totalTokens: 0, recordedCostUsd: "0.07" });
     await write(r, [shutdown("s", "2026-01-02T10:00:00Z", 93, 42)]);
-    expect((await collectCopilot(r)).events.filter(e => e.recordedCostUsd !== undefined)).toHaveLength(0);
+    const events = (await collectCopilot(r)).events;
+    expect(events.filter(e => e.model === "unknown")).toHaveLength(0);
+    expect(events[0].recordedCostUsd).toBe("0.42");
   });
 });

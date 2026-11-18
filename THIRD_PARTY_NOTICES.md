@@ -14,6 +14,8 @@ runtime libraries are identified separately below.
   Codex compaction/fork deduplication and Flex tiers, Pi stores, Copilot session/OTel reconciliation
   and test fixtures, and cost accounting semantics.
 - The Codex `issue_2046` regression fixture comes from ccusage commit `e4f0ea9` under the MIT license.
+- Copilot receipt and dsh route/compaction fixtures in `test/fixtures/ccusage-nov19` come from
+  ccusage commit `7ac5f2329fe1cd6bed5645867b18703ad86aaba5` under the MIT license.
 
 ## cc-switch
 
