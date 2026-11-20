@@ -10,6 +10,7 @@ import {
   tableColumns,
 } from "./store-io.js";
 import type { UsageEvent } from "../types.js";
+import { reportSourceIssue } from "../source-input.js";
 
 export function parseZcodeRow(
   row: Record<string, unknown>,
@@ -22,6 +23,7 @@ export function parseZcodeRow(
     nonNegativeInt(row.cache_creation_input_tokens),
   );
   const time = Number(row.started_at);
+  if (!Number.isFinite(time) || time <= 0 || time > 253_402_300_799_999) { reportSourceIssue(sourcePath, "invalid usage timestamp"); return null; }
   if (
     !row.id ||
     !row.session_id ||

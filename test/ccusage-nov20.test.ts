@@ -103,6 +103,20 @@ it("keeps Copilot OTel call identities structural across exported files", async 
   await put(root, ".copilot/otel/b.jsonl", jsonl({ type: "log", traceId: "T", spanId: "S", timestamp: 1795165200000, attributes: { ...attributes, "event.name": "gen_ai.client.inference.operation.details" } }));
   expect((await collectCopilot(root)).events.map(event => event.totalTokens)).toEqual([15, 15]);
 });
+it("reports undated native Copilot calls while retaining dated calls and excluding partial coverage", async () => {
+  const root = await sandbox();
+  const usage = { model: "gpt-5.4", inputTokens: 10, outputTokens: 5 };
+  const file = await put(root, ".copilot/session-state/s/events.jsonl", jsonl(
+    { type: "session.usage_record", id: "undated", timestamp: "invalid", data: { usage } },
+    { type: "session.usage_record", id: "dated", timestamp: "2026-11-20T09:00:00Z", data: { usage } },
+  ));
+  for (let pass = 0; pass < 2; pass++) {
+    const result = await collectLocalUsage(root);
+    expect(result.events.map(event => event.totalTokens)).toEqual([15]);
+    expect(result.scannedFiles).not.toContain(file);
+    expect(result.sources.find(source => source.agent === "copilot")?.warnings?.join(" ")).toMatch(/invalid usage timestamp/);
+  }
+});
 it.each([[5, 2, 0.2], [null, 2, 0], [5, 3, 0]] as const)("reconciles watermarked Copilot receipts with credits %s and watermark %s", async (secondCredit, watermark, expectedGap) => {
   const root = await sandbox();
   const receipt = (sequence: number, credits: number | null) => ({ type: "session.usage_record", id: `r${sequence}`, timestamp: `2026-01-0${sequence + 1}T09:00:00Z`, data: { usage: {

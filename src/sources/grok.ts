@@ -18,6 +18,7 @@ import {
   storeFiles,
 } from "./store-io.js";
 import type { UsageEvent } from "../types.js";
+import { reportSourceIssue } from "../source-input.js";
 
 export function createGrokParser(
   sourcePath: string,
@@ -41,7 +42,7 @@ export function createGrokParser(
       const meta = recordField(params, "_meta");
       const millis =
         Number(meta?.agentTimestampMs) || Number(row.timestamp) * 1000;
-      if (!Number.isFinite(millis) || millis <= 0 || millis > 253_402_300_799_999) return;
+      if (!Number.isFinite(millis) || millis <= 0 || millis > 253_402_300_799_999) { reportSourceIssue(sourcePath, "invalid usage timestamp"); return; }
       const sessionId =
         stringField(params, "sessionId") ||
         path.basename(path.dirname(sourcePath));

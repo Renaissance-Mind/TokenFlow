@@ -30,7 +30,8 @@ export function parseClineDocument(root: unknown, source: Source): UsageEvent[] 
       timestamp = "ts" in row ? millis(row.ts) : typeof row.timestamp === "string" && /T.*(?:Z|[+-]\d\d:\d\d)$/i.test(row.timestamp) && Number.isFinite(Date.parse(row.timestamp)) ? new Date(row.timestamp).toISOString() : null;
     }
     const model = stringField(info, source.kind === "extension" ? "modelId" : "id");
-    if (!model || model.toLowerCase() === "unknown" || !timestamp || !metrics) continue;
+    if (!model || model.toLowerCase() === "unknown" || !metrics) continue;
+    if (!timestamp) { reportSourceIssue(source.file, "invalid usage timestamp"); continue; }
     const keys = source.kind === "extension" ? ["tokensIn", "tokensOut", "cacheReads", "cacheWrites"] : ["inputTokens", "outputTokens", "cacheReadTokens", "cacheWriteTokens"];
     const values = keys.map(key => metrics![key]);
     if (!values.every(value => typeof value === "number" && Number.isSafeInteger(value) && value >= 0)) continue;

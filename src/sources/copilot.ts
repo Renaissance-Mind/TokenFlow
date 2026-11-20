@@ -1,4 +1,4 @@
-import { expandSourcePath } from "../source-input.js";
+import { expandSourcePath, reportSourceIssue } from "../source-input.js";
 import { readIncrementalJsonl, type CheckpointParser } from "../incremental-jsonl.js";
 import { cachedSource } from "../collection-cache.js";
 import { appendItems } from "../arrays.js";
@@ -66,7 +66,8 @@ function nativeRow(row: Record<string, unknown>, file: string, state: CopilotSta
   if (row.type === "session.usage_record") {
     const usage = recordField(data, "usage");
     const model = stringField(usage, "model");
-    if (!usage || !model || !timestamp || !Number.isFinite(Date.parse(timestamp))) return;
+    if (!usage || !model) return;
+    if (!timestamp || !Number.isFinite(Date.parse(timestamp))) { reportSourceIssue(file, "invalid usage timestamp"); return; }
     state.covered = true;
     const accounting = recordField(usage, "accounting");
     const sourceSession = stringField(accounting, "sourceSessionId") || undefined;
@@ -91,7 +92,11 @@ function nativeRow(row: Record<string, unknown>, file: string, state: CopilotSta
   const watermark = typeof local === "number" && Number.isSafeInteger(local) && local > 0
     && Object.entries(watermarks).every(([source, sequence]) => source === session || sequence === 0) ? local : undefined;
   if (Object.values(watermarks).some(value => typeof value === "number" && Number.isSafeInteger(value) && value > 0)) state.covered = true;
-  if (!timestamp || !Number.isFinite(Date.parse(timestamp))) { if (state.covered) state.unproven = true; return; }
+  if (!timestamp || !Number.isFinite(Date.parse(timestamp))) {
+    if (state.covered) state.unproven = true;
+    if (state.covered || data.totalNanoAiu !== undefined || recordField(data, "modelMetrics")) reportSourceIssue(file, "invalid usage timestamp");
+    return;
+  }
   const key = JSON.stringify([session, row.id || [timestamp, shutdown, data.totalNanoAiu]]);
   if (state.covered && watermark === undefined) { state.unproven = true; return; }
   if (!shutdown || watermark !== undefined) {
