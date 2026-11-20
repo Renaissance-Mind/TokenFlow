@@ -27,7 +27,7 @@ export function parseZcodeRow(
     !row.session_id ||
     !row.model_id ||
     !Number.isFinite(time) ||
-    time <= 0
+    time <= 0 || time > 253_402_300_799_999
   )
     return null;
   const model = String(row.model_id);

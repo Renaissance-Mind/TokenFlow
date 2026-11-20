@@ -22,7 +22,7 @@ export interface HermesSessionRow {
 }
 
 export function parseHermesSessionRow(row: HermesSessionRow, sourcePath = "state.db"): UsageEvent | null {
-  const model = row.model?.trim();
+  const model = typeof row.model === "string" ? row.model.trim() : "";
   if (!row.id || !model) return null;
 
   const recordedCostUsd = optionalDecimalString(firstPositive(row.actual_cost_usd, row.estimated_cost_usd));
@@ -42,7 +42,7 @@ export function parseHermesSessionRow(row: HermesSessionRow, sourcePath = "state
     return null;
   }
 
-  return makeUsageEvent({
+  const event = makeUsageEvent({
     agent: "hermes",
     model,
     sessionId: row.id,
@@ -55,6 +55,8 @@ export function parseHermesSessionRow(row: HermesSessionRow, sourcePath = "state
     reasoningOutputTokens,
     recordedCostUsd,
   });
+  if (event && typeof row.billing_provider === "string" && row.billing_provider.trim()) event.pricingModel = model.startsWith(`${row.billing_provider.trim()}/`) ? model : `${row.billing_provider.trim()}/${model}`;
+  return event;
 }
 
 function firstPositive(...values: Array<number | null | undefined>): number | undefined {

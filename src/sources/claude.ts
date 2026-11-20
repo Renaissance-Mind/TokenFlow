@@ -2,6 +2,7 @@ import { normalizeAgentModelForUsage, type UsageModelNormalization } from "../pr
 import { toUtcHalfHourStart } from "../time.js";
 import type { UsageEvent, UsageTotals } from "../types.js";
 import { optionalDecimalString } from "./ccusage-common.js";
+import { reportSourceIssue } from "../source-input.js";
 
 interface ParseOptions {
   sourcePath: string;
@@ -29,7 +30,7 @@ export function createClaudeJsonlParser(options: ParseOptions, saved?: unknown):
   return {
     snapshot: () => ({ events, seen: [...seen.keys()] }),
     pushLine(line: string): void {
-      if (!line.trim() || !line.includes('"usage"')) return;
+      if (!line.trim() || !line.includes('"usage"') && !line.includes("\\u")) return;
 
       let row: unknown;
       try {
@@ -38,6 +39,10 @@ export function createClaudeJsonlParser(options: ParseOptions, saved?: unknown):
         return;
       }
       if (!isRecord(row)) return;
+      const progress = recordField(recordField(row, "data"), "message");
+      if (!recordField(row, "message") && recordField(progress, "message"))
+        row = { ...row, ...progress, sessionId: stringField(row, "sessionId") || stringField(progress, "sessionId") };
+      if (!isRecord(row)) return;
 
       const message = recordField(row, "message");
       const usage = recordField(message, "usage") || recordField(row, "usage");
@@ -45,7 +50,7 @@ export function createClaudeJsonlParser(options: ParseOptions, saved?: unknown):
 
       const timestamp = stringField(row, "timestamp");
       const bucketStart = timestamp ? toUtcHalfHourStart(timestamp) : null;
-      if (!timestamp || !bucketStart) return;
+      if (!timestamp || !bucketStart) { reportSourceIssue(options.sourcePath, "invalid usage timestamp"); return; }
       const messageId = stringField(message, "id");
       const requestId = stringField(row, "requestId") || stringField(row, "request_id");
       const sessionId = stringField(row, "sessionId") || stringField(row, "session_id");
@@ -84,6 +89,18 @@ export function createClaudeJsonlParser(options: ParseOptions, saved?: unknown):
       else {
         if (dedupeId) seen.set(dedupeId, events.length);
         events.push(event);
+      }
+      if (Array.isArray(usage.iterations)) for (const [index, item] of usage.iterations.entries()) {
+        if (!isRecord(item) || item.type !== "advisor_message" || !stringField(item, "model")) continue;
+        if (![item.input_tokens, item.output_tokens].every(value => typeof value === "number" && Number.isSafeInteger(value) && value >= 0)) { reportSourceIssue(options.sourcePath, "invalid advisor usage"); continue; }
+        const advisorId = dedupeId ? `${dedupeId}:advisor:${index}` : null;
+        const advisorModel = normalizeAgentModelForUsage("claude", stringField(item, "model"));
+        const advisor: UsageEvent = { agent: "claude", model: advisorModel.model, pricingModel: advisorModel.pricingModel || advisorModel.originalModel,
+          ...(advisorId ? { messageId: advisorId } : {}), ...(event.isSidechain ? { isSidechain: true } : {}),
+          sessionId, sourcePath: options.sourcePath, timestamp, bucketStart, ...normalizeClaudeUsage(item) };
+        const previous = advisorId ? seen.get(advisorId) : undefined;
+        if (previous !== undefined) events[previous] = mergeClaudeUsageCopies(events[previous], advisor);
+        else if (!isZero(advisor)) { if (advisorId) seen.set(advisorId, events.length); events.push(advisor); }
       }
     },
 

@@ -2,14 +2,16 @@ import fs, { type FileHandle } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { cachedSource, type FileVersion } from "./collection-cache.js";
 import { scannedBytes } from "./scan-progress.js";
+import { physicalSourcePath, reportSourceIssue, restoreSourceIssues } from "./source-input.js";
 import type { UsageEvent } from "./types.js";
+import { isUtf8 } from "node:buffer";
 
 export interface CheckpointParser {
   pushLine(line: string): void;
   finish(): UsageEvent[];
   snapshot(): unknown;
 }
-interface Checkpoint { version: FileVersion; offset: number; oversized: boolean; state: unknown; viewState?: unknown; events: UsageEvent[]; head: string; boundary: string }
+interface Checkpoint { version: FileVersion; offset: number; oversized: boolean; state: unknown; viewState?: unknown; events: UsageEvent[]; head: string; boundary: string; invalidLines?: number }
 const WINDOW = 4096;
 const MAX_LINE = 16 * 1024 * 1024;
 const digest = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex");
@@ -23,9 +25,9 @@ function sameFile(previous: FileVersion | null | undefined, current: FileVersion
 }
 
 // Checkpoints contain counters and parser context only, never transcript text.
-export async function readIncrementalJsonl(file: string, create: (state?: unknown) => CheckpointParser, settings: unknown = null, includeTail = true): Promise<{ events: UsageEvent[]; state: unknown }> {
+export async function readIncrementalJsonl(file: string, create: (state?: unknown) => CheckpointParser, settings: unknown = null, includeTail = true, strictJSON = false): Promise<{ events: UsageEvent[]; state: unknown }> {
   const result = await cachedSource<Checkpoint>("jsonl-checkpoint", [file], async previous => {
-    const handle = await fs.open(file, "r");
+    const handle = await fs.open(physicalSourcePath(file), "r");
     try {
       const stat = await handle.stat();
       const current: FileVersion = { file, dev: stat.dev, ino: stat.ino, size: stat.size, mtime: stat.mtimeMs, ctime: stat.ctimeMs };
@@ -36,6 +38,8 @@ export async function readIncrementalJsonl(file: string, create: (state?: unknow
       const head = digest(await slice(handle, 0, Math.min(WINDOW, stat.size)));
       const boundary = digest(await slice(handle, Math.max(0, stat.size - WINDOW), Math.min(WINDOW, stat.size)));
       const parser = create(resume ? structuredClone(previous!.value.state) : undefined);
+      if (resume) restoreSourceIssues(previous?.diagnostics);
+      let invalidLines = resume ? previous!.value.invalidLines || 0 : 0;
       let offset = resume ? previous!.value.offset : 0;
       let oversized = resume ? previous!.value.oversized : false;
       let pending = Buffer.alloc(0);
@@ -47,8 +51,12 @@ export async function readIncrementalJsonl(file: string, create: (state?: unknow
           let start = 0;
           for (let end = bytes.indexOf(10, start); end >= 0; end = bytes.indexOf(10, start)) {
             if (!oversized && pending.length + end - start <= MAX_LINE) {
-              const line = Buffer.concat([pending, bytes.subarray(start, end)]).toString("utf8").replace(/\r$/, "");
-              if (line.trim()) parser.pushLine(line);
+              const encoded = Buffer.concat([pending, bytes.subarray(start, end)]);
+              const line = encoded.toString("utf8").replace(/\r$/, "");
+              if (line.trim()) {
+                try { if (!isUtf8(encoded)) throw new SyntaxError("Invalid UTF-8 usage record"); parser.pushLine(line); }
+                catch (error) { if (strictJSON || !(error instanceof SyntaxError)) throw error; invalidLines++; }
+              }
             }
             offset += pending.length + end - start + 1;
             pending = Buffer.alloc(0); oversized = false; start = end + 1;
@@ -61,14 +69,15 @@ export async function readIncrementalJsonl(file: string, create: (state?: unknow
       } finally { stream.destroy(); }
       const state = parser.snapshot();
       const view = create(structuredClone(state));
-      if (includeTail && !oversized && pending.length) {
+      if (includeTail && !oversized && pending.length && isUtf8(pending)) {
         // Preview a valid EOF record, but commit only complete lines so a torn
         // append is read again from its start on the following collection.
         try { JSON.parse(pending.toString("utf8")); view.pushLine(pending.toString("utf8").replace(/\r$/, "")); }
         catch (error) { if (!(error instanceof SyntaxError)) throw error; }
       }
-      return { version: current, offset, oversized, state, viewState: view.snapshot(), events: view.finish(), head, boundary };
+      return { version: current, offset, oversized, state, viewState: view.snapshot(), events: view.finish(), head, boundary, invalidLines };
     } finally { await handle.close(); }
-  }, [settings, includeTail], checkpoint => [checkpoint.version]);
+  }, [settings, includeTail, strictJSON], checkpoint => [checkpoint.version]);
+  reportSourceIssue(file, "invalid JSON or UTF-8", result.invalidLines || 0);
   return { events: result.events, state: result.viewState ?? result.state };
 }

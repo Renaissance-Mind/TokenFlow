@@ -1,0 +1,204 @@
+{
+  "version": "fixture-ccusage-7e789e8",
+  "profiles": [
+    {
+      "modelId": "claude-opus-4-8",
+      "displayName": "Claude Opus 4.8",
+      "inputUsdPerMillion": "5",
+      "outputUsdPerMillion": "25",
+      "cacheReadUsdPerMillion": "0.50",
+      "cacheCreationUsdPerMillion": "6.25",
+      "pricingSource": "curated",
+      "vendorModel": "claude-opus-4-8"
+    },
+    {
+      "modelId": "gemini-2.5-flash-lite",
+      "displayName": "Gemini 2.5 Flash Lite",
+      "inputUsdPerMillion": "0.10",
+      "outputUsdPerMillion": "0.40",
+      "cacheReadUsdPerMillion": "0.01",
+      "cacheCreationUsdPerMillion": "0",
+      "pricingSource": "supplemental"
+    },
+    {
+      "modelId": "o1",
+      "displayName": "OpenAI o1",
+      "inputUsdPerMillion": "15",
+      "outputUsdPerMillion": "60",
+      "cacheReadUsdPerMillion": "7.50",
+      "cacheCreationUsdPerMillion": "0",
+      "pricingSource": "supplemental"
+    },
+    {
+      "modelId": "anthropic/claude-opus-4.8-fast",
+      "displayName": "Claude Opus 4 8 Fast",
+      "inputUsdPerMillion": "10",
+      "outputUsdPerMillion": "50",
+      "cacheReadUsdPerMillion": "1",
+      "cacheCreationUsdPerMillion": "12.5",
+      "cacheCreation1hUsdPerMillion": "20",
+      "pricingSource": "models.dev",
+      "fastMultiplier": "2"
+    },
+    {
+      "modelId": "azure/o1-mini",
+      "pricingSource": "litellm",
+      "displayName": "O1 Mini",
+      "inputUsdPerMillion": "1.1",
+      "outputUsdPerMillion": "4.4",
+      "cacheReadUsdPerMillion": "0.55",
+      "cacheCreationUsdPerMillion": "1.1",
+      "cacheCreation1hUsdPerMillion": "1.1"
+    },
+    {
+      "modelId": "claude-opus-4-8",
+      "pricingSource": "litellm",
+      "vendorModel": "claude-opus-4-8",
+      "displayName": "Claude Opus 4 8",
+      "inputUsdPerMillion": "5",
+      "outputUsdPerMillion": "25",
+      "cacheReadUsdPerMillion": "0.5",
+      "cacheCreationUsdPerMillion": "6.25",
+      "cacheCreation1hUsdPerMillion": "10",
+      "fastMultiplier": "2"
+    },
+    {
+      "modelId": "claude-opus-4-8",
+      "displayName": "Claude Opus 4 8",
+      "inputUsdPerMillion": "5",
+      "outputUsdPerMillion": "25",
+      "cacheReadUsdPerMillion": "0.5",
+      "cacheCreationUsdPerMillion": "6.25",
+      "cacheCreation1hUsdPerMillion": "10",
+      "pricingSource": "models.dev",
+      "fastMultiplier": "2"
+    },
+    {
+      "modelId": "gemini-2.5-flash-lite",
+      "pricingSource": "supplemental",
+      "displayName": "Gemini 2 5 Flash Lite",
+      "inputUsdPerMillion": "0.1",
+      "outputUsdPerMillion": "0.4",
+      "cacheReadUsdPerMillion": "0.01",
+      "cacheCreationUsdPerMillion": "0.125",
+      "cacheCreation1hUsdPerMillion": "0.2"
+    },
+    {
+      "modelId": "gemini-2.5-flash-lite",
+      "displayName": "Gemini 2 5 Flash Lite",
+      "inputUsdPerMillion": "0.1",
+      "outputUsdPerMillion": "0.4",
+      "cacheReadUsdPerMillion": "0.01",
+      "cacheCreationUsdPerMillion": "0.125",
+      "cacheCreation1hUsdPerMillion": "0.2",
+      "pricingSource": "models.dev",
+      "exactOnly": true
+    },
+    {
+      "modelId": "google/gemini-2.5-flash",
+      "displayName": "Gemini 2 5 Flash",
+      "inputUsdPerMillion": "0.3",
+      "outputUsdPerMillion": "2.5",
+      "cacheReadUsdPerMillion": "0.03",
+      "cacheCreationUsdPerMillion": "0.041667",
+      "cacheCreation1hUsdPerMillion": "0.6",
+      "pricingSource": "models.dev"
+    },
+    {
+      "modelId": "gpt-6.2-sol",
+      "pricingSource": "litellm",
+      "vendorModel": "gpt-6.2-sol",
+      "displayName": "Gpt 6 2 Sol",
+      "inputUsdPerMillion": "2",
+      "outputUsdPerMillion": "10",
+      "cacheReadUsdPerMillion": "0.1",
+      "cacheCreationUsdPerMillion": "2.5",
+      "cacheCreation1hUsdPerMillion": "2",
+      "inputAbove200kUsdPerMillion": "4",
+      "outputAbove200kUsdPerMillion": "15",
+      "cacheReadAbove200kUsdPerMillion": "0.2",
+      "cacheCreationAbove200kUsdPerMillion": "5",
+      "longContextThresholdTokens": 272000,
+      "cacheCreation1hAbove200kUsdPerMillion": "4"
+    },
+    {
+      "modelId": "gpt-6.2-sol",
+      "displayName": "Gpt 6 2 Sol",
+      "inputUsdPerMillion": "2",
+      "outputUsdPerMillion": "10",
+      "cacheReadUsdPerMillion": "0.1",
+      "cacheCreationUsdPerMillion": "2.5",
+      "cacheCreation1hUsdPerMillion": "2",
+      "pricingSource": "models.dev",
+      "inputAbove200kUsdPerMillion": "4",
+      "outputAbove200kUsdPerMillion": "15",
+      "cacheReadAbove200kUsdPerMillion": "0.2",
+      "cacheCreationAbove200kUsdPerMillion": "5",
+      "longContextThresholdTokens": 272000,
+      "cacheCreation1hAbove200kUsdPerMillion": "4"
+    },
+    {
+      "modelId": "MiniMax-M3.1-Flash",
+      "displayName": "MiniMax M3 1 Flash",
+      "inputUsdPerMillion": "0.15",
+      "outputUsdPerMillion": "0.6",
+      "cacheReadUsdPerMillion": "0.015",
+      "cacheCreationUsdPerMillion": "0.1875",
+      "cacheCreation1hUsdPerMillion": "0.3",
+      "pricingSource": "models.dev",
+      "exactOnly": true
+    },
+    {
+      "modelId": "minimaxai/minimax-m3.1-flash",
+      "displayName": "Minimax M3 1 Flash",
+      "inputUsdPerMillion": "0.15",
+      "outputUsdPerMillion": "0.6",
+      "cacheReadUsdPerMillion": "0.018",
+      "cacheCreationUsdPerMillion": "0.1875",
+      "cacheCreation1hUsdPerMillion": "0.3",
+      "pricingSource": "models.dev"
+    },
+    {
+      "modelId": "o1",
+      "pricingSource": "supplemental",
+      "vendorModel": "o1",
+      "displayName": "O1",
+      "inputUsdPerMillion": "15",
+      "outputUsdPerMillion": "60",
+      "cacheReadUsdPerMillion": "7.5",
+      "cacheCreationUsdPerMillion": "15",
+      "cacheCreation1hUsdPerMillion": "15"
+    },
+    {
+      "modelId": "o1",
+      "displayName": "O1",
+      "inputUsdPerMillion": "15",
+      "outputUsdPerMillion": "60",
+      "cacheReadUsdPerMillion": "7.5",
+      "cacheCreationUsdPerMillion": "15",
+      "cacheCreation1hUsdPerMillion": "15",
+      "pricingSource": "models.dev"
+    },
+    {
+      "modelId": "zai/glm-4.7-flash",
+      "pricingSource": "litellm",
+      "vendorModel": "glm-4.7-flash",
+      "displayName": "Glm 4 7 Flash",
+      "inputUsdPerMillion": "0",
+      "outputUsdPerMillion": "0",
+      "cacheReadUsdPerMillion": "0",
+      "cacheCreationUsdPerMillion": "0",
+      "cacheCreation1hUsdPerMillion": "0"
+    },
+    {
+      "modelId": "zai/glm-4.7-flash",
+      "displayName": "Glm 4 7 Flash",
+      "inputUsdPerMillion": "0.07",
+      "outputUsdPerMillion": "0.4",
+      "cacheReadUsdPerMillion": "0.007",
+      "cacheCreationUsdPerMillion": "0.0875",
+      "cacheCreation1hUsdPerMillion": "0.14",
+      "pricingSource": "models.dev"
+    }
+  ]
+}

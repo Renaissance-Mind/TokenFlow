@@ -1,3 +1,4 @@
+import { physicalSourcePath, discoverSourceFiles } from "../source-input.js";
 import { readIncrementalJsonl } from "../incremental-jsonl.js";
 import { cachedSource } from "../collection-cache.js";
 import { scanFile, discoveredFile, scannedBytes } from "../scan-progress.js";
@@ -108,13 +109,16 @@ export function createDshParser(sourcePath: string, saved?: unknown): DshParser 
       const source = recordField(message, "source");
       const selectedModel = compaction ? stringField(data, "model") : stringField(source, "model") || model;
       const selectedProvider = compaction ? stringField(data, "provider") : stringField(source, "provider") || provider;
+      const totals = baseTotalsFromRecord(usage, {
+        input: "inputTokens", output: "outputTokens", cacheRead: "cacheReadTokens",
+        cacheCreation: "cacheWriteTokens", reasoning: "reasoningTokens", total: "totalTokens",
+      });
+      if ((totals.reasoningOutputTokens || 0) > (totals.outputTokens || 0)) throw new Error(`Invalid dsh reasoning subset in ${sourcePath}`);
       const event = makeUsageEvent({
         agent: "dsh", model: selectedModel,
         sessionId, sourcePath, timestamp,
-        ...baseTotalsFromRecord(usage, {
-          input: "inputTokens", output: "outputTokens", cacheRead: "cacheReadTokens",
-          cacheCreation: "cacheWriteTokens", reasoning: "reasoningTokens", total: "totalTokens",
-        }),
+        ...totals,
+        outputTokens: (totals.outputTokens || 0) - (totals.reasoningOutputTokens || 0),
       });
       if (event && selectedProvider && selectedModel && !["deepseek-official", "deepseek-account"].includes(selectedProvider))
         event.pricingModel = selectedModel.startsWith(`${selectedProvider}/`) ? selectedModel : `${selectedProvider}/${selectedModel}`;
@@ -135,7 +139,7 @@ export function createDshParser(sourcePath: string, saved?: unknown): DshParser 
   };
 }
 
-export async function planDshUsage(candidates: string[]) {
+export async function planDshUsage(candidates: string[], resilient = false) {
   const roots: string[] = [];
   const generations = new Map<
     string,
@@ -163,11 +167,11 @@ export async function planDshUsage(candidates: string[]) {
       const events = new Map<string, DshUsageEvent>();
       for (const file of files) {
         const parsed = await scanFile(file, () => cachedSource("dsh", [file], async () => {
-          if (!file.endsWith(".zstd")) return (await readIncrementalJsonl(file, saved => createDshParser(file, saved), null, false)).events as DshUsageEvent[];
+          if (!file.endsWith(".zstd")) return (await readIncrementalJsonl(file, saved => createDshParser(file, saved), null, false, true)).events as DshUsageEvent[];
           const parser = createDshParser(file);
           await readSessionLines(file, (line) => parser.pushLine(line));
           return parser.finish();
-        }));
+        }), resilient ? [] : undefined);
         for (const event of parsed) {
             const key = `${event.sessionId}:${event.eventSeq}`;
             const previous = events.get(key);
@@ -185,15 +189,10 @@ export async function planDshUsage(candidates: string[]) {
 }
 
 async function discoverGenerations(directory: string, generations: Map<string, { version: number; files: string[] }>): Promise<void> {
-  for (const entry of await fs.readdir(directory, { withFileTypes: true })) {
-    const file = path.join(directory, entry.name);
-    if (entry.isDirectory()) await discoverGenerations(file, generations);
-    if (!entry.isFile()) continue;
-    const match = SESSION_FILE.exec(entry.name);
-    if (!match) continue;
-    const version = Number(match[1] || 0);
-    const previous = generations.get(directory);
-    if (!previous || version > previous.version) generations.set(directory, { version, files: [file] });
+  for (const file of await discoverSourceFiles(directory, file => SESSION_FILE.test(path.basename(file)))) {
+    const match = SESSION_FILE.exec(path.basename(file))!;
+    const version = Number(match[1] || 0), parent = path.dirname(file), previous = generations.get(parent);
+    if (!previous || version > previous.version) generations.set(parent, { version, files: [file] });
     else if (version === previous.version) previous.files.push(file);
   }
 }
@@ -216,7 +215,7 @@ async function readSessionLines(file: string, onLine: (line: string) => void): P
   };
   const decoder = file.endsWith(".zstd") ? new Decompress(consume) : null;
   let consumed = 0;
-  for await (const chunk of createReadStream(file)) {
+  for await (const chunk of createReadStream(physicalSourcePath(file))) {
     consumed += chunk.byteLength; scannedBytes(file, consumed);
     if (decoder) decoder.push(chunk);
     else consume(chunk);

@@ -1,3 +1,4 @@
+import { hasSourceDiagnostics, physicalSourcePath, reportSourceIssue, sourceInputCategory } from "../source-input.js";
 import { cachedSource, checkCollectionCancellation } from "../collection-cache.js";
 import { appendItems } from "../arrays.js";
 import { scanFile, discoveredFile, scannedBytes } from "../scan-progress.js";
@@ -274,6 +275,15 @@ export function mergeAntigravityUsage(rows: IdentifiedUsage[]): UsageEvent[] {
     .map((row) => row.event);
 }
 
+function metadataInput(hex: string, step: boolean, file: string): Metadata | null {
+  try { return parseAntigravityMetadata(hex, step); }
+  catch (error) {
+    const category = sourceInputCategory(error);
+    if (!hasSourceDiagnostics() || !category) throw error;
+    reportSourceIssue(file, category); return null;
+  }
+}
+
 export async function planAntigravity(home: string) {
   const roots = sourceRoots("ANTIGRAVITY_DATA_DIR", home, [
     ".gemini/antigravity/conversations",
@@ -301,7 +311,7 @@ export async function planAntigravity(home: string) {
         try {
           const result = await scanFile(file, () => cachedSource("antigravity", [file, file + "-wal"], async () => {
             const parsed: IdentifiedUsage[] = [];
-            const stat = await fs.stat(file);
+            const stat = await fs.stat(physicalSourcePath(file));
             if (!stat.size) return [];
             const snapshot = await archivedSqliteSnapshot(file);
             try {
@@ -316,7 +326,7 @@ export async function planAntigravity(home: string) {
                   database,
                   "SELECT CAST(idx AS TEXT) AS idx, hex(data) AS hex FROM gen_metadata ORDER BY idx;",
                 )
-              ).map((row) => ({ ...parseAntigravityMetadata(row.hex, false), index: row.idx, step: false }));
+              ).flatMap(row => { const meta = metadataInput(row.hex, false, file); return meta ? [{ ...meta, index: row.idx, step: false }] : []; });
               const stepColumns = await tableColumns(database, "steps");
               const steps = stepColumns.has("metadata")
                 ? (
@@ -327,7 +337,7 @@ export async function planAntigravity(home: string) {
                       database,
                     "SELECT CAST(idx AS TEXT) AS idx, hex(metadata) AS hex FROM steps WHERE metadata IS NOT NULL ORDER BY idx;",
                     )
-                ).map((row) => ({ ...parseAntigravityMetadata(row.hex, true), index: row.idx, step: true }))
+                ).flatMap(row => { const meta = metadataInput(row.hex, true, file); return meta ? [{ ...meta, index: row.idx, step: true }] : []; })
                 : [];
               const trajectoryColumns = await tableColumns(
                 database,
@@ -377,7 +387,8 @@ export async function planAntigravity(home: string) {
                     output - number(usage, 9),
                   );
                   const time =
-                    meta.time || trajectoryTime || stat.mtime.toISOString();
+                    meta.time || trajectoryTime;
+                  if (!time) { reportSourceIssue(file, "invalid usage timestamp"); continue; }
                   const event = makeUsageEvent({
                     agent: "antigravity",
                     model:

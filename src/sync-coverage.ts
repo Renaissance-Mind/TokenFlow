@@ -1,3 +1,4 @@
+import { physicalSourcePath } from "./source-input.js";
 import fs from "node:fs/promises";
 import { createReadStream } from "node:fs";
 import { Decompress } from "fzstd";
@@ -48,7 +49,7 @@ export async function collectCoverage(events: UsageEvent[], scannedFiles: string
   // prove old bytes are still present, including truncate-and-regrow rotations.
   for (let index = 0; index < scannedFiles.length; index += 4) {
     await Promise.all(scannedFiles.slice(index, index + 4).map(async file => {
-      const stat = await fs.stat(file).catch((error: NodeJS.ErrnoException) => { if (error.code === "ENOENT") return null; throw error; });
+      const stat = await fs.stat(physicalSourcePath(file)).catch((error: NodeJS.ErrnoException) => { if (error.code === "ENOENT") return null; throw error; });
       if (!stat || !stat.isFile()) return;
       const id = sourceId(file);
       const prior = priorSources.get(id);
@@ -72,7 +73,7 @@ export async function collectCoverage(events: UsageEvent[], scannedFiles: string
           logical += buffer.length;
         };
         const decoder = file.endsWith(".jsonl.zst") ? new Decompress(consume) : null;
-        if (stat.size) for await (const chunk of createReadStream(file, { end: stat.size - 1 })) {
+        if (stat.size) for await (const chunk of createReadStream(physicalSourcePath(file), { end: stat.size - 1 })) {
           const buffer = chunk as Buffer;
           if (decoder) decoder.push(buffer); else consume(buffer);
           consumed += buffer.length;

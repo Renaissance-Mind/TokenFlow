@@ -14,7 +14,7 @@ afterEach(async () => { process.env = { ...originalEnv }; for (const home of hom
 describe("OpenCode Claude Agent source deduplication", () => {
   it.each([
     ["linked", 156], ["missing", 156], ["empty", 156], ["sidechain", 187],
-    ["next-day", 306], ["other-provider", 306], ["legacy", 306], ["copied-session", 156],
+    ["next-day", 156], ["other-provider", 306], ["legacy", 306], ["copied-session", 156],
     ["copied-inline", 156], ["larger-copy", 256], ["main-after-sidechain", 156],
   ])("preserves accounting for %s source evidence", async (scenario, total) => {
     const home = await fs.mkdtemp(path.join(os.tmpdir(), "tokenflow-native-link-")); homes.push(home);

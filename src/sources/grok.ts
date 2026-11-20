@@ -41,7 +41,7 @@ export function createGrokParser(
       const meta = recordField(params, "_meta");
       const millis =
         Number(meta?.agentTimestampMs) || Number(row.timestamp) * 1000;
-      if (!Number.isFinite(millis) || millis <= 0) return;
+      if (!Number.isFinite(millis) || millis <= 0 || millis > 253_402_300_799_999) return;
       const sessionId =
         stringField(params, "sessionId") ||
         path.basename(path.dirname(sourcePath));
@@ -63,7 +63,7 @@ export function createGrokParser(
         const id = stringField(meta, "eventId");
         const key = id
           ? `${id}|${model}`
-          : `${sessionId}|${millis}|${model}|${input}|${cached}|${created}|${output}`;
+          : JSON.stringify([sourcePath, sessionId, millis, model, input, cached, created, output]);
         if (seen.has(key)) continue;
         const event = makeUsageEvent({
           agent: "grok",
@@ -81,7 +81,7 @@ export function createGrokParser(
               : undefined,
         });
         if (event) {
-          event.pricingModel = model.endsWith("-build") ? model.replace(/-build$/, "") : event.pricingModel || event.model;
+          event.pricingModel = model;
           seen.add(key);
           event.messageId = key;
           events.push(event);

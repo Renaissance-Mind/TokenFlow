@@ -79,16 +79,26 @@ export function dedupeCodexSessions(sessions: CodexSession[]): UsageEvent[] {
       const baseKey = `${session.id}|${event.timestamp}|${event.model}|${usageKey(event)}`;
       const occurrence = occurrences.get(baseKey) || 0;
       if (!event.messageId) occurrences.set(baseKey, occurrence + 1);
-      const key = event.messageId
-        ? `request|${event.messageId}`
+      const key = event.messageId || event.codexRequestId
+        ? `request|${event.messageId || event.codexRequestId}`
         : `${baseKey}|${occurrence}`;
-      const previousIndex = seen.get(key);
+      const legacyKey = `${baseKey}|${occurrence}`;
+      let previousIndex = seen.get(key);
+      if (previousIndex === undefined && event.codexRequestId) {
+        const standIn = seen.get(legacyKey);
+        if (standIn !== undefined && !output[standIn].codexRequestId && output[standIn].sourcePath !== event.sourcePath) {
+          output[standIn] = { ...event }; seen.set(key, standIn); continue;
+        }
+      }
+      if (previousIndex === undefined && !event.messageId && !event.codexRequestId) previousIndex = seen.get(legacyKey);
       if (previousIndex === undefined) {
         const retained = event.messageId ? { ...event } : event;
         seen.set(key, output.length);
         output.push(retained);
+        if (event.codexRequestId && !seen.has(legacyKey)) seen.set(legacyKey, output.length - 1);
       } else {
         const existing = output[previousIndex];
+        if (existing.codexRequestId && !event.codexRequestId && !event.messageId) continue;
         const priority = { standard: 4, ultrafast: 3, fast: 2, flex: 1 };
         const previous = existing.recordedServiceTier ? priority[existing.recordedServiceTier] : 0;
         const incoming = event.recordedServiceTier ? priority[event.recordedServiceTier] : 0;

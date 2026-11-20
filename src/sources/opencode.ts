@@ -3,6 +3,7 @@ import { toUtcHalfHourStart } from "../time.js";
 import type { UsageEvent } from "../types.js";
 import { applyTotalTokenFallback } from "../token-totals.js";
 import { optionalDecimalString } from "./ccusage-common.js";
+import { reportSourceIssue } from "../source-input.js";
 
 export interface OpenCodeMessageRow {
   id: string;
@@ -33,7 +34,8 @@ export function parseOpenCodeMessageRow(row: OpenCodeMessageRow, sourcePath = "o
   if (totalTokens === 0 && !((row.aggregate || row.kind === "compaction") && Number(value.cost) > 0)) return null;
 
   const timestampMs =
-    typeof time?.created === "number" ? time.created : typeof row.time_created === "number" ? row.time_created : 0;
+    typeof time?.created === "number" && time.created > 0 ? time.created : typeof row.time_created === "number" ? row.time_created : 0;
+  if (!Number.isFinite(timestampMs) || timestampMs <= 0 || timestampMs > 253_402_300_799_999) { reportSourceIssue(sourcePath, "invalid usage timestamp"); return null; }
   const timestamp = new Date(timestampMs).toISOString();
   const bucketStart = toUtcHalfHourStart(timestamp);
   if (!bucketStart) return null;

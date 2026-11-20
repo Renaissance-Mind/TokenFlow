@@ -6,9 +6,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { lock } from "proper-lockfile";
 import { tokenUsageDir } from "./config.js";
+import { physicalSourcePath, restoreSourceIssues, sourceIssueMarker, sourceIssuesSince, type SourceIssue } from "./source-input.js";
 
 export interface FileVersion { file: string; dev: number; ino: number; size: number; mtime: number; ctime: number }
-export interface CachedSource<T> { files: Array<FileVersion | null>; value: T }
+export interface CachedSource<T> { files: Array<FileVersion | null>; value: T; diagnostics?: SourceIssue[] }
 interface Entry<T> extends CachedSource<T> { key: string }
 const context = new AsyncLocalStorage<CollectionCache>();
 const depth = new AsyncLocalStorage<number>();
@@ -26,14 +27,14 @@ async function readText(file: string): Promise<string | null> {
 }
 async function revision(): Promise<string> {
   const root = path.dirname(fileURLToPath(import.meta.url));
-  const files = ["file-scan", "pricing", "pricing-data", "arrays", "time", "token-totals", "incremental-jsonl", "collection-cache"];
+  const files = ["file-scan", "pricing", "pricing-resolver", "pricing-data", "arrays", "time", "token-totals", "incremental-jsonl", "source-input", "collection-cache"];
   const extension = import.meta.url.endsWith(".ts") ? ".ts" : ".js";
   const sources = (await fs.readdir(path.join(root, "sources"))).filter(file => file.endsWith(extension)).sort();
   const content = await Promise.all([...files.map(file => path.join(root, file + extension)), ...sources.map(file => path.join(root, "sources", file))].map(readText));
   return hash(JSON.stringify([3, ...content]));
 }
 export async function fileVersion(file: string): Promise<FileVersion | null> {
-  const stat = await fs.stat(file).catch((error: NodeJS.ErrnoException) => {
+  const stat = await fs.stat(physicalSourcePath(file)).catch((error: NodeJS.ErrnoException) => {
     if (error.code === "ENOENT") return null;
     throw error;
   });
@@ -58,7 +59,7 @@ class CollectionCache {
     const remembered = this.memory.get(name);
     const diskVersion = await fileVersion(file);
     if (remembered && diskVersion && JSON.stringify(diskVersion) === JSON.stringify(remembered.version)
-      && JSON.stringify(remembered.entry.files) === JSON.stringify(versions)) return remembered.entry.value as T;
+      && JSON.stringify(remembered.entry.files) === JSON.stringify(versions)) { restoreSourceIssues(remembered.entry.diagnostics); return remembered.entry.value as T; }
     let previous: Entry<T> | undefined;
     const handle = await fs.open(file, "r").catch((error: NodeJS.ErrnoException) => { if (error.code === "ENOENT") return null; throw error; });
     if (handle) {
@@ -73,15 +74,17 @@ class CollectionCache {
     }
     if (previous && JSON.stringify(previous.files) === JSON.stringify(versions)) {
       this.memory.set(name, { entry: previous, version: diskVersion });
+      restoreSourceIssues(previous.diagnostics);
       return previous.value;
     }
+    const marker = sourceIssueMarker();
     const value = await depth.run(level + 1, () => load(previous));
     this.signal?.throwIfAborted();
     // Ordinary readers cache only stable inputs. Bounded JSONL readers commit
     // their captured prefix version so concurrent appends resume at its offset.
     if (snapshotVersions || JSON.stringify(versions) === JSON.stringify(await Promise.all(files.map(fileVersion)))) {
       const tmp = `${file}.${process.pid}.tmp`;
-      const entry = { key, files: snapshotVersions ? snapshotVersions(value) : versions, value };
+      const entry = { key, files: snapshotVersions ? snapshotVersions(value) : versions, value, diagnostics: sourceIssuesSince(marker) };
       const bytes = serialize(entry);
       const handle = await fs.open(tmp, "w", 0o600);
       try {

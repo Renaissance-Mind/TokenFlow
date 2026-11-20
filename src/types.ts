@@ -58,6 +58,7 @@ export interface UsageTotals {
 }
 
 export interface UsageEvent extends UsageTotals {
+  codexRequestId?: string;
   messageId?: string;
   serviceTier?: "standard" | "fast" | "flex" | "ultrafast";
   recordedServiceTier?: "standard" | "fast" | "flex" | "ultrafast";
@@ -80,6 +81,8 @@ export interface PricingRate {
   outputUsdPerMillion: string;
   cacheReadUsdPerMillion: string;
   cacheCreationUsdPerMillion: string;
+  cacheCreation1hUsdPerMillion?: string;
+  cacheCreation1hAbove200kUsdPerMillion?: string;
   inputAbove200kUsdPerMillion?: string;
   outputAbove200kUsdPerMillion?: string;
   cacheReadAbove200kUsdPerMillion?: string;
@@ -91,6 +94,8 @@ export interface PricingRate {
 }
 
 export interface PricingProfile extends PricingRate {
+  pricingSource?: "litellm" | "models.dev" | "curated" | "supplemental";
+  vendorModel?: string;
   modelId: string;
   displayName: string;
   exactOnly?: boolean;

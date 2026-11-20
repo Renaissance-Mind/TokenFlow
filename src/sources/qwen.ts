@@ -4,6 +4,7 @@ import { normalizeAgentModelForUsage } from "../pricing.js";
 import { toUtcHalfHourStart } from "../time.js";
 import { applyTotalTokenFallback, isZeroUsage, nonNegativeInt } from "../token-totals.js";
 import type { UsageEvent } from "../types.js";
+import { reportSourceIssue } from "../source-input.js";
 
 interface ParseOptions {
   sourcePath: string;
@@ -36,7 +37,7 @@ export function createQwenChatJsonlParser(options: ParseOptions, saved?: unknown
 
       const timestamp = stringField(parsed, "timestamp");
       const bucketStart = timestamp ? toUtcHalfHourStart(timestamp) : null;
-      if (!timestamp || !bucketStart) return;
+      if (!timestamp || !bucketStart) { reportSourceIssue(options.sourcePath, "invalid usage timestamp"); return; }
 
       const model = normalizeAgentModelForUsage("qwen", stringField(parsed, "model") || "unknown");
       const totals = applyTotalTokenFallback(

@@ -13,6 +13,8 @@ runtime libraries are identified separately below.
   Grok/ZCode ledger accounting, Antigravity protobuf field mappings, OpenClaw SQLite migration,
   Codex compaction/fork deduplication and Flex tiers, Pi stores, Copilot session/OTel reconciliation
   and test fixtures, and cost accounting semantics.
+- Native source diagnostics, identity/plan pricing resolution and November 20 regressions are derived from
+  ccusage commit `7e789e8b22f7bc4f9bd3c3b3980d136e4b58bedf` under the MIT license.
 - The Codex `issue_2046` regression fixture comes from ccusage commit `e4f0ea9` under the MIT license.
 - Copilot receipt and dsh route/compaction fixtures in `test/fixtures/ccusage-nov19` come from
   ccusage commit `7ac5f2329fe1cd6bed5645867b18703ad86aaba5` under the MIT license.

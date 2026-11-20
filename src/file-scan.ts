@@ -32,6 +32,7 @@ import { createOpenClawJsonlParser, planOpenClawDatabases, mergeOpenClawStores }
 import { planPiStores } from "./sources/pi.js";
 import { createQwenChatJsonlParser } from "./sources/qwen.js";
 import type { PricingProfile, UsageEvent } from "./types.js";
+import { discoverSourceFiles, expandSourcePath, physicalSourcePath, readSourceInput, readSourceUtf8, sourceIssues, withSourceDiagnostics } from "./source-input.js";
 
 const MAX_JSONL_LINE_CHARS = 16 * 1024 * 1024;
 
@@ -60,21 +61,21 @@ export interface CollectionResult {
 
 export async function collectLocalUsage(home = process.env.TOKENFLOW_SCAN_HOME || os.homedir(), onProgress?: (progress: ScanProgress) => void, signal?: AbortSignal): Promise<CollectionResult> {
   const tracker = onProgress ? new ScanTracker(onProgress) : undefined;
-  return withCollectionCache(home, async () => ({ ...await withScanTracker(tracker, () => collectUsage(home, tracker)), revision: collectionRevision() }), signal);
+  return withSourceDiagnostics(() => withCollectionCache(home, async () => ({ ...await withScanTracker(tracker, () => collectUsage(home, tracker)), revision: collectionRevision() }), signal));
 }
 
 async function collectUsage(
   home: string,
   tracker?: ScanTracker,
 ): Promise<CollectionResult> {
-  const codexHome = process.env.CODEX_HOME || path.join(home, ".codex");
-  const claudeHome = process.env.CLAUDE_HOME || path.join(home, ".claude");
+  const codexHome = expandSourcePath(process.env.CODEX_HOME || path.join(home, ".codex"), home);
+  const claudeHome = expandSourcePath(process.env.CLAUDE_HOME || path.join(home, ".claude"), home);
   const claudeCandidates = resolveClaudeProjectDirs(home);
   const claudeRoots = await existingDirs(claudeCandidates);
-  const geminiHome = process.env.GEMINI_HOME || path.join(home, ".gemini");
+  const geminiHome = expandSourcePath(process.env.GEMINI_HOME || path.join(home, ".gemini"), home);
   const geminiRoots = process.env.GEMINI_DATA_DIR?.trim()
     ? process.env.GEMINI_DATA_DIR.split(",")
-        .map((root) => root.trim())
+        .map((root) => expandSourcePath(root.trim(), home))
         .filter(Boolean)
     : [path.join(geminiHome, "tmp")];
   const opencodeDataDirs = await existingDirs(resolveOpenCodeDataDirs(home));
@@ -105,7 +106,7 @@ async function collectUsage(
     resolveDataDirs("PI_AGENT_DIR", home, ".pi/agent/sessions"),
   );
   const codexServiceTier = await readCodexServiceTier(codexHome);
-  const dshPlan = await planDshUsage(resolveDshSessionDirs(home));
+  const dshPlan = await planDshUsage(resolveDshSessionDirs(home), true);
   const additionalPlans = await Promise.all([
     planGrok(home),
     planZcode(home),
@@ -223,7 +224,7 @@ async function collectUsage(
     }
     appendItems(events, dedupeCodexSessions(codexSessions));
     for (const file of claudeFiles) {
-      appendItems(events, await scanFile(file, () => readJsonlEvents(file, createClaudeJsonlParser)));
+      appendItems(events, await scanFile(file, () => readJsonlEvents(file, createClaudeJsonlParser), []));
     }
     for (const file of geminiFiles) {
       appendItems(events, await scanFile(file, () => cachedSource("gemini", [file], async () => {
@@ -231,7 +232,7 @@ async function collectUsage(
         return file.endsWith(".jsonl")
           ? readJsonlEvents(file, (options, saved) => createGeminiJsonlParser({ ...options, fallbackTimestamp }, saved))
           : parseGeminiSession(await readUsageText(file), { sourcePath: file, fallbackTimestamp });
-      })));
+      }), []));
     }
     for (const file of kimiFiles) {
       const parts = file.split(path.sep);
@@ -240,21 +241,21 @@ async function collectUsage(
         const model = await readKimiModelForWireFile(file);
         const fallbackTimestamp = (await fileModifiedTimestamp(file)) || undefined;
         return readJsonlEvents(file, (options, saved) => createKimiWireJsonlParser({ ...options, model, fallbackTimestamp }, saved), model);
-      })));
+      }), []));
     }
-    for (const file of qwenFiles) appendItems(events, await scanFile(file, () => readJsonlEvents(file, createQwenChatJsonlParser)));
-    for (const file of ampFiles) appendItems(events, await scanFile(file, () => cachedSource("amp", [file], async () => parseAmpThread(await readUsageText(file), { sourcePath: file }))));
-    for (const file of codebuffFiles) appendItems(events, await scanFile(file, () => cachedSource("codebuff", [file], async () => parseCodebuffChatMessages(await readUsageText(file), { sourcePath: file }))));
+    for (const file of qwenFiles) appendItems(events, await scanFile(file, () => readJsonlEvents(file, createQwenChatJsonlParser), []));
+    for (const file of ampFiles) appendItems(events, await scanFile(file, () => cachedSource("amp", [file], async () => parseAmpThread(await readUsageText(file), { sourcePath: file })), []));
+    for (const file of codebuffFiles) appendItems(events, await scanFile(file, () => cachedSource("codebuff", [file], async () => parseCodebuffChatMessages(await readUsageText(file), { sourcePath: file })), []));
     const droidEvents: UsageEvent[] = [];
     for (const file of droidFiles) {
       const result = await scanFile(file, () => cachedSource("droid", [file, file.replace(/\.settings\.json$/, ".jsonl")], async () =>
-        parseDroidSettings(await readUsageText(file), { sourcePath: file, sidecarModel: await readDroidSidecarModel(file), fallbackTimestamp: await fileModifiedTimestamp(file) })));
+        parseDroidSettings(await readUsageText(file), { sourcePath: file, sidecarModel: await readDroidSidecarModel(file), fallbackTimestamp: await fileModifiedTimestamp(file) })), null);
       if (result) droidEvents.push(result);
     }
     appendItems(events, latestEventsBySession(droidEvents));
-    for (const dbPath of gooseDbPaths) appendItems(events, await scanFile(dbPath, () => cachedSource("goose", [dbPath, dbPath + "-wal"], () => readGooseEvents(dbPath))));
-    for (const dbPath of hermesDbPaths) appendItems(events, await scanFile(dbPath, () => cachedSource("hermes", [dbPath, dbPath + "-wal"], () => readHermesEvents(dbPath))));
-    for (const dbPath of kiloDbPaths) appendItems(events, await scanFile(dbPath, () => cachedSource("kilo", [dbPath, dbPath + "-wal"], () => readKiloEvents(dbPath))));
+    for (const dbPath of gooseDbPaths) appendItems(events, await scanFile(dbPath, () => cachedSource("goose", [dbPath, dbPath + "-wal"], () => readGooseEvents(dbPath)), []));
+    for (const dbPath of hermesDbPaths) appendItems(events, await scanFile(dbPath, () => cachedSource("hermes", [dbPath, dbPath + "-wal"], () => readHermesEvents(dbPath)), []));
+    for (const dbPath of kiloDbPaths) appendItems(events, await scanFile(dbPath, () => cachedSource("kilo", [dbPath, dbPath + "-wal"], () => readKiloEvents(dbPath)), []));
     const openclawEvents: UsageEvent[] = [];
     for (const file of openclawFiles) appendItems(openclawEvents, await scanFile(file, () => cachedSource("openclaw-jsonl", [file], async () => {
       const fallbackTimestamp = await fileModifiedTimestamp(file);
@@ -272,7 +273,7 @@ async function collectUsage(
     return {
       events: dedupeTranscriptEvents(events),
       pricingProfiles: [],
-      sources: [
+      sources: applySourceIssues([
         ...additional.map((source) => source.source),
         ...piStores.sources.filter((source) => source.agent !== "pi"),
         {
@@ -391,7 +392,7 @@ async function collectUsage(
             piStores.sources.find((source) => source.agent === "pi")?.exists ||
             false,
         },
-      ],
+      ], [["codex", codexFiles], ["claude", claudeFiles], ["gemini", geminiFiles], ["kimi", kimiFiles], ["qwen", qwenFiles], ["amp", ampFiles], ["codebuff", codebuffFiles], ["droid", droidFiles], ["goose", gooseDbPaths], ["hermes", hermesDbPaths], ["kilo", kiloDbPaths], ["openclaw", openclawFiles], ["opencode", opencodeDbPaths], ["dsh", dshPlan.files]]),
     };
   }, { home, codexHome, claudeHome, geminiHome, codexServiceTier });
   for (const file of allFiles) tracker?.complete(file);
@@ -470,7 +471,7 @@ function stripTrailingCarriageReturn(line: string): string {
 }
 
 function resolveExplicitOpenCodeDbPath(home: string): string | null {
-  const explicitDb = process.env.OPENCODE_DB?.trim();
+  const explicitDb = process.env.OPENCODE_DB?.trim() ? expandSourcePath(process.env.OPENCODE_DB.trim(), home) : undefined;
   if (explicitDb) {
     if (path.isAbsolute(explicitDb)) return explicitDb;
     return path.join(resolveOpenCodeDataDirs(home)[0], explicitDb);
@@ -483,18 +484,18 @@ function resolveOpenCodeDataDirs(home: string): string[] {
   if (explicitCcusage) {
     return explicitCcusage
       .split(",")
-      .map((item) => item.trim())
+      .map((item) => expandSourcePath(item.trim(), home))
       .filter(Boolean);
   }
   const explicitHome = process.env.OPENCODE_HOME?.trim();
   if (explicitHome) {
     return explicitHome
       .split(",")
-      .map((item) => item.trim())
+      .map((item) => expandSourcePath(item.trim(), home))
       .filter(Boolean);
   }
   const xdgDataHome = process.env.XDG_DATA_HOME?.trim();
-  if (xdgDataHome) return [path.join(xdgDataHome, "opencode")];
+  if (xdgDataHome) return [path.join(expandSourcePath(xdgDataHome, home), "opencode")];
   return [path.join(home, ".local", "share", "opencode")];
 }
 
@@ -532,7 +533,7 @@ function resolveCodebuffProjectRoots(home: string): string[] {
   const roots = explicit
     ? explicit
         .split(",")
-        .map((item) => item.trim())
+        .map((item) => expandSourcePath(item.trim(), home))
         .filter(Boolean)
     : ["manicode", "manicode-dev", "manicode-staging"].map((channel) => path.join(home, ".config", channel));
   return roots.map((root) => (path.basename(root) === "projects" ? root : path.join(root, "projects")));
@@ -540,7 +541,7 @@ function resolveCodebuffProjectRoots(home: string): string[] {
 
 function resolveGooseDbPaths(home: string): string[] {
   const explicitRoot = process.env.GOOSE_PATH_ROOT?.trim();
-  if (explicitRoot) return [path.join(explicitRoot, "data", "sessions", "sessions.db")];
+  if (explicitRoot) return [path.join(expandSourcePath(explicitRoot, home), "data", "sessions", "sessions.db")];
   return [
     path.join(home, ".local", "share", "goose", "sessions", "sessions.db"),
     path.join(home, "Library", "Application Support", "goose", "sessions", "sessions.db"),
@@ -557,7 +558,7 @@ function resolveOpenClawRoots(home: string): string[] {
   if (explicit) {
     return explicit
       .split(",")
-      .map((item) => item.trim())
+      .map((item) => expandSourcePath(item.trim(), home))
       .filter(Boolean);
   }
   return [".openclaw", ".clawdbot", ".moltbot", ".moldbot"].map((name) => path.join(home, name));
@@ -575,11 +576,13 @@ async function readOpenCodeEvents(dbPaths: string[], messageFiles: string[]): Pr
     const database = dbPaths.includes(file);
     const entries = await scanFile(file, () => cachedSource("opencode", database ? [file, file + "-wal"] : [file], async () => {
       const rows = database ? await readOpenCodeDbRows(file) : [await readOpenCodeMessageFile(file)];
-      return rows.flatMap(row => {
-        const event = row && parseOpenCodeMessageRow(row, file);
-        return row && event ? [{ event, id: row.id, aggregate: !!row.aggregate, compaction: row.kind === "compaction" }] : [];
-      });
-    }));
+      const parsed = [];
+      for (const row of rows) {
+        const event = row && await readSourceInput(file, async () => parseOpenCodeMessageRow(row, file), null);
+        if (row && event) parsed.push({ event, id: row.id, aggregate: !!row.aggregate, compaction: row.kind === "compaction" });
+      }
+      return parsed;
+    }), []);
     for (const entry of entries) {
       if (entry.aggregate) { aggregates.push(entry.event); continue; }
       if (entry.id && seenIds.has(entry.id)) continue;
@@ -644,7 +647,7 @@ async function readOpenCodeDbRows(dbPath: string): Promise<OpenCodeMessageRow[]>
 }
 
 async function readOpenCodeMessageFile(filePath: string): Promise<OpenCodeMessageRow | null> {
-  const data = await fs.readFile(filePath, "utf8");
+  const data = await fs.readFile(physicalSourcePath(filePath), "utf8");
   const value = JSON.parse(data) as unknown;
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const record = value as Record<string, unknown>;
@@ -660,17 +663,17 @@ async function readOpenCodeMessageFile(filePath: string): Promise<OpenCodeMessag
 
 async function readGooseEvents(dbPath: string): Promise<UsageEvent[]> {
   const rows = await readSqliteJsonRows<GooseSessionRow>(dbPath, gooseSessionQuery());
-  return rows.map((row) => parseGooseSessionRow(row, dbPath)).filter(isUsageEvent);
+  return (await Promise.all(rows.map(row => readSourceInput(dbPath, async () => parseGooseSessionRow(row, dbPath), null)))).filter(isUsageEvent);
 }
 
 async function readHermesEvents(dbPath: string): Promise<UsageEvent[]> {
   const rows = await readSqliteJsonRows<HermesSessionRow>(dbPath, hermesSessionQuery());
-  return rows.map((row) => parseHermesSessionRow(row, dbPath)).filter(isUsageEvent);
+  return (await Promise.all(rows.map(row => readSourceInput(dbPath, async () => parseHermesSessionRow(row, dbPath), null)))).filter(isUsageEvent);
 }
 
 async function readKiloEvents(dbPath: string): Promise<UsageEvent[]> {
   const rows = await readSqliteJsonRows<KiloMessageRow>(dbPath, kiloMessageQuery());
-  return rows.map((row) => parseKiloMessageRow(row, dbPath)).filter(isUsageEvent);
+  return (await Promise.all(rows.map(row => readSourceInput(dbPath, async () => parseKiloMessageRow(row, dbPath), null)))).filter(isUsageEvent);
 }
 
 async function readSqliteJsonRows<T>(dbPath: string, query: string): Promise<T[]> {
@@ -709,7 +712,7 @@ async function readDroidSidecarModel(settingsPath: string): Promise<string | nul
 }
 
 async function fileModifiedTimestamp(filePath: string): Promise<string | null> {
-  const stat = await fs.stat(filePath).catch((error: unknown) => {
+  const stat = await fs.stat(physicalSourcePath(filePath)).catch((error: unknown) => {
     if (isNodeError(error) && error.code === "ENOENT") return null;
     throw error;
   });
@@ -787,8 +790,8 @@ async function listFiles(
   predicate: (filePath: string) => boolean,
   maxDepth = 8,
 ): Promise<string[]> {
-  const output: string[] = [];
-  await walk(root, predicate, output, 0, maxDepth);
+  const output = await discoverSourceFiles(root, predicate, maxDepth);
+  output.forEach(discoveredFile);
   output.sort((a, b) => a.localeCompare(b));
   return output;
 }
@@ -806,7 +809,7 @@ function resolveDataDirs(envName: string, home: string, defaultRelativeHomePath:
   if (!explicit) return [path.join(home, defaultRelativeHomePath)];
   return explicit
     .split(",")
-    .map((item) => item.trim())
+    .map((item) => expandSourcePath(item.trim(), home))
     .filter(Boolean);
 }
 
@@ -867,7 +870,7 @@ function isQwenChatFile(filePath: string): boolean {
 function resolveClaudeProjectDirs(home: string): string[] {
   const explicit = process.env.CLAUDE_HOME;
   if (explicit) return [path.join(explicit, "projects")];
-  const roots = process.env.CLAUDE_CONFIG_DIR !== undefined ? process.env.CLAUDE_CONFIG_DIR.split(",").map(value => value.trim()).filter(Boolean)
+  const roots = process.env.CLAUDE_CONFIG_DIR?.trim() ? process.env.CLAUDE_CONFIG_DIR.split(",").map(value => value.trim()).filter(Boolean)
     : [path.join(process.env.XDG_CONFIG_HOME?.trim() || path.join(home, ".config"), "claude"), path.join(home, ".claude")];
   return [...new Set(roots.map(value => {
     const expanded = path.resolve(value === "~" ? home : value.startsWith("~/") ? path.join(home, value.slice(2)) : value);
@@ -891,9 +894,20 @@ function dedupeTranscriptEvents(events: UsageEvent[]): UsageEvent[] {
   }
   // Native wrapper links are local evidence; match only counted main-thread UTC days.
   const counted = new Set(kept.flatMap(event => event.agent === "claude" && !event.isSidechain
-    ? [...(event.claudeSessionAliases || []), ...(event.sessionId ? [event.sessionId] : [])].map(session => JSON.stringify([session, event.bucketStart.slice(0, 10)])) : []));
+    ? [...(event.claudeSessionAliases || []), ...(event.sessionId ? [event.sessionId] : [])] : []));
   return kept.filter(event => event.agent !== "opencode" || !event.nativeClaudeSessionId
-    || !counted.has(JSON.stringify([event.nativeClaudeSessionId, event.bucketStart.slice(0, 10)])));
+    || !counted.has(event.nativeClaudeSessionId));
+}
+
+function applySourceIssues(sources: SourceStatus[], filesByAgent: Array<[string, string[]]>): SourceStatus[] {
+  const owners = new Map(filesByAgent.flatMap(([agent, files]) => files.map(file => [file, agent] as const)));
+  for (const issue of sourceIssues()) {
+    const source = sources.find(source => owners.get(issue.file) === source.agent || source.path.split(",").some(root => root && (issue.file === root || issue.file.startsWith(root + path.sep))));
+    if (!source) continue;
+    source.warnings = [...(source.warnings || []), `${issue.category}: ${issue.file} (${issue.count})`];
+    source.skippedFiles = [...new Set([...(source.skippedFiles || []), issue.file])];
+  }
+  return sources;
 }
 
 function isCodebuffChatMessagesFile(filePath: string): boolean {
@@ -926,28 +940,6 @@ function isUsageEvent(event: UsageEvent | null): event is UsageEvent {
   return event !== null;
 }
 
-async function walk(
-  current: string,
-  predicate: (filePath: string) => boolean,
-  output: string[],
-  depth: number,
-  maxDepth: number,
-): Promise<void> {
-  const entries = await fs.readdir(current, { withFileTypes: true }).catch((error: unknown) => {
-    if (isNodeError(error) && error.code === "ENOENT") return [];
-    throw error;
-  });
-  if (depth > maxDepth) return;
-  for (const entry of entries) {
-    const entryPath = path.join(current, entry.name);
-    if (entry.isDirectory()) {
-      await walk(entryPath, predicate, output, depth + 1, maxDepth);
-    } else if (entry.isFile() && predicate(entryPath)) {
-      output.push(entryPath); discoveredFile(entryPath);
-    }
-  }
-}
-
 async function exists(filePath: string): Promise<boolean> {
   return fs
     .stat(filePath)
@@ -963,7 +955,7 @@ function isNodeError(error: unknown): error is NodeJS.ErrnoException {
 }
 
 async function readUsageText(file: string): Promise<string> {
-  const raw = await fs.readFile(file, "utf8");
+  const raw = await readSourceUtf8(file);
   scannedBytes(file, Buffer.byteLength(raw));
   return raw;
 }

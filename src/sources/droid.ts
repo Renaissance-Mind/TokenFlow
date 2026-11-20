@@ -37,7 +37,7 @@ export function parseDroidSettings(raw: string, options: DroidParseOptions): Usa
     total: "totalTokens",
   });
 
-  return makeUsageEvent({
+  const event = makeUsageEvent({
     agent: "droid",
     model,
     sessionId: droidSessionIdFromPath(options.sourcePath),
@@ -45,6 +45,11 @@ export function parseDroidSettings(raw: string, options: DroidParseOptions): Usa
     timestamp: timestampFromValue(value.providerLockTimestamp) || options.fallbackTimestamp || null,
     ...totals,
   });
+  if (event && rawModel) {
+    const intrinsic = provider !== "unknown" ? provider : /^claude-/.test(model) ? "anthropic" : /^(?:gpt-|o[134](?:-|$))/.test(model) ? "openai" : /^gemini-/.test(model) ? "google" : undefined;
+    event.pricingModel = intrinsic && !model.includes("/") ? `${intrinsic}/${model}` : rawModel.replace(/^custom:/, "").replace(/\[[^\]]*\]/g, "").trim();
+  }
+  return event;
 }
 
 export function normalizeDroidModelName(model: string): string {

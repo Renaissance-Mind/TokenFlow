@@ -8,6 +8,7 @@ import os from "node:os";
 import { pathToFileURL } from "node:url";
 import { createInterface } from "node:readline";
 import { promisify } from "node:util";
+import { discoverSourceFiles, expandSourcePath, physicalSourcePath, readSourceInput, readSourceUtf8 } from "../source-input.js";
 
 const execute = promisify(execFile);
 type SqliteReader = (file: string, query: string) => Promise<object[]>;
@@ -44,25 +45,15 @@ export function sourceRoots(
             .filter(Boolean)
         : defaults.map((item) => path.join(home, item)),
     ),
-  ];
+  ].map(value => expandSourcePath(value, home));
 }
 
 export async function storeFiles(
   root: string,
   accept: (file: string) => boolean,
 ): Promise<string[]> {
-  const entries = await fs
-    .readdir(root, { withFileTypes: true })
-    .catch((error: NodeJS.ErrnoException) => {
-      if (error.code === "ENOENT" || error.code === "ENOTDIR") return [];
-      throw error;
-    });
-  const files: string[] = [];
-  for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
-    const file = path.join(root, entry.name);
-    if (entry.isDirectory()) appendItems(files, await storeFiles(file, accept));
-    else if (entry.isFile() && accept(file)) { files.push(file); discoveredFile(file); }
-  }
+  const files = await discoverSourceFiles(root, accept);
+  files.forEach(discoveredFile);
   return files;
 }
 
@@ -70,7 +61,13 @@ export async function sqliteRows<T extends object>(
   file: string,
   query: string,
 ): Promise<T[]> {
-  if (embeddedSqliteReader) return await embeddedSqliteReader(file, query) as T[];
+  return readSourceInput(file, () => readSqliteRows<T>(file, query), []);
+}
+
+async function readSqliteRows<T extends object>(file: string, query: string): Promise<T[]> {
+  const physical = physicalSourcePath(file);
+  if (embeddedSqliteReader && typeof physical === "string") return await embeddedSqliteReader(file, query) as T[];
+  const sqlitePath = Buffer.isBuffer(physical) ? "file:" + [...physical].map(byte => byte === 47 ? "/" : `%${byte.toString(16).padStart(2, "0")}`).join("") : file;
   const { stdout } = await execute(
     "sqlite3",
     [
@@ -78,7 +75,7 @@ export async function sqliteRows<T extends object>(
       "-json",
       "-cmd",
       ".timeout 5000",
-      file,
+      sqlitePath,
       `PRAGMA query_only=ON; ${query}`,
     ],
     { maxBuffer: 64 * 1024 * 1024 },
@@ -89,7 +86,7 @@ export async function sqliteRows<T extends object>(
 export async function archivedSqliteSnapshot(
   file: string,
 ): Promise<{ path: string; close: () => Promise<void> }> {
-  const handle = await fs.open(file, "r");
+  const handle = await fs.open(physicalSourcePath(file), "r");
   const header = Buffer.alloc(20);
   try {
     await handle.read(header, 0, header.length, 0);
@@ -111,12 +108,12 @@ export async function archivedSqliteSnapshot(
   )
     return { path: file, close: async () => {} };
   // Serialized WAL-mode databases without sidecars are immutable archives.
-  const before = await fs.stat(file);
+  const before = await fs.stat(physicalSourcePath(file));
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "tokenflow-sqlite-"));
   const snapshot = path.join(dir, "archive.db");
   try {
-    await fs.copyFile(file, snapshot);
-    const after = await fs.stat(file);
+    await fs.copyFile(physicalSourcePath(file), snapshot);
+    const after = await fs.stat(physicalSourcePath(file));
     if (
       before.size !== after.size ||
       before.mtimeMs !== after.mtimeMs ||
@@ -182,19 +179,14 @@ export async function initialSessionRecord(
   }
 }
 
-export async function optionalJson(
-  file: string,
-): Promise<Record<string, unknown> | null> {
-  const stat = await fs.stat(file).catch((error: NodeJS.ErrnoException) => {
-    if (error.code === "ENOENT") return null;
-    throw error;
-  });
-  if (!stat?.isFile()) return null;
-  const raw = await fs
-    .readFile(file, "utf8")
-    .catch((error: NodeJS.ErrnoException) => {
+export async function optionalJson(file: string): Promise<Record<string, unknown> | null> {
+  return readSourceInput(file, async () => {
+    const stat = await fs.stat(physicalSourcePath(file)).catch((error: NodeJS.ErrnoException) => {
       if (error.code === "ENOENT") return null;
       throw error;
     });
-  return raw ? (JSON.parse(raw) as Record<string, unknown>) : null;
+    if (!stat?.isFile()) return null;
+    const raw = await readSourceUtf8(file);
+    return raw ? JSON.parse(raw) as Record<string, unknown> : null;
+  }, null);
 }

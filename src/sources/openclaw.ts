@@ -1,3 +1,4 @@
+import { reportSourceIssue } from "../source-input.js";
 import { cachedSource } from "../collection-cache.js";
 import { appendItems } from "../arrays.js";
 import { scanFile, discoveredFile, scannedBytes } from "../scan-progress.js";
@@ -6,6 +7,7 @@ import { sqliteRows, storeFiles, tableColumns } from "./store-io.js";
 
 import {
   baseTotalsFromRecord,
+  isRecord,
   makeUsageEvent,
   optionalDecimalString,
   parseJsonlWithParser,
@@ -67,7 +69,7 @@ export function createOpenClawJsonlParser(options: OpenClawParseOptions, saved?:
         model: stringField(message, "modelId") || stringField(message, "model") || currentModel || "unknown",
         sessionId,
         sourcePath: options.sourcePath,
-        timestamp: timestampFromValue(message?.timestamp ?? record.timestamp) || options.fallbackTimestamp || null,
+        timestamp: timestampFromValue(message?.timestamp ?? record.timestamp),
         ...totals,
         recordedCostUsd: optionalDecimalString(cost?.total),
       });
@@ -95,6 +97,7 @@ export function mergeOpenClawStores(jsonl: UsageEvent[], database: UsageEvent[])
     if (!entries.has(key)) entries.set(key, event);
   }
   const ids = new Set<string>();
+  const retained: UsageEvent[] = [];
   for (const event of database) {
     const id = event.messageId ? `${event.sessionId}|${event.messageId}` : migrationKey(event);
     if (ids.has(id)) continue;
@@ -102,9 +105,9 @@ export function mergeOpenClawStores(jsonl: UsageEvent[], database: UsageEvent[])
     for (const [key, old] of entries) {
       if (migrationKey(old) === migrationKey(event) || (event.messageId && old.sessionId === event.sessionId && old.messageId === event.messageId)) entries.delete(key);
     }
-    entries.set(`sqlite|${id}`, event);
+    retained.push(event);
   }
-  return [...entries.values()];
+  return [...entries.values(), ...retained];
 }
 
 export async function planOpenClawDatabases(roots: string[]) {
@@ -161,6 +164,7 @@ export async function planOpenClawDatabases(roots: string[]) {
             } catch {
               continue;
             }
+            if (!isRecord(value)) { reportSourceIssue(file, "invalid JSON usage record"); continue; }
             if (!value.timestamp)
               value.timestamp = timestampFromValue(row.created_at);
             parser?.pushLine(JSON.stringify(value));

@@ -4,6 +4,7 @@ import { normalizeAgentModelForUsage, type UsageModelNormalization } from "../pr
 import { toUtcHalfHourStart } from "../time.js";
 import { applyTotalTokenFallback, isZeroUsage, nonNegativeInt } from "../token-totals.js";
 import type { UsageEvent, UsageTotals } from "../types.js";
+import { reportSourceIssue } from "../source-input.js";
 
 const DEFAULT_MODEL = "kimi-for-coding";
 const KIMI_FOR_CODING_K2_6_CUTOFF_MS = 1_776_698_890_072;
@@ -47,9 +48,9 @@ export function createKimiWireJsonlParser(options: ParseOptions, saved?: unknown
       if (!tokenUsage) return;
 
       const timestamp = modern
-        ? (Number.isFinite(Number(parsed.time)) && parsed.time !== undefined ? new Date(Number(parsed.time)).toISOString() : options.fallbackTimestamp)
+        ? (typeof parsed.time === "number" && parsed.time > 0 && parsed.time <= 253_402_300_799_999 ? new Date(parsed.time).toISOString() : null)
         : timestampFromSeconds(parsed.timestamp);
-      if (!timestamp) return;
+      if (!timestamp) { reportSourceIssue(options.sourcePath, "invalid usage timestamp"); return; }
       const bucketStart = toUtcHalfHourStart(timestamp);
       if (!bucketStart) return;
 
@@ -98,7 +99,7 @@ function kimiPricingModel(model: string, timestamp: string): string | undefined 
 
 function timestampFromSeconds(value: unknown): string | null {
   const seconds = Number(value);
-  if (!Number.isFinite(seconds)) return null;
+  if (!Number.isFinite(seconds) || seconds <= 0 || seconds * 1000 > 253_402_300_799_999) return null;
   return new Date(Math.trunc(seconds * 1000)).toISOString();
 }
 

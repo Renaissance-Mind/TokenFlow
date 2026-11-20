@@ -18,7 +18,8 @@ describe("dsh Session accounting", () => {
   it("counts disjoint cache buckets and keeps reasoning inside output", () => {
     const events = parse(header(), request, row("user/message", 1, { text: "PRIVATE_PROMPT" }), settlement(2));
     expect(events).toHaveLength(1);
-    expect(events[0]).toMatchObject({ agent: "dsh", model: "deepseek-v4-flash", sessionId: "session-a", inputTokens: 100, cachedInputTokens: 20, cacheCreationTokens: 10, outputTokens: 30, reasoningOutputTokens: 5, totalTokens: 160, bucketStart: "2026-10-01T01:00:00.000Z" });
+    expect(events[0]).toMatchObject({ agent: "dsh", model: "deepseek-v4-flash", sessionId: "session-a", inputTokens: 100, cachedInputTokens: 20, cacheCreationTokens: 10, outputTokens: 25, reasoningOutputTokens: 5, totalTokens: 160, bucketStart: "2026-10-01T01:00:00.000Z" });
+    expect(events[0].outputTokens + events[0].reasoningOutputTokens).toBe(usage.outputTokens);
     const uploaded = JSON.stringify(toUsageSnapshotPayload(aggregateEvents(events), {}));
     expect(uploaded).not.toMatch(/PRIVATE|sourcePath|eventSeq|session-a/);
     expect(uploaded).toContain('"agent":"dsh"');

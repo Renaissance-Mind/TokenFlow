@@ -1,3 +1,4 @@
+import { resolveCatalogPricing } from "./pricing-resolver.js";
 import type { AgentSource, CostBreakdown, PricingProfile, PricingRate, UsageTotals } from "./types.js";
 import { BUILTIN_PRICING } from "./pricing-data.js";
 
@@ -192,10 +193,10 @@ function cacheCreationCostMicroUsd(totals: UsageTotals, pricing: PricingRate): b
       ) +
       tieredTokenCostMicroUsd(
         cacheCreation1hTokens,
-        multiplyDecimalString(pricing.inputUsdPerMillion, "2"),
-        pricing.inputAbove200kUsdPerMillion
+        pricing.cacheCreation1hUsdPerMillion || multiplyDecimalString(pricing.inputUsdPerMillion, "2"),
+        pricing.cacheCreation1hAbove200kUsdPerMillion || (pricing.inputAbove200kUsdPerMillion
           ? multiplyDecimalString(pricing.inputAbove200kUsdPerMillion, "2")
-          : undefined,
+          : undefined),
       )
     );
   }
@@ -224,10 +225,10 @@ function cacheCreationLongContextCostMicroUsd(
       splitTokenCostMicroUsd(
         cacheCreation1hTokens,
         longContext.cacheCreation1hTokens,
-        multiplyDecimalString(pricing.inputUsdPerMillion, "2"),
-        pricing.inputAbove200kUsdPerMillion
+        pricing.cacheCreation1hUsdPerMillion || multiplyDecimalString(pricing.inputUsdPerMillion, "2"),
+        pricing.cacheCreation1hAbove200kUsdPerMillion || (pricing.inputAbove200kUsdPerMillion
           ? multiplyDecimalString(pricing.inputAbove200kUsdPerMillion, "2")
-          : undefined,
+          : undefined),
       )
     );
   }
@@ -239,7 +240,23 @@ function cacheCreationLongContextCostMicroUsd(
   );
 }
 
+const combinedProfiles = new WeakMap<PricingProfile[], PricingProfile[]>();
+const pricingAliases = [["gpt-reserve", "gpt-5.6-luna"], ["gpt-5.6", "gpt-5.6-sol"], ["gpt-5.3-spark", "gpt-5.3-codex-spark"]] as const;
+function profilesFor(extra: PricingProfile[]): PricingProfile[] {
+  if (!extra.length) return BUILTIN_PRICING;
+  let combined = combinedProfiles.get(extra);
+  if (!combined) {
+    const hasLayers = extra.some(profile => profile.pricingSource);
+    combined = [...(hasLayers ? BUILTIN_PRICING.map(profile => ({ ...profile, pricingSource: "supplemental" as const })) : BUILTIN_PRICING), ...extra];
+    combinedProfiles.set(extra, combined);
+  }
+  return combined;
+}
 export function resolvePricing(model: string, extraProfiles: PricingProfile[] = []): PricingProfile | null {
+  if (!extraProfiles.some(profile => profile.pricingSource)) return resolveLegacyPricing(model, extraProfiles);
+  return resolveCatalogPricing(resolveConfiguredModelAlias(model), profilesFor(extraProfiles), pricingAliases);
+}
+function resolveLegacyPricing(model: string, extraProfiles: PricingProfile[] = []): PricingProfile | null {
   const candidates = pricingCandidates(model);
   const pricingByModel = new Map(BUILTIN_PRICING.map((profile) => [profile.modelId, profile]));
   for (const profile of extraProfiles) pricingByModel.set(profile.modelId, profile);
@@ -256,13 +273,11 @@ export function resolvePricing(model: string, extraProfiles: PricingProfile[] = 
   return null;
 }
 
-export function resolvePricingAt(
-  model: string,
-  timestamp: string,
-  extraProfiles: PricingProfile[] = [],
-): PricingProfile | null {
+export function resolvePricingAt(model: string, timestamp: string, extraProfiles: PricingProfile[] = []): PricingProfile | null {
   const pricing = resolvePricing(model, extraProfiles);
-  const schedule = deepseekV4PricingSchedule(model, timestamp);
+  const vendor = pricing?.vendorModel;
+  const sameIdentity = vendor && (model.replace(/[.@]/g, "-") === vendor.replace(/[.@]/g, "-") || model.replace(/[.@]/g, "-") === pricing.modelId.replace(/[.@]/g, "-"));
+  const schedule = deepseekV4PricingSchedule(sameIdentity ? vendor : model, timestamp);
   return pricing && schedule ? { ...pricing, ...schedule } : pricing;
 }
 
@@ -320,17 +335,21 @@ export function normalizeAgentModelForUsage(
 
   const useOriginalPricing =
     displayModel !== originalModel && originalModel !== "unknown" && resolvePricing(originalModel) !== null;
+  const rawIdentity = raw.trim().replace(/\[1m\]$/i, "");
+  const configuredAlias = cleanAndResolveConfiguredAlias(raw) !== cleanModelId(raw);
   return {
     model: displayModel,
     originalModel,
-    ...(raw.includes("/") || raw.startsWith("hf:") || /^(global|us|eu|apac)\./i.test(raw)
+    ...(!configuredAlias && rawIdentity !== originalModel && !builtinPricingAlias(rawIdentity)
+      ? { pricingModel: rawIdentity }
+      : raw.includes("/") || raw.startsWith("hf:") || /^(global|us|eu|apac)\./i.test(raw)
       ? { pricingModel: raw.trim().replace(/\[1m\]$/i, "") }
       : resolvedProviderPricingModel
       ? { pricingModel: resolvedProviderPricingModel }
       : useOriginalPricing
         ? { pricingModel: originalModel }
         : resolvedDisplayPricingModel
-          ? { pricingModel: resolvedDisplayPricingModel }
+          ? { pricingModel: builtinPricingAlias(originalModel) || originalModel }
         : {}),
   };
 }

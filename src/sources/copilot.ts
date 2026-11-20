@@ -1,3 +1,4 @@
+import { expandSourcePath } from "../source-input.js";
 import { readIncrementalJsonl, type CheckpointParser } from "../incremental-jsonl.js";
 import { cachedSource } from "../collection-cache.js";
 import { appendItems } from "../arrays.js";
@@ -10,9 +11,9 @@ import { storeFiles } from "./store-io.js";
 import type { UsageEvent } from "../types.js";
 import { toUtcHalfHourStart } from "../time.js";
 
-interface Entry { event: UsageEvent; key: string; requests: number; credits: number | null; rank?: number; trace?: string; response?: string; serviceRequest?: string; sourceSession?: string; reasoning?: number; }
-interface Credit { session: string; time: string; shutdown: boolean; total: number | null; key: string; file: string; }
-interface CopilotState { entries: Entry[]; credits: Credit[]; records: Entry[]; covered: boolean; index: number; rows: Record<string, unknown>[]; }
+interface Entry { event: UsageEvent; key: string; requests: number; credits: number | null; rank?: number; trace?: string; response?: string; serviceRequest?: string; sourceSession?: string; sequence?: number; reasoning?: number; }
+interface Credit { session: string; time: string; shutdown: boolean; total: number | null; key: string; file: string; watermark?: number; }
+interface CopilotState { entries: Entry[]; credits: Credit[]; records: Entry[]; covered: boolean; unproven?: boolean; index: number; rows: Record<string, unknown>[]; }
 const normalizeModel = (model: string) => model.trim().replace(/-1m(?:-internal)?$/, "");
 const time = (event: UsageEvent) => Date.parse(event.timestamp);
 const pair = (event: UsageEvent) => JSON.stringify([event.sessionId, event.pricingModel || event.model]);
@@ -39,7 +40,7 @@ function telemetryProjection(row: Record<string, unknown>): Record<string, unkno
     kind: !!row.kind, duration: !!row.duration };
   for (const key of ["endTime", "startTime", "hrTime", "_hrTime", "time", "timestamp", "observedTimestamp", "timeUnixNano"]) {
     if (Array.isArray(row[key])) projected[key] = (row[key] as unknown[]).map(Number);
-    else if (Number.isFinite(Number(row[key]))) projected[key] = row[key];
+    else if (Number.isFinite(Number(row[key])) || typeof row[key] === "string" && Number.isFinite(Date.parse(String(row[key])))) projected[key] = row[key];
   }
   return projected;
 }
@@ -67,11 +68,11 @@ function nativeRow(row: Record<string, unknown>, file: string, state: CopilotSta
     const model = stringField(usage, "model");
     if (!usage || !model || !timestamp || !Number.isFinite(Date.parse(timestamp))) return;
     state.covered = true;
-    state.credits = [];
     const accounting = recordField(usage, "accounting");
     const sourceSession = stringField(accounting, "sourceSessionId") || undefined;
     const sequence = accounting?.sequence;
     const identity = sourceSession && typeof sequence === "number" && Number.isSafeInteger(sequence) && sequence > 0 ? [sourceSession, sequence] : [session, stringField(row, "id") || state.index];
+    state.unproven ||= !sourceSession || sourceSession !== session;
     state.index++;
     const cached = nonNegativeInt(usage.cacheReadTokens), created = nonNegativeInt(usage.cacheWriteTokens);
     const parts = { agent: "copilot" as const, model: normalizeModel(model), sessionId: session, sourcePath: file, timestamp,
@@ -79,16 +80,25 @@ function nativeRow(row: Record<string, unknown>, file: string, state: CopilotSta
       outputTokens: nonNegativeInt(usage.outputTokens) };
     const event = makeUsageEvent(parts) || { ...parts, reasoningOutputTokens: 0, totalTokens: 0, bucketStart: toUtcHalfHourStart(timestamp)! };
     state.records.push({ event, key: JSON.stringify(["usage-record", ...identity]), requests: 1,
-      credits: numeric(recordField(usage, "copilotUsage")?.totalNanoAiu), sourceSession,
+      credits: numeric(recordField(usage, "copilotUsage")?.totalNanoAiu), sourceSession, ...(typeof sequence === "number" && Number.isSafeInteger(sequence) && sequence > 0 ? { sequence } : {}),
       response: stringField(usage, "apiCallId") || undefined, serviceRequest: stringField(usage, "serviceRequestId") || undefined });
     return;
   }
   const shutdown = row.type === "session.shutdown";
   if (!shutdown && row.type !== "session.usage_checkpoint") return;
-  if (Object.values(recordField(data, "usageAccountingWatermarks") || {}).some(value => typeof value === "number" && Number.isSafeInteger(value) && value > 0)) state.covered = true;
-  if (state.covered) { state.credits = []; return; }
-  if (!timestamp || !Number.isFinite(Date.parse(timestamp))) return;
+  const watermarks = recordField(data, "usageAccountingWatermarks") || {};
+  const local = watermarks[session];
+  const watermark = typeof local === "number" && Number.isSafeInteger(local) && local > 0
+    && Object.entries(watermarks).every(([source, sequence]) => source === session || sequence === 0) ? local : undefined;
+  if (Object.values(watermarks).some(value => typeof value === "number" && Number.isSafeInteger(value) && value > 0)) state.covered = true;
+  if (!timestamp || !Number.isFinite(Date.parse(timestamp))) { if (state.covered) state.unproven = true; return; }
   const key = JSON.stringify([session, row.id || [timestamp, shutdown, data.totalNanoAiu]]);
+  if (state.covered && watermark === undefined) { state.unproven = true; return; }
+  if (!shutdown || watermark !== undefined) {
+    const total = numeric(data.totalNanoAiu);
+    if (shutdown || total !== null) state.credits.push({ session, time: timestamp, shutdown, total, key, file, watermark });
+    return;
+  }
   let complete = true;
   if (shutdown) for (const [model, raw] of Object.entries(recordField(data, "modelMetrics") || {})) {
     if (!isRecord(raw)) continue;
@@ -112,12 +122,14 @@ function nativeRow(row: Record<string, unknown>, file: string, state: CopilotSta
 function otelTimestamp(row: Record<string, unknown>, fallback: string): string {
   for (const key of ["endTime", "startTime", "hrTime", "_hrTime", "time", "timestamp", "observedTimestamp", "timeUnixNano"]) {
     const value = row[key];
+    if (typeof value === "string" && value.includes("T") && Number.isFinite(Date.parse(value))) return new Date(value).toISOString();
     const raw = Array.isArray(value) ? Number(value[0]) * 1000 + Number(value[1] || 0) / 1e6 : Number(value);
     if (!Number.isFinite(raw) || raw <= 0) continue;
     const millis = Array.isArray(value) ? raw : key === "timeUnixNano" || raw >= 1e17 ? raw / 1e6 : raw >= 1e14 ? raw / 1000 : raw >= 1e11 ? raw : raw * 1000;
+    if (millis > 253_402_300_799_999) continue;
     return new Date(millis).toISOString();
   }
-  return fallback;
+  return "";
 }
 
 function otelRows(rows: Record<string, unknown>[], file: string, fallback: string): Entry[] {
@@ -158,7 +170,7 @@ function otelRows(rows: Record<string, unknown>[], file: string, fallback: strin
     if (!event) return;
     const response = stringField(a, "gen_ai.response.id") || undefined;
     const spanId = stringField(row, "spanId") || stringField(recordField(row, "spanContext"), "spanId");
-    const key = m.trace && spanId ? `${rank === 1 ? "log:" : ""}${m.trace}:${spanId}` : JSON.stringify([rank, session, timestamp, file, index]);
+    const key = m.trace && spanId ? JSON.stringify([rank === 1 ? "log" : "span", m.trace, spanId]) : JSON.stringify([rank, session, timestamp, file, index]);
     entries.push({ event, key, requests: 1, credits: null, rank, trace: m.trace, response, serviceRequest: stringField(a, "github.copilot.service_request_id") || undefined,
       reasoning: nonNegativeInt(a["gen_ai.usage.reasoning.output_tokens"]) || nonNegativeInt(a["gen_ai.usage.reasoning_tokens"]) });
   });
@@ -205,13 +217,22 @@ function reconcile(native: Entry[], otel: Entry[], credits: Credit[], records: E
     });
   }
   const receipts = deduplicateRecords(records);
-  appendItems(events, removeRecordedCalls(retained.filter(call => time(call.event) > (after.get(pair(call.event)) ?? -Infinity)), receipts).map(call => call.event));
+  const matched = matchRecordedCalls(retained, receipts);
+  const uncovered = new Map<string, number>();
+  for (const [index, call] of retained.entries()) {
+    if (time(call.event) <= (after.get(pair(call.event)) ?? -Infinity)) continue;
+    if (!matched.has(index)) events.push(call.event);
+    if (matched.get(index) !== true && call.event.sessionId) uncovered.set(call.event.sessionId,
+      Math.min(uncovered.get(call.event.sessionId) ?? Infinity, time(call.event)));
+  }
   appendItems(events, receipts.map(record => ({ ...record.event, ...(record.credits !== null ? { recordedCostUsd: creditsToUsd(record.credits) } : {}) })));
   const sessions = new Map<string, Credit[]>();
   for (const snapshot of unique(credits)) { const group = sessions.get(snapshot.session) || []; group.push(snapshot); sessions.set(snapshot.session, group); }
   for (const [session, group] of sessions) {
-    if (retained.some(call => call.event.sessionId === session) || group.every(s => s.shutdown) || group.some(s => s.shutdown && s.total === null)) continue;
+    if (group.every(s => s.shutdown) || group.some(s => s.shutdown && s.total === null)) continue;
     group.sort((a, b) => Date.parse(a.time) - Date.parse(b.time) || Number(a.shutdown) - Number(b.shutdown));
+    const receiptAmounts = coveredReceiptCredits(group, receipts.filter(record => record.event.sessionId === session && record.sourceSession === session));
+    if (receiptAmounts === null) continue;
     let last = -1;
     group.forEach((s, index) => { if (s.shutdown) last = index; });
     let total = 0, known = 0;
@@ -219,15 +240,15 @@ function reconcile(native: Entry[], otel: Entry[], credits: Credit[], records: E
     group.forEach((snapshot, index) => {
       if (!snapshot.shutdown && index < last) return;
       total = Math.max(total, snapshot.total || 0);
-      if (snapshot.shutdown) known += attributed.get(JSON.stringify([session, Date.parse(snapshot.time)])) || 0;
-      points.push({ snapshot, gap: Math.max(0, total - known) });
+      if (snapshot.shutdown && snapshot.watermark === undefined) known += attributed.get(JSON.stringify([session, Date.parse(snapshot.time)])) || 0;
+      points.push({ snapshot, gap: Math.max(0, total - known - (receiptAmounts[index] || 0)) });
     });
     let lasting = Infinity;
     for (const point of [...points].reverse()) { lasting = Math.min(lasting, point.gap); point.gap = lasting; }
     let reported = 0;
     for (const { snapshot, gap } of points) {
       const delta = Math.max(0, gap - reported); reported = Math.max(reported, gap);
-      const event = delta ? makeUsageEvent({ agent: "copilot", model: "unknown", sessionId: session, sourcePath: snapshot.file,
+      const event = delta && (uncovered.get(session) ?? Infinity) > Date.parse(snapshot.time) ? makeUsageEvent({ agent: "copilot", model: "unknown", sessionId: session, sourcePath: snapshot.file,
         timestamp: snapshot.time, recordedCostUsd: creditsToUsd(delta) }) : null;
       if (event) events.push(event);
     }
@@ -245,8 +266,35 @@ function deduplicateRecords(records: Entry[]): Entry[] {
   return [...kept.values()].sort((a, b) => time(a.event) - time(b.event) || a.key.localeCompare(b.key));
 }
 
-function removeRecordedCalls(calls: Entry[], records: Entry[]): Entry[] {
-  const claimed = new Set<number>(), matched = new Set<Entry>();
+function coveredReceiptCredits(snapshots: Credit[], records: Entry[]): number[] | null {
+  if (!snapshots.some(snapshot => snapshot.watermark !== undefined)) return [];
+  const ordered = records.filter(record => record.sequence !== undefined).sort((a, b) => a.sequence! - b.sequence!);
+  if (!ordered.length) return null;
+  const sums: Array<number | null> = [];
+  let sum: number | null = 0;
+  for (const [index, record] of ordered.entries()) {
+    if (index && time(record.event) < time(ordered[index - 1].event)) return null;
+    sum = record.sequence === index + 1 && record.credits !== null && sum !== null && Number.isSafeInteger(sum + record.credits) ? sum + record.credits : null;
+    sums.push(sum);
+  }
+  let previousWatermark = 0, previousTotal = 0;
+  const result: number[] = [];
+  for (const snapshot of snapshots) {
+    if (snapshot.watermark === undefined) {
+      if (previousWatermark || Date.parse(snapshot.time) >= time(ordered[0].event)) return null;
+      result.push(0); continue;
+    }
+    const index = snapshot.watermark - 1, record = ordered[index], amount = sums[index];
+    if (!record || amount === null || amount === undefined || snapshot.total === null || snapshot.watermark < previousWatermark
+      || snapshot.total < previousTotal || amount > snapshot.total || time(record.event) > Date.parse(snapshot.time)
+      || ordered[index + 1] && time(ordered[index + 1].event) <= Date.parse(snapshot.time)) return null;
+    previousWatermark = snapshot.watermark; previousTotal = snapshot.total; result.push(amount);
+  }
+  return result;
+}
+
+function matchRecordedCalls(calls: Entry[], records: Entry[]): Map<number, boolean> {
+  const claimed = new Map<number, boolean>(), matched = new Set<Entry>();
   const byId = new Map<string, number[]>();
   for (const [index, call] of calls.entries()) {
     for (const field of ["serviceRequest", "response"] as const) {
@@ -265,14 +313,14 @@ function removeRecordedCalls(calls: Entry[], records: Entry[]): Entry[] {
         const call = calls[index];
         if (nearest < 0 || Math.abs(time(call.event) - time(record.event)) < Math.abs(time(calls[nearest].event) - time(record.event))) nearest = index;
       }
-      if (nearest >= 0) { claimed.add(nearest); matched.add(record); }
+      if (nearest >= 0) { claimed.set(nearest, calls[nearest].event.sessionId === record.event.sessionId); matched.add(record); }
     }
   }
-  return calls.filter((_, index) => !claimed.has(index));
+  return claimed;
 }
 
 export async function planCopilot(home: string) {
-  const root = process.env.COPILOT_HOME?.trim() || path.join(home, ".copilot");
+  const root = expandSourcePath(process.env.COPILOT_HOME?.trim() || path.join(home, ".copilot"), home);
   const state = path.join(root, "session-state");
   const nativeFiles = await storeFiles(
     state,
@@ -283,7 +331,7 @@ export async function planCopilot(home: string) {
   const otelFiles = await storeFiles(path.join(root, "otel"), (file) =>
     file.endsWith(".jsonl"),
   );
-  const explicit = process.env.COPILOT_OTEL_FILE_EXPORTER_PATH?.trim();
+  const explicit = process.env.COPILOT_OTEL_FILE_EXPORTER_PATH?.trim() ? expandSourcePath(process.env.COPILOT_OTEL_FILE_EXPORTER_PATH.trim(), home) : undefined;
   if (
     explicit &&
     (
@@ -304,7 +352,7 @@ export async function planCopilot(home: string) {
       for (const file of nativeFiles) {
         const parsed = await scanFile(file, () => cachedSource("copilot-native", [file], async () => (await readIncrementalJsonl(file, saved => copilotParser(file, false, saved))).state as CopilotState));
         appendItems(native, parsed.entries);
-        appendItems(credits, parsed.credits);
+        if (!parsed.covered || !parsed.unproven && parsed.credits.some(snapshot => snapshot.watermark !== undefined)) appendItems(credits, parsed.credits);
         appendItems(records, parsed.records);
       }
       for (const file of new Set(otelFiles))

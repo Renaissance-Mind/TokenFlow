@@ -2,6 +2,7 @@ import { checkCollectionCancellation } from "./collection-cache.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 import fs from "node:fs/promises";
 import { codexRolloutStat, isCodexRollout } from "./sources/codex-reader.js";
+import { physicalSourcePath, readSourceInput } from "./source-input.js";
 
 export interface ScanProgress {
   stage: "discovery" | "reading" | "processing";
@@ -42,7 +43,7 @@ export class ScanTracker {
   async begin(files: string[]): Promise<void> {
     for (const file of new Set(files)) {
       this.discovered.add(file);
-      const stat = await fs.stat(file).catch(error => {
+      const stat = await fs.stat(physicalSourcePath(file)).catch(error => {
         if (error.code === "ENOENT" && isCodexRollout(file)) return codexRolloutStat(file);
         throw error;
       });
@@ -114,8 +115,9 @@ export function scannedBytes(file: string, consumed: number): void {
 export async function scanFile<T>(
   file: string,
   action: () => Promise<T>,
+  fallback?: T,
 ): Promise<T> {
-  const result = await action();
+  const result = fallback === undefined ? await action() : await readSourceInput(file, action, fallback);
   context.getStore()?.complete(file);
   return result;
 }

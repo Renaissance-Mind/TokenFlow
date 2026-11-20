@@ -1,3 +1,4 @@
+import { physicalSourcePath } from "../source-input.js";
 import fs from "node:fs/promises";
 import { Decompress, type ZstdError } from "fzstd";
 
@@ -5,7 +6,7 @@ export const plainRolloutPath = (file: string) => file.endsWith(".jsonl.zst") ? 
 export const isCodexRollout = (file: string) => file.endsWith(".jsonl") || file.endsWith(".jsonl.zst");
 
 async function openRollout(file: string) {
-  try { return { handle: await fs.open(file, "r"), file }; }
+  try { return { handle: await fs.open(physicalSourcePath(file), "r"), file }; }
   catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     const other = file.endsWith(".jsonl.zst") ? plainRolloutPath(file) : `${file}.zst`;

@@ -21,6 +21,8 @@ const rateFields = [
   "fastMultiplier",
   "flexMultiplier",
   "ultrafastMultiplier",
+  "cacheCreation1hUsdPerMillion",
+  "cacheCreation1hAbove200kUsdPerMillion",
 ] as const;
 
 export function parsePricingCatalog(value: unknown): PricingCatalog {
@@ -67,6 +69,14 @@ export function parsePricingCatalog(value: unknown): PricingCatalog {
       )
         throw new Error("Invalid server pricing context threshold");
       profile.longContextThresholdTokens = row.longContextThresholdTokens;
+    }
+    if (row.pricingSource !== undefined) {
+      if (!["litellm", "models.dev", "curated", "supplemental"].includes(String(row.pricingSource))) throw new Error("Invalid pricing source");
+      profile.pricingSource = row.pricingSource;
+    }
+    if (row.vendorModel !== undefined) {
+      if (typeof row.vendorModel !== "string" || !row.vendorModel) throw new Error("Invalid pricing vendor identity");
+      profile.vendorModel = row.vendorModel;
     }
     if (row.exactOnly === true) profile.exactOnly = true;
     return profile as unknown as PricingProfile;

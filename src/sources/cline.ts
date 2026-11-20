@@ -1,3 +1,4 @@
+import { expandSourcePath, physicalSourcePath, readSourceUtf8, sourceInputCategory } from "../source-input.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { cachedSource, checkCollectionCancellation } from "../collection-cache.js";
@@ -74,12 +75,12 @@ export async function planCline(home: string) {
     storage(process.env.XDG_CONFIG_HOME || path.join(home, ".config"), editor),
     storage(process.env.APPDATA || path.join(process.env.USERPROFILE || home, "AppData/Roaming"), editor),
   ])];
-  const roots = process.env.CLINE_DATA_DIR !== undefined ? process.env.CLINE_DATA_DIR.split(",").map(root => root.trim()).filter(Boolean) : defaults;
+  const roots = process.env.CLINE_DATA_DIR !== undefined ? process.env.CLINE_DATA_DIR.split(",").map(root => expandSourcePath(root.trim(), home)).filter(Boolean) : defaults;
   const sources: Source[] = [], seen = new Set<string>();
   for (const root of roots) for (const file of await storeFiles(root, file => file.endsWith("ui_messages.json") || file.endsWith(".messages.json"))) {
     const source = classify(root, file);
     if (!source) continue;
-    const identity = await fs.realpath(file);
+    const identity = await fs.realpath(physicalSourcePath(file));
     if (seen.has(identity)) continue;
     seen.add(identity); sources.push(source);
   }
@@ -88,12 +89,12 @@ export async function planCline(home: string) {
     const events: UsageEvent[] = [], warnings: string[] = [], skippedFiles: string[] = [];
     for (const source of sources) {
       try {
-        const parsed = await scanFile(source.file, () => cachedSource("cline", [source.file], async () => parseClineDocument(JSON.parse(await fs.readFile(source.file, "utf8")), source)));
+        const parsed = await scanFile(source.file, () => cachedSource("cline", [source.file], async () => parseClineDocument(JSON.parse(await readSourceUtf8(source.file)), source)));
         appendItems(events, parsed);
       } catch (error) {
         checkCollectionCancellation();
         if (!(error instanceof SyntaxError) && !(error instanceof Error && "path" in error && error.path === source.file)) throw error;
-        warnings.push(`Skipping unreadable Cline file '${source.file}': ${error instanceof Error ? error.message : String(error)}`);
+        warnings.push(`Skipping unreadable Cline file '${source.file}': ${sourceInputCategory(error) || "invalid source data"}`);
         skippedFiles.push(source.file);
       }
     }

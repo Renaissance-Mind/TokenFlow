@@ -2,6 +2,7 @@ import { normalizeAgentModelForUsage } from "../pricing.js";
 import { toUtcHalfHourStart } from "../time.js";
 import { applyTotalTokenFallback, isZeroUsage, nonNegativeInt } from "../token-totals.js";
 import type { AgentSource, UsageEvent, UsageTotals } from "../types.js";
+import { reportSourceIssue } from "../source-input.js";
 
 export interface ParseOptions {
   sourcePath: string;
@@ -35,9 +36,9 @@ export function parseJsonlWithParser(jsonl: string, parser: JsonlUsageParser): U
 }
 
 export function makeUsageEvent(parts: UsageEventParts): UsageEvent | null {
-  if (!parts.timestamp) return null;
+  if (!parts.timestamp) { reportSourceIssue(parts.sourcePath, "invalid usage timestamp"); return null; }
   const bucketStart = toUtcHalfHourStart(parts.timestamp);
-  if (!bucketStart) return null;
+  if (!bucketStart) { reportSourceIssue(parts.sourcePath, "invalid usage timestamp"); return null; }
 
   const totals = applyTotalTokenFallback(
     {
@@ -124,6 +125,7 @@ export function timestampFromString(value: string): string | null {
 export function timestampFromNumber(value: number): string | null {
   if (!Number.isFinite(value) || value <= 0) return null;
   const millis = value < 10_000_000_000 ? Math.trunc(value * 1000) : Math.trunc(value);
+  if (!Number.isSafeInteger(millis) || millis > 253_402_300_799_999) return null;
   return new Date(millis).toISOString();
 }
 

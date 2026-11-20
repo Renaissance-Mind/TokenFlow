@@ -2,6 +2,7 @@ import path from "node:path";
 import { normalizeAgentModelForUsage, resolvePricing, type UsageModelNormalization } from "../pricing.js";
 import { toUtcHalfHourStart } from "../time.js";
 import type { UsageEvent, UsageTotals } from "../types.js";
+import { reportSourceIssue } from "../source-input.js";
 
 interface ParseOptions {
   sourcePath: string;
@@ -173,7 +174,9 @@ export function createCodexJsonlParser(options: ParseOptions, saved?: unknown): 
       const token = extractTokenCount(row);
       if (!token) return;
       const timestamp = stringField(row, "timestamp");
-      if (!timestamp) return;
+      if (!timestamp) { reportSourceIssue(options.sourcePath, "invalid usage timestamp"); return; }
+      const bucketStart = toUtcHalfHourStart(timestamp);
+      if (!bucketStart) { reportSourceIssue(options.sourcePath, "invalid usage timestamp"); return; }
 
       const info = token.info;
       const model =
@@ -194,8 +197,10 @@ export function createCodexJsonlParser(options: ParseOptions, saved?: unknown): 
       }
       const delta = pickDelta(lastUsage, totalUsage, previousTotal);
       const request = latestResponse ? pending.get(latestResponse) : null;
+      let requestId: string | undefined;
       if (delta && request && (sameUsage(delta as CumulativeUsage, request.event)
         || (request.threadUsage && totalUsage && sameUsage(request.threadUsage, normalizeUsage(totalUsage))))) {
+        requestId = latestResponse!;
         pending.delete(latestResponse!); emitted.add(latestResponse!);
       }
       // Retain the cumulative baseline while suppressing inherited events so a
@@ -204,8 +209,6 @@ export function createCodexJsonlParser(options: ParseOptions, saved?: unknown): 
       if (suppressInheritedSubagentReplay) return;
       if (!delta || isZero(delta)) return;
 
-      const bucketStart = toUtcHalfHourStart(timestamp);
-      if (!bucketStart) return;
       const eventModel = codexModelForEvent(currentModel, timestamp);
 
       events.push({
@@ -213,6 +216,7 @@ export function createCodexJsonlParser(options: ParseOptions, saved?: unknown): 
         model: eventModel.model,
         ...(eventModel.pricingModel ? { pricingModel: eventModel.pricingModel } : {}),
         ...codexPricingFields(eventModel, effectiveServiceTier(currentServiceTier, options.serviceTier), currentServiceTier),
+        ...(requestId ? { codexRequestId: requestId } : {}),
         sessionId,
         sourcePath: options.sourcePath,
         timestamp,

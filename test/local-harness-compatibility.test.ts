@@ -56,7 +56,7 @@ describe("local harness compatibility", () => {
     const usage = proto([1, 1401], [2, 60], [3, 10], [5, 40], [11, "new-model"]);
     const retry = proto([1, 1499], [2, 5], [3, 1], [11, "other-model-retry"]);
     for (const [file, label] of [["a", "model_placeholder_m401"], ["b", "claude-opus-5-5-medium"]]) {
-      const metadata = proto([1, proto([3, 1401], [19, label], [4, usage], [17, proto([2, retry])])]);
+      const metadata = proto([1, proto([3, 1401], [19, label], [4, usage], [17, proto([2, retry])], [9, proto([4, proto([1, 1795165200])])])]);
       sqlite(path.join(dir, `${file}.db`), `CREATE TABLE gen_metadata(idx INTEGER PRIMARY KEY,data BLOB); INSERT INTO gen_metadata VALUES(1,X'${metadata.toString("hex")}');`);
     }
     const events = (await collectAntigravity(home)).events;
@@ -66,8 +66,8 @@ describe("local harness compatibility", () => {
   it.each([false, true])("deduplicates unkeyed Antigravity step mirrors with packed indices %s", async packed => {
     const home = await root(); delete process.env.ANTIGRAVITY_DATA_DIR;
     const usage = proto([1, 1417], [2, 15027], [3, 49], [10, 49]);
-    const generation = proto([1, proto([3, 1417], [4, usage], [17, proto([2, usage])])], [2, packed ? Buffer.from([1]) : 1]);
-    const step = proto([9, usage], [24, proto([1, 1417])]);
+    const generation = proto([1, proto([3, 1417], [4, usage], [17, proto([2, usage])], [9, proto([4, proto([1, 1795165200])])])], [2, packed ? Buffer.from([1]) : 1]);
+    const step = proto([8, proto([1, 1795165200])], [9, usage], [24, proto([1, 1417])]);
     for (const name of ["antigravity", "antigravity-backup"]) {
       const dir = path.join(home, ".gemini", name, "conversations"); await fs.mkdir(dir, { recursive: true });
       sqlite(path.join(dir, "mirror.db"), `CREATE TABLE gen_metadata(idx INTEGER PRIMARY KEY,data BLOB); CREATE TABLE steps(idx INTEGER PRIMARY KEY,metadata BLOB);
@@ -81,9 +81,22 @@ describe("local harness compatibility", () => {
     const dir = path.join(home, ".gemini/antigravity/conversations"); await fs.mkdir(dir, { recursive: true });
     const primary = proto([1, 1417], [2, 100], [3, 50], [10, 50]);
     const failed = proto([1, 1417], [2, 100], [3, 10], [10, 10]);
-    const generation = proto([1, proto([3, 1417], [4, primary], [17, proto([2, primary])], [17, proto([2, failed])])]);
+    const generation = proto([1, proto([3, 1417], [4, primary], [17, proto([2, primary])], [17, proto([2, failed])], [9, proto([4, proto([1, 1795165200])])])]);
     sqlite(path.join(dir, "retry.db"), `CREATE TABLE gen_metadata(idx INTEGER PRIMARY KEY,data BLOB); INSERT INTO gen_metadata VALUES(1,X'${generation.toString("hex")}');`);
     expect((await collectAntigravity(home)).events.reduce((sum, event) => sum + event.totalTokens, 0)).toBe(260);
+  });
+  it("keeps dated Antigravity records beside undated and malformed metadata in one database", async () => {
+    const home = await root(); process.env = { PATH: originalEnv.PATH, TMPDIR: os.tmpdir() };
+    const dir = path.join(home, ".gemini/antigravity/conversations"); await fs.mkdir(dir, { recursive: true });
+    const db = path.join(dir, "mixed.db");
+    const usage = proto([1, 1402], [2, 10], [3, 5], [11, "retained-response"]);
+    const dated = proto([1, proto([3, 1402], [4, usage], [9, proto([4, proto([1, 1795165200])])])]);
+    const undated = proto([1, proto([3, 1402], [4, usage])]);
+    sqlite(db, `CREATE TABLE gen_metadata(idx INTEGER PRIMARY KEY,data BLOB); INSERT INTO gen_metadata VALUES(1,X'${dated.toString("hex")}'); INSERT INTO gen_metadata VALUES(2,X'${undated.toString("hex")}'); INSERT INTO gen_metadata VALUES(3,X'80');`);
+    const result = await collectLocalUsage(home);
+    expect(result.events.map(event => event.totalTokens)).toEqual([15]);
+    expect(result.scannedFiles).not.toContain(db);
+    expect(result.sources.find(source => source.agent === "antigravity")?.warnings?.join(" ")).toMatch(/invalid.*timestamp|encoding/);
   });
   it.each(["sqlite", "protobuf", "schema"])("keeps healthy Antigravity databases when another has invalid %s data", async kind => {
     const home = await root();
@@ -400,7 +413,7 @@ describe("local harness compatibility", () => {
       reasoningOutputTokens: 0,
       totalTokens: 120,
       recordedCostUsd: "0.01",
-      pricingModel: "grok-4.5",
+      pricingModel: "grok-4.5-build",
     });
   });
 

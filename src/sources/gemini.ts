@@ -86,7 +86,7 @@ export function createGeminiJsonlParser(options: ParseOptions, saved?: unknown):
         const total = value("total", "total_tokens");
         const inclusive = !direct || (cached > 0 && total === input + output + reasoning + tool);
         const event = makeUsageEvent({ agent: "gemini", model, sessionId, sourcePath: options.sourcePath,
-          timestamp: stringField(row, "timestamp") || stringField(row, "created_at") || options.fallbackTimestamp || null,
+          timestamp: stringField(row, "timestamp") || stringField(row, "created_at") || null,
           inputTokens: (inclusive ? Math.max(input, cached) : input + cached) + tool,
           cachedInputTokens: cached, outputTokens: output, reasoningOutputTokens: reasoning,
           totalTokens: total });
