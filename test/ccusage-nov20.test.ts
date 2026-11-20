@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { afterEach, expect, it } from "vitest";
 import { collectLocalUsage } from "../src/file-scan.js";
 import { parseClaudeJsonl } from "../src/sources/claude.js";
@@ -10,7 +10,9 @@ import { mergeOpenClawStores } from "../src/sources/openclaw.js";
 import { timestampFromNumber } from "../src/sources/ccusage-common.js";
 import { collectCopilot } from "../src/sources/copilot.js";
 import { collectGrok } from "../src/sources/grok.js";
-import { sourceName } from "../src/source-input.js";
+import { sourceName, withSourceDiagnostics } from "../src/source-input.js";
+import { cachedSource, withCollectionCache } from "../src/collection-cache.js";
+import { sqliteRows } from "../src/sources/store-io.js";
 import { aggregateEvents } from "../src/usage-buckets.js";
 import { toUsageSnapshotPayload } from "../src/ingest-payload.js";
 
@@ -139,6 +141,31 @@ it("retains healthy OpenCode rows and reports corrupt SQLite inputs without expo
     expect(warnings).not.toContain("SECRET_");
   }
 });
+it("retries an unchanged database after a real SQLite read lock is released", async () => {
+  const root = await sandbox(), directory = path.join(root, ".local/share/opencode");
+  await fs.mkdir(directory, { recursive: true });
+  const db = path.join(directory, "opencode.db");
+  const data = JSON.stringify({ role: "assistant", modelID: "gpt-5", time: { created: 1795165200000, completed: 1795165201000 }, tokens: { input: 10, output: 5 } });
+  execFileSync("sqlite3", [db, `CREATE TABLE message(id TEXT,session_id TEXT,time_created INTEGER,data TEXT); INSERT INTO message VALUES('healthy','s',1795165200000,'${data}');`]);
+  const before = await fs.stat(db);
+  const blocker = spawn("sqlite3", [db], { stdio: ["pipe", "pipe", "pipe"] });
+  const ready = new Promise<void>((resolve, reject) => { blocker.once("error", reject); blocker.stdout.on("data", data => { if (String(data).includes("LOCKED")) resolve(); }); });
+  blocker.stdin.write("BEGIN EXCLUSIVE;\nSELECT 'LOCKED';\n");
+  await ready;
+  const read = () => withSourceDiagnostics(() => withCollectionCache(root, () => cachedSource("collection-lock-fixture", [db],
+    () => cachedSource("database-lock-fixture", [db], () => sqliteRows<{ id: string }>(db, "SELECT id FROM message;")))));
+  const released = new Promise<void>(resolve => blocker.once("exit", () => resolve()));
+  try {
+    const partial = await read();
+    blocker.stdin.end("ROLLBACK;\n");
+    await released;
+    expect(partial).toHaveLength(0);
+    const after = await fs.stat(db);
+    expect([after.size, after.mtimeMs, after.ctimeMs]).toEqual([before.size, before.mtimeMs, before.ctimeMs]);
+    expect(await read()).toEqual([{ id: "healthy" }]);
+    expect((await collectLocalUsage(root)).events.map(event => event.totalTokens)).toEqual([15]);
+  } finally { if (blocker.exitCode === null) blocker.stdin.end("ROLLBACK;\n"); }
+}, 20000);
 it.skipIf(process.platform !== "linux")("keeps Grok projects with different invalid UTF-8 directory names distinct", async () => {
   const root = await sandbox();
   const row = { params: { sessionId: "same-session", _meta: { agentTimestampMs: 1795165200000 }, update: { sessionUpdate: "turn_completed", usage: { modelUsage: { "grok-4.5": { inputTokens: 10, outputTokens: 5 } } } } } };

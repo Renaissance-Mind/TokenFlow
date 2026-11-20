@@ -83,6 +83,8 @@ Home: /Users/alice/.tokenflow
 
 Unreadable files and rejected usage records produce local warnings while healthy usage continues to be collected. Inputs that were only partly read are excluded from coverage checks. Symlinked inputs are followed with cycle and duplicate-file detection.
 
+Temporary read failures are retried on the next collection, including databases whose contents have stayed unchanged after a lock is released.
+
 TokenFlow intentionally does not upload source file paths, session IDs, prompts, or responses.
 
 ## Install

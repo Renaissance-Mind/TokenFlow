@@ -79,12 +79,14 @@ class CollectionCache {
     }
     const marker = sourceIssueMarker();
     const value = await depth.run(level + 1, () => load(previous));
+    const diagnostics = sourceIssuesSince(marker);
     this.signal?.throwIfAborted();
     // Ordinary readers cache only stable inputs. Bounded JSONL readers commit
     // their captured prefix version so concurrent appends resume at its offset.
-    if (snapshotVersions || JSON.stringify(versions) === JSON.stringify(await Promise.all(files.map(fileVersion)))) {
+    if (!diagnostics.some(issue => issue.category.startsWith("unreadable"))
+      && (snapshotVersions || JSON.stringify(versions) === JSON.stringify(await Promise.all(files.map(fileVersion))))) {
       const tmp = `${file}.${process.pid}.tmp`;
-      const entry = { key, files: snapshotVersions ? snapshotVersions(value) : versions, value, diagnostics: sourceIssuesSince(marker) };
+      const entry = { key, files: snapshotVersions ? snapshotVersions(value) : versions, value, diagnostics };
       const bytes = serialize(entry);
       const handle = await fs.open(tmp, "w", 0o600);
       try {

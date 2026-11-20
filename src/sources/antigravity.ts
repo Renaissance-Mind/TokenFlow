@@ -422,6 +422,7 @@ export async function planAntigravity(home: string) {
         } catch (error) {
           checkCollectionCancellation();
           if (!(error instanceof Error) || !(/Antigravity|SQLite|sqlite3/.test(error.message) || ("path" in error && error.path === file))) throw error;
+          reportSourceIssue(file, sourceInputCategory(error) || "unreadable Antigravity input");
           warnings.push(`Skipping unreadable Antigravity database '${file}': ${error.message}`);
           skippedFiles.push(file);
         }

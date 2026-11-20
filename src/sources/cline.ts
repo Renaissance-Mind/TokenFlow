@@ -1,4 +1,4 @@
-import { expandSourcePath, physicalSourcePath, readSourceUtf8, sourceInputCategory } from "../source-input.js";
+import { expandSourcePath, physicalSourcePath, readSourceUtf8, reportSourceIssue, sourceInputCategory } from "../source-input.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { cachedSource, checkCollectionCancellation } from "../collection-cache.js";
@@ -94,6 +94,7 @@ export async function planCline(home: string) {
       } catch (error) {
         checkCollectionCancellation();
         if (!(error instanceof SyntaxError) && !(error instanceof Error && "path" in error && error.path === source.file)) throw error;
+        reportSourceIssue(source.file, sourceInputCategory(error) || "unreadable Cline input");
         warnings.push(`Skipping unreadable Cline file '${source.file}': ${sourceInputCategory(error) || "invalid source data"}`);
         skippedFiles.push(source.file);
       }
