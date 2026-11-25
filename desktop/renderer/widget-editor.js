@@ -79,7 +79,7 @@ export function createWidgetEditor(){
   const t=()=>words[latest?.settings.language]||words.en;
   const preferences=settings=>({showTrayIcon:settings.showTrayIcon,trayMetric:settings.trayMetric,trayRange:settings.trayRange,trayTheme:settings.trayTheme,trayWidgets:[...settings.trayWidgets]});
   function post(type,value){if(ready)frame.contentWindow.postMessage({channel,type,value},'*');}
-  function previewState(){return {...latest,settingsOpen:false,settings:{...latest.settings,...draft}};}
+  function previewState(){return {...latest,previewActive:active && latest.settingsOpen && (latest.reportViewVisible ?? (document.visibilityState==='visible')),settingsOpen:false,settings:{...latest.settings,...draft}};}
   function changed(){dirty=true;$('traySavedStatus').textContent=t().unsaved;render();post('state',previewState());}
   function insert(widget,before=null){
     if(!widgetCatalog.some(item=>item.id===widget))return;
@@ -197,12 +197,12 @@ export function createWidgetEditor(){
     update(state){
       const languageChanged=latest&&latest.settings.language!==state.settings.language;
       latest=state;if(languageChanged&&dirty)$('traySavedStatus').textContent=t().unsaved;
-      const key=JSON.stringify([state.dashboardSource,state.dashboardRevision,state.reportingDate,state.reportingTimeZone,state.account?.id,state.summary?.scannedAt,state.lastSyncAt,state.settings.serverUrl]);
+      const key=JSON.stringify([state.dashboardSource,state.dashboardRevision,state.reportingDate,state.reportingTimeZone,state.account?.id,state.dashboardSource==='local'?state.localUsageRevision:'',state.settings.serverUrl]);
       if(key!==revision){revision=key;requests.clear();}
       if(!dirty&&!saving)draft=preferences(state.settings);
       render();if(active)post('state',previewState());
     },
-    setActive(value){active=value;document.body.classList.toggle('editing-tray',active);if(!active)return;
+    setActive(value){if(value!==active)void window.tokenflow.setTrayEditorActive(value);active=value;document.body.classList.toggle('editing-tray',active);if(!active){if(ready)post('state',previewState());return;}
       if(!frame.getAttribute('src'))frame.src='tokenflow://dashboard/index.html?mode=tray&editor=1';
       render();post('state',previewState());requestAnimationFrame(()=>post('layout'));
     },

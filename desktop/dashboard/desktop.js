@@ -9,6 +9,7 @@ if (new URLSearchParams(location.search).get('mode') === 'tray') {
 let latest, started=false, revision='', refreshing=false, pending=false, dataReady=false, loadError='';
 const loginDialog=createLoginDialog();
 const $=id=>document.getElementById(id);
+const reportsVisible=state=>!!state && !state.settingsOpen && (state.reportViewVisible ?? (document.visibilityState==='visible'));
 const dataContext=state=>[state.dashboardSource,state.settings.serverUrl,state.account?.id].join('|');
 const words={en:{prepare:'Preparing statistics…',local:'This device’s data',cloud:'Synced data',cached:'Synced data (cached)',scan:'Reading usage…',pricing:'Fetching pricing…',upload:'Syncing…',refresh:'Refresh',sync:'Sync',settings:'Settings',signIn:'Sign in',hint:'Your statistics will appear as soon as reading finishes.',retry:'Retry',failed:'Unable to load statistics',required:'Update the CLI in Settings to enable local statistics.'},zh:{prepare:'正在准备统计…',local:'本机数据',cloud:'同步数据',cached:'同步数据（缓存）',scan:'正在读取用量…',pricing:'正在获取价格…',upload:'正在同步…',refresh:'刷新',sync:'同步',settings:'设置',signIn:'登录',hint:'读取完成后，即可查看统计。',retry:'重试',failed:'无法加载统计',required:'请在设置中更新 CLI，以启用本地统计。'}};
 function activity(){
@@ -37,6 +38,7 @@ function activity(){
   $('desktopSync').disabled=!!latest.busy||latest.loginBusy||!latest.hasCollector||!latest.cli.compatible;
 }
 async function refresh(){
+  if(!reportsVisible(latest))return;
   if(refreshing){pending=true;return;}
   if(!latest || (latest.dashboardSource==='local'&&!latest.summary))return;
   refreshing=true;loadError='';const context=dataContext(latest);activity();
@@ -52,14 +54,14 @@ function update(state){
   document.body.style.visibility=state.settingsOpen?'hidden':'visible';
   document.body.setAttribute('aria-hidden',String(state.settingsOpen));
   const previous=latest;latest=state;
-  if(previous && dataContext(previous)!==dataContext(state))dataReady=false;
+  if(previous && dataContext(previous)!==dataContext(state)){dataReady=false;started=false;}
   loginDialog.update(state);activity();
   if(!previous||previous.settings.language!==state.settings.language)window.tokenflowDashboard.language(state.settings.language);
-  const key=[state.dashboardSource,state.dashboardRevision,state.reportingDate,state.reportingTimeZone,state.summary?.scannedAt,state.settings.serverUrl,state.account?.id,state.lastSyncAt].join('|');
-  if(key!==revision){revision=key;void refresh();}
+  const key=[state.dashboardSource,state.dashboardRevision,state.reportingDate,state.reportingTimeZone,state.dashboardSource==='local'?state.localUsageRevision:'',state.settings.serverUrl,state.account?.id].join('|');
+  if(key!==revision&&reportsVisible(state)){revision=key;void refresh();}
 }
 async function runAction(action){
-  try {loadError='';await action();await refresh();}
+  try {loadError='';const previous=revision;await action();if(previous===revision)await refresh();}
   catch(error){loadError=error.message;activity();}
 }
 $('desktopSignIn').onclick=()=>loginDialog.open();
@@ -81,10 +83,21 @@ for(const option of document.querySelectorAll('[data-language-option]')){
 }
 // Keep the web sidebar and filters aligned to the single native toolbar.
 new ResizeObserver(([entry])=>document.documentElement.style.setProperty('--desktop-toolbar-height',entry.target.getBoundingClientRect().height+'px')).observe(document.querySelector('.desktop-toolbar'));
-function refreshCalendar(){if(document.visibilityState==='visible'&&window.tokenflowDashboard.refreshCalendar())void refresh();}
+function refreshCalendar(){
+  if(!reportsVisible(latest))return;
+  const previous=revision,changed=window.tokenflowDashboard.refreshCalendar();
+  update(latest);
+  if(changed&&previous===revision)void refresh();
+}
+window.tokenflow.onDeviceMetadata(({serverUrl,accountId,devices})=>{
+  if(latest?.dashboardSource==='cloud'&&latest.settings.serverUrl===serverUrl&&latest.account?.id===accountId)window.tokenflowDashboard.deviceMetadata(devices);
+});
 window.addEventListener('focus',refreshCalendar);document.addEventListener('visibilitychange',refreshCalendar);setInterval(refreshCalendar,60_000);
-window.tokenflow.onState(update);window.tokenflow.getState().then(state=>{
-  update(state);document.documentElement.dataset.tokenflowReady='true';
+let receivedState=false;
+window.tokenflow.onState(state=>{receivedState=true;update(state);});
+window.tokenflow.getState().then(state=>{
+  if(!receivedState)update(state);
+  document.documentElement.dataset.tokenflowReady='true';
 });
 
 }

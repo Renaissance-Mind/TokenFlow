@@ -35,12 +35,15 @@ try {
   replaceOnce(chartUrl[0],'/vendor/'+chartFile);
   replaceOnce('<body>','<body>\n'+await fs.readFile(path.join(desktop,'dashboard/toolbar.html'),'utf8'));
   replaceOnce('async function api(path, options = {}) {','async function api(path, options = {}) {\n      if (window.tokenflow) return window.tokenflow.dashboardRequest(path, options);');
-  replaceOnce('const me = await api(endpoints.me).catch(error => {', 'const me = await api(endpoints.me).catch(error => {\n        if (window.tokenflow) throw error;');
+  replaceOnce('await api(endpoints.me).catch(error => {', 'await api(endpoints.me).catch(error => {\n        if (window.tokenflow) throw error;');
   replaceOnce('if (!me.authenticated) {', "if (!me.authenticated) {\n        if (window.tokenflow) throw new Error('Unable to load account data. Please try again.');");
-  replaceOnce('if (!previewMode && !snapshotMode) await loadApiKeys();','if (!window.tokenflow && !previewMode && !snapshotMode) await loadApiKeys();');
   replaceOnce('function scheduleWidgetPreviewPrefetch() {','function scheduleWidgetPreviewPrefetch() {\n      if (window.tokenflow) return;');
   replaceOnce('const action = previewMode','const action = (previewMode || window.tokenflow)');
-  replaceOnce('loadTbti();\n      await loadDeviceFilters();','if (!window.tokenflowMini) loadTbti();\n      await loadDeviceFilters();');
+  replaceOnce("await loadDeviceFilters();\n      loadTbti();\n      await Promise.all([loadDashboard(), !previewMode && !snapshotMode && loadApiKeys()]);",
+    "await loadDesktopReports();\n    }\n    async function loadDesktopReports() {\n      await loadDeviceFilters();\n      if (!window.tokenflowMini) loadTbti();\n      await Promise.all([loadDashboard(), !window.tokenflow && !previewMode && !snapshotMode && loadApiKeys()]);");
+  replaceOnce("const shareCalendar = snapshotMode || reportingTimeZone() === 'UTC';", "const shareCalendar = !!window.tokenflow || snapshotMode || reportingTimeZone() === 'UTC';");
+  replaceOnce("range.set('time_zone', 'UTC');", "range.set('time_zone', window.tokenflow ? reportingTimeZone() : 'UTC');");
+  replaceOnce("function annualHeatmap(params) {", "function annualHeatmap(params) {\n      if (window.tokenflow) params.set('to', today.toISOString().slice(0, 10));");
   replaceOnce('const fixedWidgetsPromise = options.refreshFixedWidgets === false','const fixedWidgetsPromise = options.refreshFixedWidgets === false || (window.tokenflowMini && !window.tokenflowMini.needsHeatmap)');
   replaceOnce('const hourlyPromise = options.refreshFixedWidgets === false','const hourlyPromise = options.refreshFixedWidgets === false || !!window.tokenflowMini');
   replaceOnce('const element = document.getElementById(elementId);\n      if (!window.echarts)', 'const element = document.getElementById(elementId);\n      if (window.tokenflowMini && (!element.clientWidth || !element.clientHeight)) return currentChart;\n      if (!window.echarts)');
@@ -48,11 +51,35 @@ try {
   replaceOnce('function heatmapParams(days = HEATMAP_DAYS) {\n      const params = filterParams();', 'function heatmapParams(days = HEATMAP_DAYS) {\n      const params = filterParams();\n      if (window.tokenflowMini) params.set(\'to\', selectedToDate());');
   const modelItems="function renderModelShare(models) {\n      const items = models\n        .slice()\n        .sort((a, b) => numberValue(b.total_cost_usd) - numberValue(a.total_cost_usd))\n        .slice(0, 8)";
   replaceOnce(modelItems,modelItems.replace('.slice(0, 8)','.slice(0, window.tokenflowMini ? 4 : 8)'));
+  replaceOnce("const selected = document.getElementById('deviceFilter').value;\n      const data = await api(endpoints.devices);",
+    "applyDesktopDevices(await api(endpoints.devices));\n    }\n    function applyDesktopDevices(data) {\n      const selected = document.getElementById('deviceFilter').value;");
+  const deviceTable = html.match(/document\.getElementById\('devices'\)\.innerHTML = rowsOrEmpty\(summary\.devices[^;]+;/)?.[0];
+  if (!deviceTable) throw new Error('Dashboard device table changed');
+  replaceOnce(deviceTable, 'renderDesktopDevices(summary);');
+  replaceOnce('    boot();', `    function renderDesktopDevices(summary) {
+      ${deviceTable}
+    }
+    function deviceMetadata(devices) {
+      applyDesktopDevices({ devices });
+      if (!dashboardSummaryPayload) return;
+      const latest = new Map(devices.map(device => [device.id, device]));
+      let changed = false;
+      for (const device of dashboardSummaryPayload.devices) {
+        const current = latest.get(device.device_id);
+        if (current && (device.last_sync_at !== current.last_sync_at || device.device_name !== current.name)) {
+          device.last_sync_at = current.last_sync_at;
+          device.device_name = current.name;
+          changed = true;
+        }
+      }
+      if (changed) { renderDesktopDevices(dashboardSummaryPayload); renderPaneMeta(dashboardSummaryPayload); }
+    }
+    boot();`);
   replaceOnce('    boot();',`    function currentDashboardDate() {
       const now = new Date();
       return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())).toISOString().slice(0, 10);
     }
-    window.tokenflowDashboard = { boot, refresh: async () => { usageHeatmapCache.clear(); hourlyCache.clear(); await boot(); }, language: applyLanguage,
+    window.tokenflowDashboard = { boot, deviceMetadata, refresh: async () => { usageHeatmapCache.clear(); hourlyCache.clear(); await loadDesktopReports(); }, language: applyLanguage,
       currentDate: currentDashboardDate, refreshCalendar: refreshReportingCalendar,
       miniRange: days => { selectedTrendDays = days; dashboardAllRange = false; const to = currentDashboardDate(); document.getElementById('from').value = rangeStartDate(to, days); document.getElementById('to').value = to; }, repaint: refreshThemeSensitiveViews };`);
   html=html.replace('</head>','<link rel="stylesheet" href="/desktop.css"><link rel="stylesheet" href="/progress.css"><link rel="stylesheet" href="/window-chrome.css"><link rel="stylesheet" href="/tray.css"></head>');
