@@ -63,6 +63,21 @@ describe("local harness compatibility", () => {
     expect(events.find(event => event.totalTokens === 110)?.model).toBe("claude-opus-5-5-medium");
     expect(events.find(event => event.totalTokens === 6)?.model).toBe("model_placeholder_m499");
   });
+  it("resolves an unlabelled request by its model ID and preserves the named effort", async () => {
+    const home = await root(); delete process.env.ANTIGRAVITY_DATA_DIR;
+    const dir = path.join(home, ".gemini/antigravity/conversations"); await fs.mkdir(dir, { recursive: true });
+    const at = proto([9, proto([4, proto([1, 1795165200])])]);
+    const generation = (route?: string, label?: string) => proto([1, Buffer.concat([at, proto(
+      [3, 1888], [4, proto([1, 1888], [2, 14])],
+      ...(route ? [[19, route] as [number, string]] : []), ...(label ? [[21, label] as [number, string]] : []),
+    )])]);
+    sqlite(path.join(dir, "models.db"), `CREATE TABLE gen_metadata(idx INTEGER PRIMARY KEY,data BLOB);
+      INSERT INTO gen_metadata VALUES(1,X'${generation("gemini-4-neon", "Gemini 4 Neon (XHigh)").toString("hex")}');
+      INSERT INTO gen_metadata VALUES(2,X'${generation().toString("hex")}');`);
+    const result = await collectAntigravity(home);
+    expect(result.events.map(row => row.model)).toEqual(["gemini-4-neon-xhigh", "gemini-4-neon-xhigh"]);
+  });
+
   it.each([false, true])("deduplicates unkeyed Antigravity step mirrors with packed indices %s", async packed => {
     const home = await root(); delete process.env.ANTIGRAVITY_DATA_DIR;
     const usage = proto([1, 1417], [2, 15027], [3, 49], [10, 49]);
@@ -124,6 +139,9 @@ describe("local harness compatibility", () => {
     [1419, "Gemini 4 Argon", "gemini-4-argon"],
     [1050, "model_placeholder_m50", "gemini-3.1-flash-lite"],
     [1050, "Gemini 3.1 Flash Lite", "gemini-3.1-flash-lite"],
+    [1532, undefined, "gemini-4-neon-high"],
+    [1528, "MODEL_PLACEHOLDER_M528", "gemini-4-hydrogen-xhigh"],
+    [1264, undefined, "gemini-3.6-flash-high"],
     [1402, undefined, "claude-opus-5-5"],
     [1402, "model_placeholder_m402", "claude-opus-5-5"],
   ] as const)("attributes Antigravity model %s from native metadata", async (modelId, label, model) => {

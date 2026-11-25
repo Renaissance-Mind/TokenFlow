@@ -106,7 +106,20 @@ const MODEL_IDS: Record<number, string> = {
   1417: "gemini-4-argon",
   1418: "gemini-4-argon",
   1419: "gemini-4-argon",
+  1264: "gemini-3.6-flash-high",
+  1401: "claude-opus-5-5-medium",
   1402: "claude-opus-5-5",
+  1427: "gemini-4-carbon-high",
+  1525: "gemini-4-hydrogen-high",
+  1526: "gemini-4-hydrogen-medium",
+  1527: "gemini-4-hydrogen-low",
+  1528: "gemini-4-hydrogen-xhigh",
+  1530: "gemini-4-hydrogen-tiered-high",
+  1532: "gemini-4-neon-high",
+  1533: "gemini-4-neon-medium",
+  1535: "gemini-4-neon-xhigh",
+  1537: "gemini-pro-orchestrator-neon",
+  1669: "gemini-flash-worker-agy",
   1050: "gemini-3.1-flash-lite",
   1026: "claude-opus-4-6",
   1035: "claude-sonnet-4-6",
@@ -133,10 +146,10 @@ function modelName(id: number): string | undefined {
 
 function normalizeModel(raw: string | undefined): string | undefined {
   if (!raw) return undefined;
-  const placeholder = /^model_placeholder_m(\d+)$/.exec(raw);
+  const placeholder = /^model_placeholder_m(\d+)$/i.exec(raw);
   if (placeholder) return modelName(Number(placeholder[1]) + 1000);
-  const effort = /^gemini (3\.[678]) flash \((high|medium|low)\)$/i.exec(raw);
-  if (effort) return `gemini-${effort[1]}-flash-${effort[2].toLowerCase()}`;
+  const effort = /^(gemini (?:3\.[678] flash|[4-9][\w. -]*)) \((low|medium|high|xhigh)\)$/i.exec(raw);
+  if (effort) return `${effort[1]}-${effort[2]}`.toLowerCase().replaceAll(" ", "-");
   const cleaned = raw.toLowerCase().split("(")[0].trim().replaceAll(" ", "-");
   const aliases: Record<string, string> = {
     "gemini-pro-default": "gemini-3.1-pro",
@@ -155,9 +168,17 @@ function normalizeModel(raw: string | undefined): string | undefined {
   return aliases[cleaned] || cleaned.replace(/-thinking$/, "");
 }
 
+function nativeModel(backend: string | undefined, label: string | undefined): string | undefined {
+  const name = backend && !/^model_placeholder_m\d+$/i.test(backend) ? normalizeModel(backend) : undefined;
+  const display = label && !/^model_placeholder_m\d+$/i.test(label) ? normalizeModel(label) : undefined;
+  if (name && display?.startsWith(name + "-") && /-(low|medium|high|xhigh)$/.test(display)) return display;
+  return name || display;
+}
+
 interface Metadata {
   model?: string;
   modelId?: number;
+  nativeModel?: string;
   time?: string;
   provider: number;
   usages: Fields[];
@@ -185,13 +206,14 @@ export function parseAntigravityMetadata(hex: string, step: boolean): Metadata {
       && [7, 11, 12].every(field => !text(retry, field) || text(retry, field) === text(primary, field)));
     if (mirror >= 0) attempts.splice(mirror, 1);
   }
+  const modelId = number(info, step ? 1 : 3) || undefined;
+  const backend = text(info, step ? 12 : 19);
+  const label = text(info, step ? 8 : 21);
+  const native = nativeModel(backend, label);
   return {
-    modelId: number(step ? info : fields, step ? 1 : 3) || undefined,
-    model: normalizeModel(
-      step
-        ? text(info, 12) || text(info, 8) || modelName(number(info, 1))
-        : text(fields, 19) || text(fields, 21) || modelName(number(fields, 3)),
-    ),
+    modelId,
+    nativeModel: native,
+    model: native || normalizeModel(backend || label) || modelName(modelId || 0),
     time: step
       ? timestamp(nested(fields, bytes(fields, 8) ? 8 : 1))
       : timestamp(nested(nested(fields, 9), 4)),
@@ -359,8 +381,15 @@ export async function planAntigravity(home: string) {
               const generationModel = [...generation]
                 .reverse()
                 .find((row) => row.model)?.model;
+              const metadata = [...steps, ...generation];
+              const names = new Map<number, string | null>();
+              for (const row of metadata) {
+                if (!row.modelId || !row.nativeModel) continue;
+                const prior = names.get(row.modelId);
+                names.set(row.modelId, prior === undefined || prior === row.nativeModel ? row.nativeModel : null);
+              }
               let currentModel: string | undefined;
-              for (const meta of [...steps, ...generation]) {
+              for (const meta of metadata) {
                 if (meta === generation[0]) currentModel = undefined;
                 currentModel = meta.model || currentModel;
                 for (const usage of meta.usages) {
@@ -392,7 +421,7 @@ export async function planAntigravity(home: string) {
                   const event = makeUsageEvent({
                     agent: "antigravity",
                     model:
-                      usageModel(usage, meta) ||
+                      usageModel(usage, meta, names) ||
                       currentModel ||
                       (steps.includes(meta) ? generationModel : undefined) ||
                       "gemini-internal-model",
@@ -446,9 +475,9 @@ export async function collectAntigravity(home: string) { return (await planAntig
 function modelResolution(model: string): number {
   return model === "gemini-internal-model" ? 0 : /^(model_placeholder_m|antigravity-model-)/.test(model) ? 1 : 2;
 }
-function usageModel(usage: Fields, meta: Metadata): string | undefined {
-  const id = number(usage, 1), resolved = normalizeModel(modelName(id));
-  if (resolved && modelResolution(resolved) === 2) return resolved;
-  if (id && id === meta.modelId && meta.model && modelResolution(meta.model) === 2) return meta.model;
-  return resolved;
+function usageModel(usage: Fields, meta: Metadata, names: Map<number, string | null>): string | undefined {
+  const id = number(usage, 1);
+  if (!id) return undefined;
+  const native = (id === meta.modelId ? meta.nativeModel : undefined) || names.get(id);
+  return MODEL_IDS[id] || native || modelName(id);
 }

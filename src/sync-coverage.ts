@@ -117,9 +117,12 @@ export function coverageFromSources(events: UsageEvent[], sources: Map<string, S
     const id = sourceId(event.sourcePath);
     if (sources.has(id)) scope.ids.add(id); else scope.unknown = true;
   }
-  return [...scopes.values()].filter(scope => !scope.unknown && scope.ids.size).map(scope => ({
-    agent: scope.agent, day: scope.day, revision: ACCOUNTING_REVISION,
-    sources: [...scope.ids].sort().map(id => ({ ...sources.get(id)!, revision: ACCOUNTING_REVISION,
-      daily: toUsageSnapshotPayload(aggregateEvents(groupedEvents.get(coverageKey(scope) + "\0" + id) || [], pricing)).daily })),
-  })).sort((a, b) => coverageKey(a).localeCompare(coverageKey(b)));
+  return [...scopes.values()].filter(scope => !scope.unknown && scope.ids.size).map(scope => {
+    const revision = scope.agent === "antigravity" ? 2 : ACCOUNTING_REVISION;
+    return {
+      agent: scope.agent, day: scope.day, revision,
+      sources: [...scope.ids].sort().map(id => ({ ...sources.get(id)!, revision,
+        daily: toUsageSnapshotPayload(aggregateEvents(groupedEvents.get(coverageKey(scope) + "\0" + id) || [], pricing)).daily })),
+    };
+  }).sort((a, b) => coverageKey(a).localeCompare(coverageKey(b)));
 }
