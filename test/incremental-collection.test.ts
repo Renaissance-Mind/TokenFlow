@@ -63,6 +63,39 @@ it("reuses historical files and resumes cumulative counts at the appended bytes"
   }
 });
 
+it("keeps one bounded result as transcripts enter and leave the scan", async () => {
+  const root = await setup();
+  const message = (id: string) => jsonl([{ timestamp: "2026-10-16T10:00:00Z", requestId: id,
+    message: { id, model: "claude-sonnet-4-6", usage: { input_tokens: 10, output_tokens: 2 } } }]);
+  const original = await put(root, ".claude/projects/p/base.jsonl", message("base"));
+  const cache = path.join(root, "data/collection-cache");
+  const resultFile = path.join(cache, "collection-result.bin");
+  const base = await scan(root);
+  expect(base.tokens).toBe(12);
+  const baseSize = (await fs.stat(resultFile)).size;
+  const sources = (await fs.readdir(cache)).find(name => name.startsWith("sources-"))!;
+  for (let index = 0; index < 12; index++) {
+    const transcript = message(`extra-${index}`);
+    const extra = await put(root, `.claude/projects/p/${index}.jsonl`, transcript);
+    const added = await scan(root);
+    expect(added.tokens).toBe(24);
+    expect(added.bytes).toBe(Buffer.byteLength(transcript));
+    expect(added.revision).not.toBe(base.revision);
+    expect((await fs.stat(resultFile)).size).toBeLessThan(baseSize * 2);
+    await fs.unlink(extra);
+    const removed = await scan(root);
+    expect(removed.events).toEqual(base.events);
+    expect(removed.bytes).toBe(0);
+    expect((await fs.stat(resultFile)).size).toBeLessThan(baseSize + 128);
+    expect((await fs.readdir(cache)).sort()).toEqual(["collection-result.bin", sources]);
+    expect(await fs.readdir(path.join(cache, sources))).toHaveLength(index + 2); // one JSONL checkpoint per transcript
+  }
+  const warmFile = await fs.stat(resultFile, { bigint: true });
+  expect((await scan(root)).events).toEqual(base.events);
+  expect((await fs.stat(resultFile, { bigint: true })).mtimeNs).toBe(warmFile.mtimeNs);
+  expect(await fs.readFile(original, "utf8")).toBe(message("base"));
+});
+
 it("retains a torn EOF record until completed and replaces truncated or rotated files", async () => {
   const root = await setup();
   const file = await put(root, ".codex/sessions/a.jsonl", jsonl([...header(), row(100)]));
@@ -137,8 +170,19 @@ it("rebuilds a corrupted source cache and publishes stable snapshots consumed wi
   expect((await desktopAction("state") as any).summary).toEqual((await readLocalCache())!.summary);
   expect((await desktopAction("dashboard", {path:"/api/usage/summary?from=2026-10-16&to=2026-10-16"}) as any).totals.total_tokens).toBe("100");
   await fs.rename(path.join(root, "removed-codex"), path.join(root, ".codex"));
-  const directory = (await fs.readdir(path.join(root, "data/collection-cache"), {withFileTypes:true})).find(entry=>entry.isDirectory())!;
-  const cache = path.join(root, "data/collection-cache", directory.name);
+  const cacheRoot = path.join(root, "data/collection-cache");
+  const resultFile = path.join(cacheRoot, "collection-result.bin");
+  const bytes = await fs.readFile(resultFile);
+  bytes[bytes.length - 1] ^= 1;
+  await fs.writeFile(resultFile, bytes);
+  await fs.writeFile(resultFile + ".tmp", "interrupted replacement");
+  const recovered = await scan(root);
+  expect(recovered.events).toEqual(first.events);
+  expect(recovered.bytes).toBe(0);
+  expect(await fs.readdir(cacheRoot)).not.toContain("collection-result.bin.tmp");
+  const directory = (await fs.readdir(cacheRoot, {withFileTypes:true})).find(entry=>entry.isDirectory())!;
+  const cache = path.join(cacheRoot, directory.name);
+  await fs.unlink(resultFile);
   for (const name of await fs.readdir(cache)) await fs.writeFile(path.join(cache, name), "broken");
   const rebuilt = await scan(root);
   expect(rebuilt.tokens).toBe(100); expect(rebuilt.bytes).toBeGreaterThan(0);
