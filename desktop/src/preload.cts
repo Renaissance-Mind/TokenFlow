@@ -23,7 +23,13 @@ contextBridge.exposeInMainWorld("tokenflow", Object.freeze({
     ipcRenderer.on("tokenflow:settings-section",listener);
     return ()=>ipcRenderer.removeListener("tokenflow:settings-section",listener);
   },
+  setTrayEditorActive: (active: boolean) => ipcRenderer.invoke("tokenflow:tray-editor-active", active),
   resizeTray: (height: number) => ipcRenderer.invoke("tokenflow:resize-tray", height),
+  onDeviceMetadata: (callback: (value: unknown) => void) => {
+    const listener = (_event: unknown, value: unknown) => callback(value);
+    ipcRenderer.on("tokenflow:device-metadata", listener);
+    return () => ipcRenderer.removeListener("tokenflow:device-metadata", listener);
+  },
   onState: (callback: (state: unknown) => void) => {
     const listener = (_event: unknown, state: unknown) => callback(state);
     ipcRenderer.on("tokenflow:changed", listener);
