@@ -92,14 +92,15 @@ export async function syncLocalUsageWithHeldLock(options: SyncOptions = {}): Pro
   if ((authorization?.apiToken || authorization?.deviceToken) !== uploadToken || authorization?.serverUrl !== config.serverUrl) throw new Error("Collector authorization changed during collection. Retry with the current account.");
   options.signal?.throwIfAborted();
   options.onPhase?.("upload");
-  const hasChanges = changedScopes.size > 0;
-  const result = hasChanges
-    ? await ingestUsageSnapshot({ serverUrl, uploadToken, deviceName, platform: process.platform, buckets: delta, coverage: deltaCoverage })
-    : { accepted: 0, updated: 0 };
-  if (hasChanges) await writeSyncState(markSyncPlanUploaded(state,
-    { buckets, replaceDailyBuckets: [], replaceUnknownBuckets: [] }, new Date().toISOString()));
-  if (hasChanges) await writeCoverageState({ revision: ACCOUNTING_REVISION, scopes: coverage });
-  await syncPing(serverUrl, uploadToken, { deviceName, platform: process.platform });
+  let result = { accepted: 0, updated: 0 };
+  if (changedScopes.size) {
+    result = await ingestUsageSnapshot({ serverUrl, uploadToken, deviceName, platform: process.platform, buckets: delta, coverage: deltaCoverage });
+    await writeSyncState(markSyncPlanUploaded(state,
+      { buckets, replaceDailyBuckets: [], replaceUnknownBuckets: [] }, new Date().toISOString()));
+    await writeCoverageState({ revision: ACCOUNTING_REVISION, scopes: coverage });
+  } else {
+    await syncPing(serverUrl, uploadToken, { deviceName, platform: process.platform });
+  }
   const latest = await readConfig();
   if ((latest?.apiToken || latest?.deviceToken) !== uploadToken || latest?.serverUrl !== config.serverUrl) {
     throw new Error("Collector authorization changed during sync. Retry with the current account.");
