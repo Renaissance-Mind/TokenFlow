@@ -2,6 +2,7 @@ import './native-test-policy.mjs';
 import { _electron as electron, expect as baseExpect } from '@playwright/test';
 const expect=baseExpect.configure({timeout:60_000});
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -512,7 +513,17 @@ try {
   assert.equal(await page.evaluate(()=>window.dashboardIdentity===document.getElementById('app')),true);
   await expect.poll(()=>instance.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('mode=dashboard')).isVisible())).toBe(true);
   assert.equal(instance.windows().some(w=>/mode=(login|local)$/.test(w.url())),false);
-  try{await settings.evaluate(()=>window.tokenflow.checkUpdate());}catch(error){if(!executablePath)throw error;assert.equal((await settings.evaluate(()=>window.tokenflow.getState())).update.status,'error');}
+  const missingUpdateConfig = executablePath && !existsSync(path.join(await instance.evaluate(() => process.resourcesPath), 'app-update.yml'));
+  try {
+    await settings.evaluate(() => window.tokenflow.checkUpdate());
+  } catch (error) {
+    if (!executablePath || missingUpdateConfig) throw error;
+    assert.equal((await settings.evaluate(() => window.tokenflow.getState())).update.status, 'error');
+  }
+  if (missingUpdateConfig) {
+    assert.equal((await settings.evaluate(() => window.tokenflow.getState())).update.status, 'manual');
+    await expect(settings.locator('#downloadUpdate')).toHaveJSProperty('hidden', false);
+  }
   await expect.poll(async()=>(await page.evaluate(()=>window.tokenflow.getState())).pendingRequests,{timeout:30_000}).toBe(0);
   assert.deepEqual(errors,[]);
   if(positionTest) {

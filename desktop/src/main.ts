@@ -860,6 +860,12 @@ async function updateAction(action: unknown): Promise<void> {
       : "This App uses a legacy signature. Download the latest macOS installer, quit TokenFlow, and replace the App in Applications. Your account and usage history are retained. In-app updates will work after this one-time installation." };
     return;
   }
+  if (!await readOptional(path.join(process.resourcesPath, "app-update.yml"))) {
+    state.update = { status: "manual", message: state.settings.language === "zh"
+      ? "此构建缺少应用内更新配置。请通过安装包更新 TokenFlow。"
+      : "This build is missing its update configuration. Use the installer to update TokenFlow." };
+    return;
+  }
   // app-update.yml points to the static desktop-latest release feed. Reading
   // its manifest avoids GitHub's shared anonymous REST API quota entirely.
   await autoUpdater.checkForUpdates();
