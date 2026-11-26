@@ -14,11 +14,23 @@ import { aggregateEvents } from "./usage-buckets.js";
 import { getUploadApiTokenStatus, getDeviceStatus, renameDevice } from "./api.js";
 import { installAutoSync } from "./scheduler.js";
 import { setHttpClient } from "./http-client.js";
+import { readCodexSessionUsage } from "./session-usage.js";
 import { initializeSqliteReader } from "./sources/store-io.js";
 
 // Private stdio protocol, shared by npm installs and App-installed CLIs.
 // Credentials stay on stdin/stdout between the two local processes.
 export async function desktopAction(action: string, params: Record<string, any> = {}, phase = (_value: string) => {}, progress?: (value: ScanProgress) => void): Promise<unknown> {
+  if (action === "session-usage") {
+    const { from, to, timeZone } = params;
+    const controller = new AbortController();
+    const cancel = () => controller.abort();
+    process.once("SIGTERM", cancel);
+    try {
+      return await readCodexSessionUsage({ from, to, timeZone }, controller.signal);
+    } finally {
+      process.removeListener("SIGTERM", cancel);
+    }
+  }
   if (action === "dashboard") {
     const snapshot = await readLocalCache();
     if (snapshot) return localDashboardApi(snapshot.dashboard, await readConfig(), params.path);

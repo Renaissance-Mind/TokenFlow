@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld("tokenflow", Object.freeze({
   refreshDashboard: () => ipcRenderer.invoke("tokenflow:refresh-dashboard"),
   dashboard: () => ipcRenderer.invoke("tokenflow:dashboard"),
   dashboardRequest: (path: string, options?: unknown) => ipcRenderer.invoke("tokenflow:dashboard-request", path, options),
+  sessionUsage: (from: string, to: string) => ipcRenderer.invoke("tokenflow:session-usage", from, to),
   setApiToken: (token: string) => ipcRenderer.invoke("tokenflow:api-token", token),
   checkCliUpdate: () => ipcRenderer.invoke("tokenflow:cli-update", "check"),
   upgradeCli: () => ipcRenderer.invoke("tokenflow:cli-update", "install"),

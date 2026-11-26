@@ -1,0 +1,113 @@
+.desktop-toolbar .session-usage-trigger {
+  padding: 6px 9px;
+  border-radius: 8px;
+  color: var(--accent-ink);
+  -webkit-app-region: no-drag;
+}
+
+.desktop-toolbar .session-usage-trigger:hover {
+  background: var(--accent-soft);
+}
+
+.desktop-toolbar .session-usage-trigger[hidden] { display: none; }
+
+.session-usage {
+  box-sizing: border-box;
+  width: min(1050px, calc(100vw - 48px));
+  max-height: calc(100dvh - 48px);
+  padding: 22px 24px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface-raised);
+  color: var(--text);
+  font: 13px var(--font);
+  overflow: auto;
+}
+
+.session-usage[open] { display: flex; flex-direction: column; gap: 14px; }
+.session-usage [hidden] { display: none !important; }
+.session-usage::backdrop { background: rgba(19, 29, 45, .43); }
+.session-usage-heading, .session-usage-range, .session-usage-controls, .session-usage-pages {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.session-usage-heading { justify-content: space-between; }
+.session-usage-heading h2 { font-size: 20px; }
+.session-usage button, .session-usage input, .session-usage select {
+  min-height: 32px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+}
+
+.session-usage button { cursor: pointer; }
+.session-usage button:disabled { opacity: .5; cursor: default; }
+.session-usage button:hover:not(:disabled), .session-usage button[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.session-usage .session-usage-close {
+  width: 32px;
+  border: 0;
+  padding: 0;
+  font-size: 21px;
+  line-height: 1;
+}
+
+.session-usage-range { align-items: end; }
+.session-usage-range label { display: grid; gap: 3px; color: var(--muted); font-size: 11px; }
+.session-usage-range input { font-size: 13px; }
+.session-usage-range button[type="submit"] { color: var(--accent-contrast); background: var(--accent); border-color: var(--accent); }
+.session-usage-presets, .session-usage-views { display: flex; gap: 4px; }
+.session-usage-presets { margin-right: 6px; }
+.session-usage-totals {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.session-usage-totals dt, .session-usage-note, .session-usage-pages { color: var(--muted); font-size: 12px; }
+.session-usage-totals dd { margin: 4px 0 0; font-size: clamp(15px, 2vw, 21px); font-weight: 650; overflow-wrap: anywhere; }
+.session-usage-note, .session-usage-status { margin: 0; }
+.session-usage-status { padding: 20px 0; color: var(--muted); overflow-wrap: anywhere; }
+.session-usage-controls input { flex: 1 1 160px; min-width: 0; }
+.session-usage .session-usage-filter { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.session-usage-scroll { min-height: min(150px, 28vh); overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
+.session-usage table { width: 100%; table-layout: fixed; margin: 0; border-collapse: separate; border-spacing: 0; }
+.session-usage th, .session-usage td { text-align: left; padding: 9px 10px; white-space: normal; overflow-wrap: anywhere; vertical-align: top; border-bottom: 1px solid var(--line); }
+.session-usage th { position: sticky; top: 0; z-index: 1; background: var(--surface-raised); }
+.session-usage tr:last-child td { border-bottom: 0; }
+.session-usage th:first-child { width: 33%; }
+.session-usage td strong { display: block; font-weight: 600; }
+.session-usage td code, .session-usage td small { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; }
+.session-usage .session-usage-number { text-align: right; font-variant-numeric: tabular-nums; }
+.session-usage th.session-usage-number { width: 14%; }
+.session-usage .session-usage-project {
+  display: block;
+  min-height: auto;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  color: var(--accent-ink);
+  overflow-wrap: anywhere;
+}
+
+.session-usage-pages { justify-content: flex-end; }
+.session-usage-pages span { margin-right: auto; }
+
+@media (max-width: 700px) {
+  .session-usage { width: calc(100vw - 20px); padding: 14px; }
+  .session-usage table { min-width: 600px; }
+}

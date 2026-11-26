@@ -193,6 +193,7 @@ tokenflow device-name "Private Mac" --remote
 tokenflow device-name "Private Mac" --local-only
 tokenflow sync
 tokenflow status
+tokenflow sessions --days 7
 tokenflow update [--source @renaissancemind/tokenflow@latest|/path/to/TokenFlow]
 tokenflow logout
 ```
@@ -204,8 +205,11 @@ tokenflow logout
 | `device-name` | Updates the local device name used by future uploads. In an interactive terminal it asks once whether to update the current server device too; use `--remote` or `--local-only` for scripts. |
 | `sync` | Parses local usage, builds UTC half-hour buckets, uploads new or changed buckets, and updates `lastSyncAt`. |
 | `status` | Prints local config, source availability, bucket counts, auth status, and unpriced models. |
+| `sessions` | Reports local Codex tokens and estimated API cost by session and recorded working directory. |
 | `update` | Reinstalls the global package and refreshes the auto-sync scheduler. |
 | `logout` | Removes local upload tokens while keeping non-secret config. |
+
+`tokenflow sessions` defaults to the last seven calendar days, including today. Each row identifies the session, project path, and usage within the dates selected. Older sessions appear when they have usage during the range. Use `--from YYYY-MM-DD --to YYYY-MM-DD` for custom dates, `--time-zone Asia/Singapore` to override the local time zone, and `--json` for machine-readable output. The report uses the latest completed local collection, or reads the local Codex logs on demand when no snapshot is available. Session titles, IDs, and paths stay on this device.
 
 ## Pricing Model
 

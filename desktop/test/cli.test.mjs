@@ -40,6 +40,7 @@ test('an App-installed CLI remains usable independently of App and reports local
     assert.equal(selected.node,process.execPath);assert.ok(!selected.entrypoint.startsWith(payload));
     const resolved=await findCli({home:root,env:process.env});assert.equal(resolved.entrypoint,selected.entrypoint);
     const client=new CliClient(selected);
+    assert.equal(selected.sessionUsage,true);
     await client.request('configure',{serverUrl:'https://example.com',deviceName:'Shared CLI',paused:true});
     const auto=await promisify(execFile)(selected.node,[selected.entrypoint,'sync','--auto'],{env:process.env});
     assert.equal(auto.stdout,'');assert.equal((await client.request('state')).config.autoSyncPaused,true);
@@ -49,6 +50,8 @@ test('an App-installed CLI remains usable independently of App and reports local
     assert.equal(progress.at(-1).percent,100);assert.equal(progress.at(-1).processedFiles,progress.at(-1).totalFiles);
     assert.equal(scan.summary.today.tokens,0);assert.deepEqual(phases,['scan']);
     assert.ok(scan.summary.sources.some(source=>source.agent==='codex'));
+    const report=await client.request('session-usage',{from:'2026-10-14',to:'2026-10-20',timeZone:'UTC'});
+    assert.equal(report.agent,'codex');assert.equal(report.from,'2026-10-14');assert.deepEqual(report.sessions,[]);
   }finally{process.env=old;await fs.rm(root,{recursive:true,force:true});}
 });
 test('CLI cancellation releases only its own sync lock and leaves authorization intact',async()=>{

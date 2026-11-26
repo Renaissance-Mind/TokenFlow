@@ -23,3 +23,10 @@ test('menu bar icon visibility persists independently of the displayed metric',(
   assert.deepEqual(appSettings({showTrayIcon:'false',trayMetric:'invalid'}),{});
   assert.deepEqual(appSettings({trayMetric:'icon'}),{trayMetric:'icon'});
 });
+
+test('local session usage is an explicit App preference',()=>{
+  assert.equal(appSettings({}).showSessionUsage,undefined);
+  assert.deepEqual(appSettings({showSessionUsage:true}),{showSessionUsage:true});
+  assert.deepEqual(appSettings({showSessionUsage:false}),{showSessionUsage:false});
+  assert.deepEqual(appSettings({showSessionUsage:'false'}),{});
+});

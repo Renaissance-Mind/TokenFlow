@@ -18,6 +18,8 @@ Object.assign(texts.en,{popupTitle:'Menu bar popup',popupDescription:'Choose the
 Object.assign(texts.zh,{popupTitle:'菜单栏小窗',popupDescription:'点击菜单栏图标时，展示你选择的 Dashboard 模块。',popupRange:'默认时间范围',popup7:'最近 7 天',popup30:'最近 30 天',popupTheme:'外观',popupSystem:'跟随系统',popupLight:'浅色',popupDark:'深色',popupSections:'显示模块',popupOverview:'用量总览',popupOverviewHint:'Token、费用与迷你走势',popupTrend:'每日趋势',popupTrendHint:'与 Dashboard 相同的用量曲线',popupModels:'模型分布',popupModelsHint:'查看主要模型的费用占比',popupActivity:'Token 活跃度',popupActivityHint:'查看一整年的使用节奏',savePopup:'保存小窗设置',popupSaved:'小窗设置已保存。',popupRequired:'请至少选择一个 Dashboard 模块。'});
 Object.assign(texts.en,{languageSaved:'Language updated.',languageSavedDraft:'Language updated. Save your other changes separately.'});
 Object.assign(texts.zh,{languageSaved:'语言已更新。',languageSavedDraft:'语言已更新，其他修改需点击保存。'});
+Object.assign(texts.en,{usage:'Usage',showSessionUsage:'Codex session usage on this device'});
+Object.assign(texts.zh,{usage:'用量统计',showSessionUsage:'本机 Codex 会话用量'});
 Object.assign(texts.en,{
   overviewSubtitle:'Manage your TokenFlow account, preferences and menu bar.',accountSummaryHint:'Connect your account across App and CLI',preferencesSummaryHint:'Device, language and startup options',popupSummaryHint:'Menu bar display and popup layout',updatesSummaryHint:'Installation information and version updates',sharedAccountHint:'App and CLI share account and sync settings.',connectDescription:'App and CLI are using the same account and sync settings.',accountSubtitle:'Use the same account and sync settings in App and CLI.',accountStateLabel:'Account status',currentDevice:'Current device',signOutTitle:'Sign out of this account',signOutHint:'Signing out disconnects this account from both App and CLI.',connectAccount:'Connect your account',connectAccountHint:'Sign in to view synced usage in Dashboard.',orToken:'Or use an API token',preferencesSubtitle:'Set up this device, language and startup behavior.',deviceConnection:'Device and connection',deviceHint:'The name used to identify this computer.',serverHint:'Sign out to change the server.',interfaceLanguage:'Interface language',languageHint:'Choose the language used by the App.',startupSync:'Startup and sync',updatesSubtitle:'View local installations and manage App and CLI updates separately.',appDescription:'Desktop Dashboard, Settings and menu bar popup.',cliInstalled:'Installed',installLocation:'Installation location',independentUpdates:'App and CLI can be checked for updates separately.',displayMode:'Display mode',menuBarPreview:'Menu bar preview'
 });
@@ -107,7 +109,7 @@ function render(state) {
   $('logout').disabled = state.loginBusy;
   if (!dirty) {
     for (const key of ['deviceName','serverUrl']) $(key).value = state.settings[key];
-    for (const key of ['launchAtLogin','paused']) $(key).checked = state.settings[key];
+    for (const key of ['launchAtLogin','paused','showSessionUsage']) $(key).checked = state.settings[key];
   }
   if(!languageSaving)$('language').value=state.settings.language;
   trayEditor.update(state);
@@ -163,7 +165,7 @@ if (!window.tokenflow) {
   }));
   $('preferences').addEventListener('submit', (event) => {
     event.preventDefault(); run(async () => {
-      await window.tokenflow.saveSettings({deviceName:$('deviceName').value,serverUrl:$('serverUrl').value,language:$('language').value,launchAtLogin:$('launchAtLogin').checked,paused:$('paused').checked});
+      await window.tokenflow.saveSettings({deviceName:$('deviceName').value,serverUrl:$('serverUrl').value,language:$('language').value,launchAtLogin:$('launchAtLogin').checked,paused:$('paused').checked,showSessionUsage:$('showSessionUsage').checked});
       dirty = false; render(await window.tokenflow.getState()); $('savedStatus').textContent = texts[current.settings.language].saved;
     });
   });

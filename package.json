@@ -10,7 +10,8 @@
   "type": "module",
   "tokenflow": {
     "desktopProtocol": 2,
-    "backgroundCollector": 1
+    "backgroundCollector": 1,
+    "sessionUsage": 1
   },
   "bin": {
     "tokenflow": "dist/cli.js",

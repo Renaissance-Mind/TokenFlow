@@ -78,6 +78,7 @@ const runtime = app.isPackaged ? path.join(realpathSync.native(process.resources
 const standaloneNode = () => process.env.TOKENFLOW_NODE_PATH || (app.isPackaged ? path.join(realpathSync.native(process.resourcesPath), `node-${process.arch}`, process.platform === "win32" ? "node.exe" : "node") : "");
 const defaultSettings: Settings = {
   serverUrl: process.env.TOKENFLOW_SERVER_URL || "https://tokenflow.renaissancemind.ai", deviceName: os.hostname(), launchAtLogin: true,
+  showSessionUsage: false,
   paused: false, showTrayIcon: true, trayMetric: "cost", trayRange: 7, trayTheme: "system", trayWidgets: ["overview", "trend", "models"], language: app.getLocale().startsWith("zh") ? "zh" : "en",
 };
 const state: DesktopState = {
@@ -692,7 +693,7 @@ async function configureScheduler(): Promise<void> {
 async function selectCli(value: CliInstallation): Promise<void> {
   await cli?.stopBackground();
   await rememberCli(value);
-  installation = value; cli = new CliClient(value, desktopFetch);
+  installation = value; cli = new CliClient(value, desktopFetch, path.join(runtime, "dist", "cli.js"));
   state.collectorVersion = value.version;
   state.cli = { source: value.source, version: value.version, path: value.entrypoint, compatible: value.compatible,
     updateStatus: value.compatible ? "idle" : "required" };
@@ -774,7 +775,7 @@ async function saveSettings(value: unknown): Promise<void> {
     next.deviceName = String(patch.deviceName).trim();
     if (!next.deviceName || next.deviceName.length > 120) throw new Error("Device name must be 1–120 characters");
   }
-  for (const key of ["launchAtLogin", "paused", "showTrayIcon"] as const) {
+  for (const key of ["launchAtLogin", "paused", "showTrayIcon", "showSessionUsage"] as const) {
     if (patch[key] !== undefined) { if (typeof patch[key] !== "boolean") throw new Error("Invalid setting"); next[key] = patch[key]!; }
   }
   if (patch.trayMetric !== undefined) { if (!["cost", "tokens", "icon"].includes(patch.trayMetric)) throw new Error("Invalid menu bar metric"); next.trayMetric = patch.trayMetric; }
@@ -958,6 +959,16 @@ async function initialize(): Promise<void> {
     if (details.url === `${state.settings.serverUrl}/api/auth/logout` && details.statusCode === 200 && !loggingOut) void logoutDesktop().catch((error) => { state.error = message(error); emit(); });
   });
   ipcMain.handle("tokenflow:state", event => { checkSender(event); return rendererState(event.sender); });
+  ipcMain.handle("tokenflow:session-usage", async (event, from: unknown, to: unknown) => {
+    checkSender(event);
+    if (event.sender !== dashboardWindow?.webContents || !state.settings.showSessionUsage) throw new Error("Session usage is off");
+    if (typeof from !== "string" || typeof to !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+      throw new Error("Invalid session usage date range");
+    }
+    const report = await cli.request("session-usage", { from, to, timeZone: new Intl.DateTimeFormat().resolvedOptions().timeZone });
+    if (!state.settings.showSessionUsage) throw new Error("Session usage is off");
+    return report;
+  });
   ipcMain.handle("tokenflow:tray-editor-active", (event, active: boolean) => {
     checkSender(event);
     if (event.sender === settingsView?.webContents) {

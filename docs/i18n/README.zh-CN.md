@@ -159,6 +159,7 @@ tokenflow login --server-url https://tokenflow.renaissancemind.ai
 tokenflow login --server-url https://tokenflow.renaissancemind.ai --api-token tu_api_...
 tokenflow sync
 tokenflow status
+tokenflow sessions --days 7
 tokenflow update [--source @renaissancemind/tokenflow@latest|/path/to/TokenFlow]
 tokenflow logout
 ```
@@ -169,8 +170,11 @@ tokenflow logout
 | `login` | 关联浏览器授权的 device token，或保存已验证的 upload API token。 |
 | `sync` | 解析本地使用量，构建 UTC 半小时 bucket，上传并更新 `lastSyncAt`。 |
 | `status` | 打印本地配置、source 可用性、bucket 数量、认证状态和未计价模型。 |
+| `sessions` | 按会话和工作目录查看本机 Codex 的 token 用量和 API 费用估算。 |
 | `update` | 重新安装全局包并刷新自动同步调度器。 |
 | `logout` | 移除本地上传 token，同时保留非密钥配置。 |
+
+`tokenflow sessions` 默认查询本地时区中包含今天的最近七个日历日。加上 `--from YYYY-MM-DD --to YYYY-MM-DD` 可指定日期，`--json` 可输出完整明细。桌面端在「设置 → 偏好设置」打开「本机 Codex 会话用量」并保存，在 Dashboard 工具栏选择「Codex 会话」。会话标题、ID 和路径在本机读取。
 
 ## 计价模型
 

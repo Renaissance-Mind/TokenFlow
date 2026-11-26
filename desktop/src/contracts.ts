@@ -7,6 +7,7 @@ export interface Settings {
   deviceName: string;
   launchAtLogin: boolean;
   paused: boolean;
+  showSessionUsage: boolean;
   showTrayIcon: boolean;
   trayMetric: "cost" | "tokens" | "icon";
   trayRange: 1 | 7 | 30;

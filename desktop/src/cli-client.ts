@@ -6,7 +6,7 @@ import type { CliInstallation } from "./cli-installation.js";
 export class CliClient {
   private active = new Set<ChildProcessWithoutNullStreams>();
   private background: ReturnType<typeof spawn> | null = null;
-  constructor(public installation: CliInstallation, private fetcher: typeof fetch = fetch) {}
+  constructor(public installation: CliInstallation, private fetcher: typeof fetch = fetch, private bundledEntrypoint?: string) {}
   startBackground(onError: (error: Error) => void): void {
     if (this.background) return;
     const env = { ...process.env }; delete env.ELECTRON_RUN_AS_NODE;
@@ -29,9 +29,14 @@ export class CliClient {
     });
   }
   request<T = any>(action: string, params: Record<string, unknown> = {}, onPhase?: (phase: "scan" | "pricing" | "upload") => void, onProgress?: (progress: ScanProgress) => void): Promise<T> {
-    if (!this.installation.compatible) return Promise.reject(new Error("Upgrade the installed CLI in Settings to enable local statistics."));
+    const localSessionUsage = action === "session-usage";
+    const entrypoint = localSessionUsage && !(this.installation.compatible && this.installation.sessionUsage)
+      ? this.bundledEntrypoint : this.installation.entrypoint;
+    if (!entrypoint || (!this.installation.compatible && !localSessionUsage)) {
+      return Promise.reject(new Error("Upgrade the installed CLI in Settings to enable local statistics."));
+    }
     const env = { ...process.env }; delete env.ELECTRON_RUN_AS_NODE;
-    const child = spawn(this.installation.node, [this.installation.entrypoint, "desktop-service"], { env, stdio: "pipe", windowsHide: true });
+    const child = spawn(this.installation.node, [entrypoint, "desktop-service"], { env, stdio: "pipe", windowsHide: true });
     this.active.add(child);
     return new Promise<T>((resolve, reject) => {
       let settled = false; let result: T; let failure: Error | null = null;
@@ -60,7 +65,7 @@ export class CliClient {
         if (failure) reject(failure); else if (!settled || code !== 0) reject(new Error("CLI process stopped before completing the operation")); else resolve(result!);
       });
       child.stdin.on("error", () => {});
-      child.stdin.write(`${JSON.stringify({ action, params, proxyHttp: true })}\n`);
+      child.stdin.write(`${JSON.stringify({ action, params, proxyHttp: !localSessionUsage })}\n`);
     });
   }
   async stop(): Promise<void> {

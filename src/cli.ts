@@ -31,6 +31,7 @@ import {
 import { collectLocalUsage } from "./file-scan.js";
 import { installAutoSync } from "./scheduler.js";
 import { readPricingCatalog, refreshPricingCatalog } from "./server-pricing-catalog.js";
+import { formatSessionUsage, readCodexSessionUsage } from "./session-usage.js";
 import { formatStatus, type UnpricedModelStatus } from "./status.js";
 import {
   markSyncPlanUploaded,
@@ -44,7 +45,7 @@ import { desktopAction, runDesktopService } from "./desktop-service.js";
 import { initializeSqliteReader } from "./sources/store-io.js";
 import { aggregateEvents } from "./usage-buckets.js";
 
-type Command = "init" | "login" | "sync" | "status" | "device-name" | "update" | "logout" | "help";
+type Command = "init" | "login" | "sync" | "status" | "sessions" | "device-name" | "update" | "logout" | "help";
 
 export async function main(argv: string[]): Promise<void> {
   if (argv[0] === "desktop-service") return runDesktopService();
@@ -70,6 +71,7 @@ export async function main(argv: string[]): Promise<void> {
   if (command === "login") return cmdLogin(rest);
   if (command === "sync") return cmdSync(rest);
   if (command === "status") return cmdStatus();
+  if (command === "sessions") return cmdSessions(rest);
   if (command === "device-name") return cmdDeviceName(rest);
   if (command === "update") return cmdUpdate(rest);
   if (command === "logout") return cmdLogout();
@@ -228,6 +230,26 @@ async function cmdStatus(): Promise<void> {
   );
 }
 
+async function cmdSessions(argv: string[]): Promise<void> {
+  const options = parseOptions(argv);
+  if (options.help) {
+    process.stdout.write("Inspect local Codex session and project usage. Defaults to the last 7 calendar days in your time zone.\n" +
+      "Usage: tokenflow sessions [--days N | --from YYYY-MM-DD --to YYYY-MM-DD] [--time-zone IANA] [--json]\n");
+    return;
+  }
+  for (const key of ["days", "from", "to", "time-zone"]) {
+    if (options[key] === true) throw new Error(`--${key} requires a value`);
+  }
+  const days = optionString(options, "days");
+  const report = await readCodexSessionUsage({
+    days: days === undefined ? undefined : Number(days),
+    from: optionString(options, "from"),
+    to: optionString(options, "to"),
+    timeZone: optionString(options, "time-zone"),
+  });
+  process.stdout.write(options.json === true ? JSON.stringify(report, null, 2) + "\n" : formatSessionUsage(report));
+}
+
 async function cmdUpdate(argv: string[]): Promise<void> {
   const options = parseOptions(argv);
   const packageSpec = resolveUpdatePackageSpec(optionString(options, "source"));
@@ -269,7 +291,7 @@ async function cmdLogout(): Promise<void> {
 }
 
 function normalizeCommand(command: string): Command {
-  if (["init", "login", "sync", "status", "device-name", "update", "logout"].includes(command)) {
+  if (["init", "login", "sync", "status", "sessions", "device-name", "update", "logout"].includes(command)) {
     return command as Command;
   }
   return "help";
@@ -381,6 +403,7 @@ function printHelp(): void {
       "  tokenflow collect [--watch]",
       "  tokenflow sync",
       "  tokenflow status",
+      "  tokenflow sessions [--days N | --from YYYY-MM-DD --to YYYY-MM-DD] [--time-zone IANA] [--json]",
       "  tokenflow update [--source @renaissancemind/tokenflow@latest|/path/to/TokenFlow]",
       "  tokenflow logout",
       "",

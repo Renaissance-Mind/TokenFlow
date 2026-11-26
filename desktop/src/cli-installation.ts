@@ -12,6 +12,7 @@ export interface CliInstallation {
   packageDir: string;
   version: string;
   compatible: boolean;
+  sessionUsage?: boolean;
 }
 function compareVersions(a: string, b: string): number {
   const aa = a.split(".").map(Number), bb = b.split(".").map(Number);
@@ -38,7 +39,7 @@ export async function inspectCli(entrypoint: string, node: string, source: CliIn
     const packageDir = path.dirname(path.dirname(real));
     const pkg = JSON.parse(await fs.readFile(path.join(packageDir, "package.json"), "utf8"));
     if (!["@renaissancemind/tokenflow", "@renaissancemind/tokenusage"].includes(pkg.name)) return null;
-    return { source, entrypoint: real, node, packageDir, version: pkg.version,
+    return { source, entrypoint: real, node, packageDir, version: pkg.version, sessionUsage: pkg.tokenflow?.sessionUsage === 1,
       compatible: pkg.tokenflow?.desktopProtocol === 2 && pkg.tokenflow?.backgroundCollector === 1 && await fs.access(path.join(packageDir, "dist", "desktop-service.js")).then(() => true).catch(() => false) };
   } catch { return null; }
 }

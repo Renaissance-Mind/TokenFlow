@@ -64,6 +64,14 @@ export async function collectLocalUsage(home = process.env.TOKENFLOW_SCAN_HOME |
   return withSourceDiagnostics(() => withCollectionCache(home, async () => ({ ...await withScanTracker(tracker, () => collectUsage(home, tracker)), revision: collectionRevision() }), signal));
 }
 
+export async function collectCodexUsage(home: string, codexHome: string, signal?: AbortSignal): Promise<Pick<CollectionResult, "events" | "sources">> {
+  return withSourceDiagnostics(() => withCollectionCache(home, async () => {
+    const files = await listCodexRollouts(codexHome);
+    const events = await readCodexRollouts(files, await readCodexServiceTier(codexHome));
+    return { events, sources: applySourceIssues([await codexSourceStatus(codexHome, files)], [["codex", files]]) };
+  }, signal));
+}
+
 async function collectUsage(
   home: string,
   tracker?: ScanTracker,
@@ -114,16 +122,7 @@ async function collectUsage(
     planCopilot(home),
     planCline(home),
   ]);
-  const codexFiles: string[] = [];
-  const seenRollouts = new Set<string>();
-  for (const name of ["sessions", "archived_sessions"]) {
-    const root = path.join(codexHome, name);
-    for (const file of (await listFiles(root, isCodexRollout)).sort()) {
-      const key = plainRolloutPath(path.relative(root, file));
-      if (seenRollouts.has(key)) continue;
-      seenRollouts.add(key); codexFiles.push(file);
-    }
-  }
+  const codexFiles = await listCodexRollouts(codexHome);
   const claudeFiles = await listFilesForRoots(
     claudeRoots,
     (file) => file.endsWith(".jsonl"),
@@ -202,27 +201,7 @@ async function collectUsage(
     const events: UsageEvent[] = [];
     appendItems(events, dsh.events);
     for (const source of additional) appendItems(events, source.events);
-    const codexSessions: CodexSession[] = [];
-    for (const file of codexFiles) {
-      const result = await scanFile(file, () => cachedSource("codex-session", [file], async () => {
-        const create = (saved?: unknown) => createCodexJsonlParser({ sourcePath: plainRolloutPath(file), serviceTier: codexServiceTier,
-          compactionHistory: new Map(), useReplayPlan: true }, saved);
-        let result: { events: UsageEvent[]; state: unknown };
-        if (file.endsWith(".jsonl") && await fs.access(file).then(() => true, () => false)) {
-          result = await readIncrementalJsonl(file, create, codexServiceTier);
-        } else {
-          const parser = create();
-          for await (const line of codexRolloutLines(file, bytes => scannedBytes(file, bytes))) parser.pushLine(line);
-          const state = parser.snapshot();
-          result = { events: parser.finish(), state };
-        }
-        const state = result.state as CodexCheckpoint;
-        return { ...state.session || { id: plainRolloutPath(file) }, events: result.events,
-          compactions: state.compactions.filter(([id]) => state.compacted.includes(id)) };
-      }, codexServiceTier));
-      codexSessions.push({ ...result, compactions: new Map(result.compactions) });
-    }
-    appendItems(events, dedupeCodexSessions(codexSessions));
+    appendItems(events, await readCodexRollouts(codexFiles, codexServiceTier));
     for (const file of claudeFiles) {
       appendItems(events, await scanFile(file, () => readJsonlEvents(file, createClaudeJsonlParser), []));
     }
@@ -282,12 +261,7 @@ async function collectUsage(
           files: dsh.files.length,
           exists: dsh.roots.length > 0,
         },
-        {
-          agent: "codex",
-          path: path.join(codexHome, "sessions"),
-          files: codexFiles.length,
-          exists: await exists(path.join(codexHome, "sessions")),
-        },
+        await codexSourceStatus(codexHome, codexFiles),
         {
           agent: "claude",
           path: sourcePathLabel(claudeRoots, claudeCandidates),
@@ -400,6 +374,50 @@ async function collectUsage(
   const sources: SourceStatus[] = result.sources;
   const skippedFiles = new Set(sources.flatMap(source => source.skippedFiles || []));
   return { ...result, scannedFiles: allFiles.filter(file => !skippedFiles.has(file)) };
+}
+
+async function codexSourceStatus(codexHome: string, files: string[]): Promise<SourceStatus> {
+  const root = path.join(codexHome, "sessions");
+  return { agent: "codex", path: root, files: files.length, exists: await exists(root) };
+}
+
+async function listCodexRollouts(codexHome: string): Promise<string[]> {
+  const files: string[] = [];
+  const seen = new Set<string>();
+  for (const name of ["sessions", "archived_sessions"]) {
+    const root = path.join(codexHome, name);
+    for (const file of (await listFiles(root, isCodexRollout)).sort()) {
+      const key = plainRolloutPath(path.relative(root, file));
+      if (seen.has(key)) continue;
+      seen.add(key);
+      files.push(file);
+    }
+  }
+  return files;
+}
+
+async function readCodexRollouts(files: string[], serviceTier: Awaited<ReturnType<typeof readCodexServiceTier>>): Promise<UsageEvent[]> {
+  const sessions: CodexSession[] = [];
+  for (const file of files) {
+    const result = await scanFile(file, () => cachedSource("codex-session", [file], async () => {
+      const create = (saved?: unknown) => createCodexJsonlParser({ sourcePath: plainRolloutPath(file), serviceTier,
+        compactionHistory: new Map(), useReplayPlan: true }, saved);
+      let result: { events: UsageEvent[]; state: unknown };
+      if (file.endsWith(".jsonl") && await fs.access(file).then(() => true, () => false)) {
+        result = await readIncrementalJsonl(file, create, serviceTier);
+      } else {
+        const parser = create();
+        for await (const line of codexRolloutLines(file, bytes => scannedBytes(file, bytes))) parser.pushLine(line);
+        const state = parser.snapshot();
+        result = { events: parser.finish(), state };
+      }
+      const state = result.state as CodexCheckpoint;
+      return { ...state.session || { id: plainRolloutPath(file) }, events: result.events,
+        compactions: state.compactions.filter(([id]) => state.compacted.includes(id)) };
+    }, serviceTier));
+    sessions.push({ ...result, compactions: new Map(result.compactions) });
+  }
+  return dedupeCodexSessions(sessions);
 }
 
 async function readCodexServiceTier(codexHome: string): Promise<"standard" | "fast" | "priority" | "flex"> {

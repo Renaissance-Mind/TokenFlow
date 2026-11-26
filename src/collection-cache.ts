@@ -6,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { lock } from "proper-lockfile";
 import { tokenUsageDir } from "./config.js";
+import type { CollectionResult } from "./file-scan.js";
 import { pruneLegacyCollectionResults } from "./legacy-collection-results.js";
 import { physicalSourcePath, restoreSourceIssues, sourceIssueMarker, sourceIssuesSince, type SourceIssue } from "./source-input.js";
 
@@ -59,6 +60,11 @@ async function readEntry<T>(file: string, key: string, inputDigest?: Buffer): Pr
     }
     bytes = await handle.readFile();
   } finally { await handle.close(); }
+  const entry = decodeEntry<T>(bytes);
+  if (entry?.key === key) return entry;
+}
+
+function decodeEntry<T>(bytes: Buffer): Entry<T> | undefined {
   const payload = bytes.subarray(32);
   if (!payload.length || !createHash("sha256").update(payload).digest().equals(bytes.subarray(0, 32))) return;
   let entry: Entry<T>;
@@ -67,7 +73,32 @@ async function readEntry<T>(file: string, key: string, inputDigest?: Buffer): Pr
     if (!(error instanceof Error) || !/deserializ|version|buffer/i.test(error.message)) throw error;
     return;
   }
-  if (entry?.key === key && Array.isArray(entry.files) && "value" in entry) return entry;
+  if (typeof entry?.key === "string" && Array.isArray(entry.files) && "value" in entry) return entry;
+}
+
+export async function readCollectionSnapshot(home: string, codexHome: string): Promise<{ collection: CollectionResult; scannedAt: string } | undefined> {
+  const file = path.join(tokenUsageDir(home), "collection-cache", RESULT_FILE);
+  const handle = await fs.open(file, "r").catch((error: NodeJS.ErrnoException) => {
+    if (error.code === "ENOENT") return null;
+    throw error;
+  });
+  if (!handle) return;
+  try {
+    const stat = await handle.stat();
+    if (stat.size > MAX_RESULT_BYTES) return;
+    // Each result is replaced atomically. The input digest is for validating
+    // a cache hit; a report reads the last completed result from this inode.
+    const inputDigest = Buffer.alloc(32);
+    if ((await handle.read(inputDigest)).bytesRead !== inputDigest.length) return;
+    const entry = decodeEntry<CollectionResult>(await handle.readFile());
+    if (!entry) return;
+    const [kind, , settings] = JSON.parse(entry.key);
+    if (kind !== "collection-result" || settings?.home !== home || settings?.codexHome !== codexHome) return;
+    const collection = entry.value;
+    if (Array.isArray(collection?.events) && Array.isArray(collection.sources) && Array.isArray(collection.pricingProfiles)) {
+      return { collection, scannedAt: stat.mtime.toISOString() };
+    }
+  } finally { await handle.close(); }
 }
 
 async function writeEntry<T>(file: string, entry: Entry<T>, inputDigest?: Buffer, signal?: AbortSignal): Promise<boolean> {

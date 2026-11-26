@@ -2,12 +2,14 @@
 import {renderProgress} from './progress.js';
 import {renderWindowChrome} from './window-chrome.js';
 import {createLoginDialog} from './login-dialog.js';
+import {createSessionUsage} from './session-usage.js';
 if (new URLSearchParams(location.search).get('mode') === 'tray') {
   if (new URLSearchParams(location.search).get('editor') === '1') await import('./editor-preview.js');
   await import('./tray.js');
 } else {
 let latest, started=false, revision='', refreshing=false, pending=false, dataReady=false, loadError='';
 const loginDialog=createLoginDialog();
+const sessionUsage=createSessionUsage((from,to)=>window.tokenflow.sessionUsage(from,to));
 const $=id=>document.getElementById(id);
 const reportsVisible=state=>!!state && !state.settingsOpen && (state.reportViewVisible ?? (document.visibilityState==='visible'));
 const dataContext=state=>[state.dashboardSource,state.settings.serverUrl,state.account?.id].join('|');
@@ -55,7 +57,7 @@ function update(state){
   document.body.setAttribute('aria-hidden',String(state.settingsOpen));
   const previous=latest;latest=state;
   if(previous && dataContext(previous)!==dataContext(state)){dataReady=false;started=false;}
-  loginDialog.update(state);activity();
+  loginDialog.update(state);sessionUsage.update(state);activity();
   if(!previous||previous.settings.language!==state.settings.language)window.tokenflowDashboard.language(state.settings.language);
   const key=[state.dashboardSource,state.dashboardRevision,state.reportingDate,state.reportingTimeZone,state.dashboardSource==='local'?state.localUsageRevision:'',state.settings.serverUrl,state.account?.id].join('|');
   if(key!==revision&&reportsVisible(state)){revision=key;void refresh();}

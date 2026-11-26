@@ -280,7 +280,7 @@ function fastTotalsFromBucket(bucket: UsageBucket): UsageTotals {
     totalTokens: bucket.fastInputTokens || 0,
   };
 }
-function addUsdStrings(left: string | undefined, right: string | undefined): string | undefined {
+export function addUsdStrings(left: string | undefined, right: string | undefined): string | undefined {
   if (!right) return left;
   if (!left) return normalizeUsdString(right);
   return formatMicroUsd(parseUsdToMicro(left) + parseUsdToMicro(right));
