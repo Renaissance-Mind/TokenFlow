@@ -301,11 +301,11 @@ describe("ccusage-compatible adapter parsers", () => {
       sessionId: "session-1",
       timestamp: "2025-06-15T15:06:40.250Z",
       inputTokens: 1200,
-      outputTokens: 300,
+      outputTokens: 290,
       cachedInputTokens: 50,
       cacheCreationTokens: 20,
       reasoningOutputTokens: 10,
-      totalTokens: 1580,
+      totalTokens: 1570,
       recordedCostUsd: "0.34",
     });
   });
@@ -329,12 +329,12 @@ describe("ccusage-compatible adapter parsers", () => {
     expect(event).toMatchObject({
       agent: "hermes",
       model: "gpt-5.5",
-      totalTokens: 1110,
+      totalTokens: 1100,
     });
     expect(event?.recordedCostUsd).toBeUndefined();
   });
 
-  it("reads Kilo assistant messages from SQLite rows", () => {
+  it.each([[0.02, "0.02"], [0, undefined]])("reads Kilo assistant messages with recorded cost %s", (cost, recordedCostUsd) => {
     const event = parseKiloMessageRow(
       {
         id: "row-1",
@@ -346,7 +346,7 @@ describe("ccusage-compatible adapter parsers", () => {
           modelID: "claude-sonnet-4-20250514",
           time: { created: 1767312000000 },
           tokens: { input: 100, output: 50, reasoning: 5, cache: { read: 10, write: 20 } },
-          cost: 0.02,
+          cost,
         }),
       },
       "/tmp/kilo.db",
@@ -363,7 +363,7 @@ describe("ccusage-compatible adapter parsers", () => {
       cacheCreationTokens: 20,
       cachedInputTokens: 10,
       totalTokens: 185,
-      recordedCostUsd: "0.02",
     });
+    expect(event?.recordedCostUsd).toBe(recordedCostUsd);
   });
 });

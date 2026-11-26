@@ -43,6 +43,22 @@ describe("Copilot native local sources", () => {
     expect(payload).not.toContain("session-a");
     expect(payload).toContain("recorded_cost_usd");
   });
+  it("reconciles split OTel exports and attributes them to the trace model", async () => {
+    const r = await home();
+    const otel = path.join(r, ".copilot/otel");
+    await fs.mkdir(otel, { recursive: true });
+    const attributes = {
+      "gen_ai.conversation.id": "s",
+      "gen_ai.response.id": "response-1",
+      "gen_ai.usage.input_tokens": 1,
+    };
+    const span = { type: "span", traceId: "trace-1", spanId: "span-1", name: "chat", attributes: { ...attributes, "gen_ai.operation.name": "chat" } };
+    await fs.writeFile(path.join(otel, "a.jsonl"), JSON.stringify({ ...span, endTime: "2026-01-02T09:00:00Z" }));
+    await fs.writeFile(path.join(otel, "b.jsonl"), JSON.stringify({ ...span, endTime: "2026-01-02T09:05:00Z", attributes: { ...span.attributes, "gen_ai.response.model": "gpt-5.4" } }));
+    const { events } = await collectCopilot(r);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ model: "gpt-5.4", sessionId: "s", timestamp: "2026-01-02T09:00:00.000Z", inputTokens: 1 });
+  });
   it("only reports unexplained credits that remain unexplained in all future shutdowns", async () => {
     const r = await home();
     await write(r, [checkpoint("c", "2026-01-02T09:00:00Z", 51), shutdown("s1", "2026-01-02T10:00:00Z", 93, 42), shutdown("s2", "2026-01-03T10:00:00Z", 93, 93)]);

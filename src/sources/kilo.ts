@@ -37,7 +37,7 @@ export function parseKiloMessageRow(row: KiloMessageRow, sourcePath = "kilo.db")
     cacheCreationTokens: token(cache?.write),
     cachedInputTokens: token(cache?.read),
     totalTokens: token(tokens.total),
-    recordedCostUsd: optionalDecimalString(value.cost),
+    recordedCostUsd: Number(value.cost) > 0 ? optionalDecimalString(value.cost) : undefined,
   });
 }
 

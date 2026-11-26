@@ -137,7 +137,12 @@ function otelTimestamp(row: Record<string, unknown>, fallback: string): string {
   return "";
 }
 
-function otelRows(rows: Record<string, unknown>[], file: string, fallback: string): Entry[] {
+interface OtelFile {
+  file: string;
+  rows: Record<string, unknown>[];
+  fallback: string;
+}
+function otelRows(files: OtelFile[]): Entry[] {
   const contexts = new Map<string, { model?: string; session?: string; priority: number }>();
   const sessionKeys = ["gen_ai.conversation.id", "copilot_chat.session_id", "copilot_chat.chat_session_id", "session.id", "github.copilot.interaction_id", "gen_ai.response.id"];
   const metadata = (row: Record<string, unknown>) => {
@@ -147,13 +152,16 @@ function otelRows(rows: Record<string, unknown>[], file: string, fallback: strin
     const key = [...sessionKeys.slice(0, 4).reverse(), ...sessionKeys.slice(4)].find(k => stringField(a, k));
     return { a, trace, model, session: key ? String(a[key]) : undefined, priority: key ? key === "gen_ai.response.id" ? 1 : key === "github.copilot.interaction_id" ? 2 : 3 : 0 };
   };
-  for (const row of rows) {
-    const m = metadata(row); if (!m.trace) continue;
-    const old = contexts.get(m.trace) || { priority: 0 };
-    contexts.set(m.trace, { model: old.model || m.model, session: m.priority > old.priority ? m.session : old.session, priority: Math.max(m.priority, old.priority) });
+  for (const { rows } of files) {
+    for (const row of rows) {
+      const m = metadata(row);
+      if (!m.trace) continue;
+      const old = contexts.get(m.trace) || { priority: 0 };
+      contexts.set(m.trace, { model: old.model || m.model, session: m.priority > old.priority ? m.session : old.session, priority: Math.max(m.priority, old.priority) });
+    }
   }
   const entries: Entry[] = [];
-  rows.forEach((row, index) => {
+  for (const { file, rows, fallback } of files) rows.forEach((row, index) => {
     const m = metadata(row), a = m.a;
     const span = row.type ? row.type === "span" : !!(row.name && (row.spanId || row.traceId || row.startTime || row.endTime || row.duration || row.kind));
     const name = String(row.name || ""), body = String(row.body || row._body || "");
@@ -163,12 +171,12 @@ function otelRows(rows: Record<string, unknown>[], file: string, fallback: strin
       : span && (a["gen_ai.operation.name"] === "invoke_agent" || name.startsWith("invoke_agent ")) ? 3 : -1;
     if (rank < 0) return;
     const context = m.trace ? contexts.get(m.trace) : undefined;
-    const session = m.session || context?.session || m.trace || "unknown-session";
+    const session = context && context.priority > m.priority ? context.session : m.session || context?.session;
     const model = normalizeModel(m.model || context?.model || "unknown");
     const cached = nonNegativeInt(a["gen_ai.usage.cache_read.input_tokens"]);
     const created = nonNegativeInt(a["gen_ai.usage.cache_write.input_tokens"]) || nonNegativeInt(a["gen_ai.usage.cache_creation.input_tokens"]);
     const timestamp = otelTimestamp(row, fallback);
-    const event = makeUsageEvent({ agent: "copilot", model, sessionId: session, sourcePath: file, timestamp,
+    const event = makeUsageEvent({ agent: "copilot", model, sessionId: session || m.trace || "unknown-session", sourcePath: file, timestamp,
       inputTokens: Math.max(0, nonNegativeInt(a["gen_ai.usage.input_tokens"]) - cached - created), cachedInputTokens: cached,
       cacheCreationTokens: created, outputTokens: nonNegativeInt(a["gen_ai.usage.output_tokens"]),
       totalTokens: nonNegativeInt(a["gen_ai.usage.total_tokens"]) || nonNegativeInt(a["gen_ai.usage.total.token_count"]) });
@@ -184,7 +192,15 @@ function otelRows(rows: Record<string, unknown>[], file: string, fallback: strin
 
 function unique<T extends { key: string }>(rows: T[]): T[] { return [...new Map(rows.map(row => [row.key, row])).values()]; }
 function reconcile(native: Entry[], otel: Entry[], credits: Credit[], records: Entry[]): UsageEvent[] {
-  const calls = unique(otel).sort((a, b) => time(a.event) - time(b.event));
+  const exportedCalls = new Map<string, Entry>();
+  for (const call of otel.sort((a, b) => time(a.event) - time(b.event))) {
+    const earlier = exportedCalls.get(call.key);
+    if (earlier) {
+      earlier.serviceRequest ??= call.serviceRequest;
+      earlier.response ??= call.response;
+    } else exportedCalls.set(call.key, call);
+  }
+  const calls = [...exportedCalls.values()];
   const seenChat = new Set<string>();
   const retained = calls.filter(call => {
     if (call.rank === 0 && call.response) {
@@ -351,7 +367,7 @@ export async function planCopilot(home: string) {
     files: [...nativeFiles, ...new Set(otelFiles)],
     collect: async () => {
       const native: Entry[] = [],
-        otel: Entry[] = [],
+        telemetry: OtelFile[] = [],
         records: Entry[] = [],
         credits: Credit[] = [];
       for (const file of nativeFiles) {
@@ -360,13 +376,15 @@ export async function planCopilot(home: string) {
         if (!parsed.covered || !parsed.unproven && parsed.credits.some(snapshot => snapshot.watermark !== undefined)) appendItems(credits, parsed.credits);
         appendItems(records, parsed.records);
       }
-      for (const file of new Set(otelFiles))
-        appendItems(otel, await scanFile(file, () => cachedSource("copilot-otel", [file], async () => {
+      for (const file of [...new Set(otelFiles)].sort()) {
+        const parsed = await scanFile(file, () => cachedSource("copilot-otel", [file], async () => {
           const result = await readIncrementalJsonl(file, saved => copilotParser(file, true, saved));
-          return otelRows((result.state as {rows:Record<string,unknown>[]}).rows, file, (await fs.stat(file)).mtime.toISOString());
-        })));
+          return { file, rows: (result.state as CopilotState).rows, fallback: (await fs.stat(file)).mtime.toISOString() };
+        }));
+        telemetry.push(parsed);
+      }
       return {
-        events: reconcile(native, otel, credits, records),
+        events: reconcile(native, otelRows(telemetry), credits, records),
         source: {
           agent: "copilot" as const,
           path: root,

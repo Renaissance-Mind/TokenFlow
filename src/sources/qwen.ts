@@ -2,7 +2,7 @@ import path from "node:path";
 
 import { normalizeAgentModelForUsage } from "../pricing.js";
 import { toUtcHalfHourStart } from "../time.js";
-import { applyTotalTokenFallback, isZeroUsage, nonNegativeInt } from "../token-totals.js";
+import { isZeroUsage, nonNegativeInt } from "../token-totals.js";
 import type { UsageEvent } from "../types.js";
 import { reportSourceIssue } from "../source-input.js";
 
@@ -40,17 +40,26 @@ export function createQwenChatJsonlParser(options: ParseOptions, saved?: unknown
       if (!timestamp || !bucketStart) { reportSourceIssue(options.sourcePath, "invalid usage timestamp"); return; }
 
       const model = normalizeAgentModelForUsage("qwen", stringField(parsed, "model") || "unknown");
-      const totals = applyTotalTokenFallback(
-        {
-          inputTokens: nonNegativeInt(usage.promptTokenCount),
-          cachedInputTokens: nonNegativeInt(usage.cachedContentTokenCount),
-          outputTokens: nonNegativeInt(usage.candidatesTokenCount),
-          reasoningOutputTokens: nonNegativeInt(usage.thoughtsTokenCount),
-          cacheCreationTokens: 0,
-          totalTokens: 0,
-        },
-        nonNegativeInt(usage.totalTokenCount),
-      );
+      const prompt = nonNegativeInt(usage.promptTokenCount);
+      const reportedTotal = nonNegativeInt(usage.totalTokenCount);
+      const cached = Math.min(prompt, nonNegativeInt(usage.cachedContentTokenCount));
+      const thoughts = nonNegativeInt(usage.thoughtsTokenCount);
+      const hasPrompt = usage.promptTokenCount != null;
+      const hasCandidates = usage.candidatesTokenCount != null;
+      const candidates = nonNegativeInt(usage.candidatesTokenCount);
+      let output = hasCandidates ? candidates : hasPrompt ? Math.max(0, reportedTotal - prompt) : 0;
+      if (hasCandidates && reportedTotal > prompt) output = Math.min(output, reportedTotal - prompt);
+      const residual = Math.max(0, reportedTotal - prompt - output);
+      const reasoning = !hasCandidates && reportedTotal === 0 ? thoughts : Math.min(thoughts, residual);
+      const totals = {
+        inputTokens: prompt - cached,
+        cachedInputTokens: cached,
+        outputTokens: output,
+        reasoningOutputTokens: reasoning,
+        extraTotalTokens: Math.max(0, residual - reasoning),
+        cacheCreationTokens: 0,
+        totalTokens: Math.max(reportedTotal, prompt + output + reasoning),
+      };
       if (isZeroUsage(totals)) return;
 
       events.push({

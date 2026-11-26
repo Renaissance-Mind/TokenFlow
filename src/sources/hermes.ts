@@ -30,13 +30,12 @@ export function parseHermesSessionRow(row: HermesSessionRow, sourcePath = "state
   const outputTokens = numberToNonNegativeInt(row.output_tokens);
   const cachedInputTokens = numberToNonNegativeInt(row.cache_read_tokens);
   const cacheCreationTokens = numberToNonNegativeInt(row.cache_write_tokens);
-  const reasoningOutputTokens = numberToNonNegativeInt(row.reasoning_tokens);
+  const reasoningOutputTokens = Math.min(outputTokens, numberToNonNegativeInt(row.reasoning_tokens));
   if (
     inputTokens === 0 &&
     outputTokens === 0 &&
     cachedInputTokens === 0 &&
     cacheCreationTokens === 0 &&
-    reasoningOutputTokens === 0 &&
     !recordedCostUsd
   ) {
     return null;
@@ -49,7 +48,7 @@ export function parseHermesSessionRow(row: HermesSessionRow, sourcePath = "state
     sourcePath,
     timestamp: timestampFromValue(row.started_at),
     inputTokens,
-    outputTokens,
+    outputTokens: outputTokens - reasoningOutputTokens,
     cachedInputTokens,
     cacheCreationTokens,
     reasoningOutputTokens,

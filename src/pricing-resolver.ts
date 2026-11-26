@@ -78,6 +78,13 @@ export function resolveCatalogPricing<T extends ResolverProfile>(model: string |
     return [...new Set([raw, ...(alias ? [raw.slice(0, raw.length - segment.length) + alias] : []), raw.toLowerCase(), ...(raw.endsWith("-build") ? [raw.slice(0, -6)] : [])])];
   });
   for (const name of names) { const found = authoritative(index, name, true); if (found) return found; }
+  for (const model of models) {
+    const raw = model.trim().replace(/\[1m\]$/i, "");
+    if (!index.secondaryNames.has(identity(raw))) {
+      const retired = first(index.supplementalNames.get(identity(raw)), raw, row => row.exactOnly === true);
+      if (retired) return retired;
+    }
+  }
   for (const name of names) {
     for (const suffix of suffixes(name)) { const found = authoritative(index, suffix, false, row => !free(row)); if (found) return found; }
     const found = first(index.secondaryNames.get(identity(name)), name); if (found) return found;

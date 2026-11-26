@@ -13,6 +13,7 @@ import type { UsageEvent } from "./types.js";
 // Bump with accounting/parser fixes. A new revision forces historical uploads;
 // the server permits decreases only with complete, non-truncated source coverage.
 export const ACCOUNTING_REVISION = 1;
+const AGENTS_WITH_REVISED_ACCOUNTING = new Set(["antigravity", "copilot", "hermes", "kilo", "qwen"]);
 export interface SourceProof { id: string; bytes: number; digest: string; prefix_bytes?: number; prefix_digest?: string; revision?: number; daily?: UsageSnapshotDay[] }
 export interface Coverage { agent: string; day: string; revision: number; sources: Array<SourceProof> }
 export interface CoverageState { revision: number; scopes: Coverage[] }
@@ -118,7 +119,7 @@ export function coverageFromSources(events: UsageEvent[], sources: Map<string, S
     if (sources.has(id)) scope.ids.add(id); else scope.unknown = true;
   }
   return [...scopes.values()].filter(scope => !scope.unknown && scope.ids.size).map(scope => {
-    const revision = scope.agent === "antigravity" ? 2 : ACCOUNTING_REVISION;
+    const revision = AGENTS_WITH_REVISED_ACCOUNTING.has(scope.agent) ? 2 : ACCOUNTING_REVISION;
     return {
       agent: scope.agent, day: scope.day, revision,
       sources: [...scope.ids].sort().map(id => ({ ...sources.get(id)!, revision,

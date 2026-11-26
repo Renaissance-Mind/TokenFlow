@@ -18,7 +18,7 @@ export function calculateCost(
     ? Math.max(0, totals.inputTokens - totals.cachedInputTokens - cacheCreationInputTokens)
     : totals.inputTokens;
   const billableOutputTokens =
-    totals.outputTokens + totals.reasoningOutputTokens + (totals.extraTotalTokens || 0);
+    totals.outputTokens + totals.reasoningOutputTokens + (agent === "qwen" ? 0 : totals.extraTotalTokens || 0);
 
   const longContext = pricing.longContextThresholdTokens
     ? longContextTotals(agent, totals, pricing.longContextThresholdTokens)
@@ -164,7 +164,7 @@ function longContextTotals(
       ? Math.max(0, inputTokens - cachedInputTokens - longCacheCreationInputTokens)
       : inputTokens,
     cachedInputTokens,
-    billableOutputTokens: outputTokens + reasoningOutputTokens + extraTotalTokens,
+    billableOutputTokens: outputTokens + reasoningOutputTokens + (agent === "qwen" ? 0 : extraTotalTokens),
     cacheCreationTokens,
     cacheCreation5mTokens,
     cacheCreation1hTokens,
